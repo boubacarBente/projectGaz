@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "code": "B3",
+    "name": "Petite bouteille",
+    "capacity": "3 kg",
+    "unitPrice": 28750,
+    "isActive": true,
+    "createdAt": "2026-03-22T00:00:00.000Z",
+    "updatedAt": "2026-03-22T00:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "code": "B6",
+    "name": "Moyenne bouteille",
+    "capacity": "6 kg",
+    "unitPrice": 51500,
+    "isActive": true,
+    "createdAt": "2026-03-22T00:00:00.000Z",
+    "updatedAt": "2026-03-22T00:00:00.000Z"
+  },
+  {
+    "id": 3,
+    "code": "B9",
+    "name": "Grande bouteille",
+    "capacity": "9 kg",
+    "unitPrice": 77250,
+    "isActive": true,
+    "createdAt": "2026-03-22T00:00:00.000Z",
+    "updatedAt": "2026-03-22T00:00:00.000Z"
+  },
+  {
+    "id": 4,
+    "code": "B12",
+    "name": "Tres grande bouteille",
+    "capacity": "12 kg",
+    "unitPrice": 107200,
+    "isActive": true,
+    "createdAt": "2026-03-22T00:00:00.000Z",
+    "updatedAt": "2026-03-22T00:00:00.000Z"
+  },
+  {
+    "id": 5,
+    "code": "B36",
+    "name": "Bouteille industrielle",
+    "capacity": "36 kg",
+    "unitPrice": 317300,
+    "isActive": true,
+    "createdAt": "2026-03-22T00:00:00.000Z",
+    "updatedAt": "2026-03-22T00:00:00.000Z"
+  },
+  {
+    "id": 6,
+    "code": "B48",
+    "name": "Grande bouteille industrielle",
+    "capacity": "48 kg",
+    "unitPrice": 508073,
+    "isActive": true,
+    "createdAt": "2026-03-22T00:00:00.000Z",
+    "updatedAt": "2026-03-27T18:59:36.378Z"
+  }
+]
