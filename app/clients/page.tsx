@@ -100,7 +100,7 @@ export default function ClientsPage() {
             onClick={() => setShowAddModal(true)}
             className="rounded-full bg-sky-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-800"
           >
-            + Nouveau client
+            + Nouveau client modifié
           </button>
         }
       />
