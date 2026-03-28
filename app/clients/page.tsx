@@ -28,6 +28,7 @@ type CustomerType = {
 };
 
 export default function ClientsPage() {
+  // Client management page
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
   const [search, setSearch] = useState('');
