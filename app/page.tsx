@@ -24,6 +24,11 @@ export default async function HomePage() {
       hint: "Total des factures de vente saisies.",
     },
     {
+      label: "Nombres des clients",
+      value: '0',
+      hint: "Nombres de clients total.",
+    },
+    {
       label: "Benefice brut",
       value: `${formatCurrency(snapshot.grossProfit)} GNF`,
       hint: "Calcul initial: ventes moins achats usine.",
