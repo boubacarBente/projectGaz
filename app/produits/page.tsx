@@ -1,382 +1,195 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { PageHeader } from '@/components/page-header';
-import { SurfaceCard } from '@/components/surface-card';
 
 interface Product {
   id: number;
   code: string;
   name: string;
   capacity: string;
-  unit_price: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  unitPrice: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 }).format(value);
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-function ProductCreateForm({ onSuccess, onError }: { onSuccess: () => void; onError: (msg: string) => void }) {
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
-    
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      code: formData.get('code') as string,
-      name: formData.get('name') as string,
-      capacity: formData.get('capacity') as string,
-      unitPrice: parseFloat(formData.get('unitPrice') as string),
-      isActive: formData.get('isActive') === 'on',
-    };
-
-    try {
-      const res = await fetch('/api/produits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Erreur lors de la création');
-      }
-      
-      (e.target as HTMLFormElement).reset();
-      onSuccess();
-    } catch (err: any) {
-      onError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
+function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+  if (!isOpen) return null;
+  const sizeClasses = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          Code produit
-          <input
-            type="text"
-            name="code"
-            placeholder="B12"
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-            required
-          />
-        </label>
-
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          Capacité
-          <input
-            type="text"
-            name="capacity"
-            placeholder="12 kg"
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-            required
-          />
-        </label>
+    <div className="modal modal-open">
+      <div className={`modal-box ${sizeClasses[size]} w-full`}>
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+          <h3 className="text-lg font-bold">{title}</h3>
+          <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost">✕</button>
+        </div>
+        <div className="py-4">{children}</div>
       </div>
-
-      <label className="grid gap-2 text-sm font-medium text-slate-700">
-        Désignation
-        <input
-          type="text"
-          name="name"
-          placeholder="Très grande bouteille"
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-          required
-        />
-      </label>
-
-      <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          Prix unitaire (MAD)
-          <input
-            type="number"
-            min="1"
-            step="1"
-            name="unitPrice"
-            placeholder="107200"
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-            required
-          />
-        </label>
-
-        <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-          <input
-            type="checkbox"
-            name="isActive"
-            defaultChecked
-            className="h-4 w-4 rounded border-slate-300"
-          />
-          Produit actif
-        </label>
-      </div>
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="inline-flex w-fit rounded-full bg-sky-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:opacity-50"
-      >
-        {loading ? 'Création...' : 'Ajouter le produit'}
-      </button>
-    </form>
+      <div className="modal-backdrop" onClick={onClose} />
+    </div>
   );
 }
 
-function ProductRowForm({ product, onSuccess, onError }: { product: Product; onSuccess: () => void; onError: (msg: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    code: product.code,
-    name: product.name,
-    capacity: product.capacity,
-    unitPrice: product.unit_price,
-    isActive: product.is_active,
-  });
-
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/produits/${product.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Erreur lors de la mise à jour');
-      }
-      
-      setEditing(false);
-      onSuccess();
-    } catch (err: any) {
-      onError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) return;
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/produits/${product.id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Erreur lors de la suppression');
-      }
-      
-      onSuccess();
-    } catch (err: any) {
-      onError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (editing) {
-    return (
-      <article className="rounded-3xl border border-sky-300 bg-white p-5 shadow-sm shadow-slate-200/60">
-        <form onSubmit={handleUpdate} className="grid gap-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Code
-              <input
-                type="text"
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value })}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-                required
-              />
-            </label>
-
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Capacité
-              <input
-                type="text"
-                value={form.capacity}
-                onChange={(e) => setForm({ ...form, capacity: e.target.value })}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-                required
-              />
-            </label>
-          </div>
-
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
-            Désignation
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-              required
-            />
-          </label>
-
-          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Prix unitaire (MAD)
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={form.unitPrice}
-                onChange={(e) => setForm({ ...form, unitPrice: parseFloat(e.target.value) })}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-                required
-              />
-            </label>
-
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              Produit actif
-            </label>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-            <p className="text-sm text-slate-500">
-              Prix actuel: {formatCurrency(product.unit_price)}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:opacity-50"
-              >
-                Enregistrer
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </form>
-      </article>
-    );
-  }
-
-  return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-lg font-semibold text-slate-950">{product.code}</p>
-          <p className="text-sm text-slate-500">
-            Créé le {new Date(product.created_at).toLocaleDateString('fr-FR')}
-          </p>
-        </div>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${
-            product.is_active
-              ? 'bg-emerald-100 text-emerald-800'
-              : 'bg-slate-200 text-slate-700'
-          }`}
-        >
-          {product.is_active ? 'Actif' : 'Inactif'}
-        </span>
-      </div>
-
-      <div className="mb-4 grid gap-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-slate-500">Désignation:</span>
-          <span className="font-medium text-slate-700">{product.name}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500">Capacité:</span>
-          <span className="font-medium text-slate-700">{product.capacity}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500">Prix:</span>
-          <span className="font-semibold text-sky-700">{formatCurrency(product.unit_price)}</span>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-        <p className="text-sm text-slate-500">
-          Prix actuel: {formatCurrency(product.unit_price)}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setEditing(true)}
-            className="rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800"
-          >
-            Modifier
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={loading}
-            className="rounded-full border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-          >
-            Supprimer
-          </button>
-        </div>
-      </div>
-    </article>
-  );
+interface ProductFormData {
+  code: string;
+  name: string;
+  capacity: string;
+  unitPrice: string;
+  isActive: boolean;
 }
+
+const initialFormData: ProductFormData = {
+  code: '',
+  name: '',
+  capacity: '',
+  unitPrice: '',
+  isActive: true,
+};
 
 export default function ProduitsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  async function fetchProducts() {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/produits');
-      if (!res.ok) throw new Error('Erreur lors du chargement');
-      const data = await res.json();
-      setProducts(data);
-    } catch (err) {
-      setError('Erreur lors du chargement des produits');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState<ProductFormData>(initialFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  function handleSuccess(msg: string) {
-    setSuccess(msg);
-    setError(null);
-    fetchProducts();
-    setTimeout(() => setSuccess(null), 3000);
-  }
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/produits');
+      const data = await res.json();
+      setProducts(data);
+    } catch {
+      toast.error('Erreur lors du chargement des produits');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  function handleError(msg: string) {
-    setError(msg);
-    setSuccess(null);
-    setTimeout(() => setError(null), 5000);
-  }
+  const resetForm = () => setFormData(initialFormData);
 
-  const activeProducts = products.filter((p) => p.is_active).length;
-  const averagePrice = products.length > 0
-    ? Math.round(products.reduce((sum, p) => sum + p.unit_price, 0) / products.length)
-    : 0;
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/produits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: formData.code,
+          name: formData.name,
+          capacity: formData.capacity,
+          unitPrice: parseFloat(formData.unitPrice),
+          isActive: formData.isActive,
+        }),
+      });
+      if (!res.ok) throw new Error('Erreur');
+      toast.success('Produit ajouté avec succès!');
+      setShowAddModal(false);
+      resetForm();
+      fetchProducts();
+    } catch {
+      toast.error('Erreur lors de la création');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/produits/${selectedProduct.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: formData.code,
+          name: formData.name,
+          capacity: formData.capacity,
+          unitPrice: parseFloat(formData.unitPrice),
+          isActive: formData.isActive,
+        }),
+      });
+      if (!res.ok) throw new Error('Erreur');
+      toast.success('Produit modifié avec succès!');
+      setShowEditModal(false);
+      setSelectedProduct(null);
+      resetForm();
+      fetchProducts();
+    } catch {
+      toast.error('Erreur lors de la modification');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!selectedProduct) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/produits/${selectedProduct.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Erreur');
+      toast.success('Produit supprimé avec succès!');
+      setShowDeleteModal(false);
+      setSelectedProduct(null);
+      fetchProducts();
+    } catch {
+      toast.error('Erreur lors de la suppression');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEditModal = (product: Product) => {
+    setSelectedProduct(product);
+    setFormData({
+      code: product.code,
+      name: product.name,
+      capacity: product.capacity,
+      unitPrice: product.unitPrice.toString(),
+      isActive: product.isActive,
+    });
+    setShowEditModal(true);
+  };
+
+  const openDeleteModal = (product: Product) => {
+    setSelectedProduct(product);
+    setShowDeleteModal(true);
+  };
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('fr-MA', {
+      style: 'currency',
+      currency: 'MAD',
+    }).format(amount);
+
+  const activeProducts = products.filter((p) => p.isActive).length;
+  const averagePrice =
+    products.length > 0
+      ? Math.round(
+          products.reduce((sum, p) => sum + p.unitPrice, 0) / products.length
+        )
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -384,77 +197,520 @@ export default function ProduitsPage() {
         eyebrow="Produits"
         title="Catalogue et tarifs"
         description="Gestion du catalogue des bouteilles de gaz avec ajout, modification et suppression."
+        actions={
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                resetForm();
+                setShowAddModal(true);
+              }}
+              className="btn btn-primary gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Nouveau produit
+            </button>
+          </div>
+        }
       />
 
-      {error && (
-        <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-rose-700">
-          {error}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="stats shadow">
+          <div className="stat">
+            <div className="stat-title">Produits en base</div>
+            <div className="stat-value text-primary">{products.length}</div>
+            <div className="stat-desc">Produits enregistrés</div>
+          </div>
         </div>
-      )}
+        <div className="stats shadow">
+          <div className="stat">
+            <div className="stat-title">Produits actifs</div>
+            <div className="stat-value text-success">{activeProducts}</div>
+            <div className="stat-desc">Produits en vente</div>
+          </div>
+        </div>
+        <div className="stats shadow">
+          <div className="stat">
+            <div className="stat-title">Prix moyen catalogue</div>
+            <div className="stat-value text-info">
+              {formatCurrency(averagePrice)}
+            </div>
+            <div className="stat-desc">Prix moyen des produits</div>
+          </div>
+        </div>
+      </div>
 
-      {success && (
-        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-700">
-          {success}
+      <div className="rounded-2xl border border-white/80 bg-white/75 shadow-lg shadow-slate-200/60 backdrop-blur">
+        <div className="border-b border-slate-200 p-4">
+          <h3 className="font-semibold text-lg">Liste des produits</h3>
         </div>
-      )}
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-200/60">
-          <p className="text-sm font-medium text-slate-500">Produits en base</p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-            {products.length}
-          </p>
-        </div>
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-200/60">
-          <p className="text-sm font-medium text-slate-500">Produits actifs</p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-            {activeProducts}
-          </p>
-        </div>
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-200/60">
-          <p className="text-sm font-medium text-slate-500">Prix moyen catalogue</p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-            {formatCurrency(averagePrice)}
-          </p>
-        </div>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.35fr]">
-        <SurfaceCard
-          title="Ajouter un produit"
-          description="Ajoutez une nouvelle référence au catalogue."
-        >
-          <ProductCreateForm onSuccess={() => handleSuccess('Produit créé avec succès!')} onError={handleError} />
-        </SurfaceCard>
-
-        <SurfaceCard
-          title="Catalogue existant"
-          description="Cliquez sur modifier pour éditer un produit."
-        >
-          {loading ? (
-            <div className="flex items-center justify-center py-8 text-slate-500">
-              Chargement...
+        <div className="overflow-x-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
           ) : products.length === 0 ? (
-            <div className="flex items-center justify-center py-8 text-slate-500">
-              Aucun produit. Ajoutez votre premier produit.
+            <div className="flex flex-col items-center justify-center p-8 text-slate-500">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-16 w-16 mb-4 opacity-50"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10m-8 4l-8 4m8-4l-8-4m-4 10V7"
+                />
+              </svg>
+              <p>Aucun produit trouvé</p>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {products.map((product) => (
-                <ProductRowForm
-                  key={product.id}
-                  product={product}
-                  onSuccess={() => handleSuccess('Produit mis à jour!')}
-                  onError={handleError}
-                />
-              ))}
-            </div>
+            <table className="table">
+              <thead>
+                <tr className="bg-slate-50">
+                  <th className="font-semibold">Code</th>
+                  <th className="font-semibold">Désignation</th>
+                  <th className="font-semibold">Capacité</th>
+                  <th className="font-semibold text-right">Prix</th>
+                  <th className="font-semibold text-center">Statut</th>
+                  <th className="font-semibold text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((product) => (
+                  <tr key={product.id} className="hover:bg-slate-50">
+                    <td>
+                      <div className="font-semibold">{product.code}</div>
+                    </td>
+                    <td>
+                      <div className="font-medium">{product.name}</div>
+                    </td>
+                    <td>
+                      <span className="badge badge-outline">
+                        {product.capacity}
+                      </span>
+                    </td>
+                    <td className="text-right font-semibold text-primary">
+                      {formatCurrency(product.unitPrice)}
+                    </td>
+                    <td className="text-center">
+                      {product.isActive ? (
+                        <span className="badge badge-success badge-xs">
+                          Actif
+                        </span>
+                      ) : (
+                        <span className="badge badge-ghost badge-xs">
+                          Inactif
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => openEditModal(product)}
+                          className="btn btn-ghost btn-sm"
+                          title="Modifier"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 text-info"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => openDeleteModal(product)}
+                          className="btn btn-ghost btn-sm"
+                          title="Supprimer"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 text-error"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-        </SurfaceCard>
+        </div>
       </div>
+
+      {/* Add Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          resetForm();
+        }}
+        title="Ajouter un nouveau produit"
+        size="lg"
+      >
+        <form onSubmit={handleAddProduct} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Code produit *</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.code}
+                onChange={(e) =>
+                  setFormData({ ...formData, code: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="Ex: B12"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Capacité</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.capacity}
+                onChange={(e) =>
+                  setFormData({ ...formData, capacity: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="Ex: 12 kg"
+              />
+            </div>
+            <div className="form-control md:col-span-2">
+              <label className="label">
+                <span className="label-text font-medium">Désignation *</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="Très grande bouteille"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Prix unitaire (MAD) *</span>
+              </label>
+              <input
+                type="number"
+                required
+                value={formData.unitPrice}
+                onChange={(e) =>
+                  setFormData({ ...formData, unitPrice: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="107200"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label cursor-pointer">
+                <span className="label-text font-medium">Produit actif</span>
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isActive: e.target.checked })
+                  }
+                  className="checkbox checkbox-primary"
+                />
+              </label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddModal(false);
+                resetForm();
+              }}
+              className="btn btn-ghost"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn btn-primary"
+            >
+              {isSubmitting ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Ajouter
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedProduct(null);
+          resetForm();
+        }}
+        title={
+          selectedProduct
+            ? `Modifier: ${selectedProduct.code}`
+            : 'Modifier produit'
+        }
+        size="lg"
+      >
+        <form onSubmit={handleEditProduct} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Code produit *</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.code}
+                onChange={(e) =>
+                  setFormData({ ...formData, code: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="Ex: B12"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Capacité</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.capacity}
+                onChange={(e) =>
+                  setFormData({ ...formData, capacity: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="Ex: 12 kg"
+              />
+            </div>
+            <div className="form-control md:col-span-2">
+              <label className="label">
+                <span className="label-text font-medium">Désignation *</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="Très grande bouteille"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Prix unitaire (MAD) *</span>
+              </label>
+              <input
+                type="number"
+                required
+                value={formData.unitPrice}
+                onChange={(e) =>
+                  setFormData({ ...formData, unitPrice: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="107200"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label cursor-pointer">
+                <span className="label-text font-medium">Produit actif</span>
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isActive: e.target.checked })
+                  }
+                  className="checkbox checkbox-primary"
+                />
+              </label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => {
+                setShowEditModal(false);
+                setSelectedProduct(null);
+                resetForm();
+              }}
+              className="btn btn-ghost"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn btn-info"
+            >
+              {isSubmitting ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  Enregistrer
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedProduct(null);
+        }}
+        title="Confirmer la suppression"
+        size="sm"
+      >
+        <div className="py-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-error/10 p-3 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-error"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <p className="text-slate-600">
+              Êtes-vous sûr de vouloir supprimer le produit{' '}
+              <strong>{selectedProduct?.code}</strong> ?
+              <br />
+              <span className="text-sm">
+                Cette action est irréversible.
+              </span>
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setSelectedProduct(null);
+              }}
+              className="btn btn-ghost"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleDeleteProduct}
+              disabled={isSubmitting}
+              className="btn btn-error"
+            >
+              {isSubmitting ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Supprimer
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
-
-
