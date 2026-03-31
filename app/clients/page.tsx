@@ -88,6 +88,7 @@ export default function ClientsPage() {
     try {
       const res = await fetch('/api/clients/types');
       const data = await res.json();
+      console.log('data' + data);
       setCustomerTypes(data);
     } catch (error) { console.error('Error:', error); }
   };
@@ -276,15 +277,15 @@ export default function ClientsPage() {
                 >
                   <option value="">Sélectionner un type</option>
                   {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
-                  <option value="__new__">+ Ajouter un nouveau type</option>
+                  {/* <option value="__new__">+ Ajouter un nouveau type</option> */}
                 </select>
-                <input 
+                {/* <input 
                   type="text" 
                   placeholder="Ou créer un nouveau type..."
                   value={formData.newTypeName}
                   onChange={(e) => setFormData({ ...formData, newTypeName: e.target.value, typeId: '' })}
                   className="input input-bordered flex-1"
-                />
+                /> */}
               </div>
               {formData.newTypeName && (
                 <div className="mt-2 text-sm text-sky-600">
