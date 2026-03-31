@@ -61,6 +61,7 @@ export default function ClientsPage() {
   const [selectedType, setSelectedType] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddTypeModal, setShowAddTypeModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -175,10 +176,16 @@ export default function ClientsPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Clients" title="Gestion des clients" description="Consultation et gestion de la clientèle avec recherche rapide et identification des meilleurs comptes." actions={
-        <button onClick={() => { resetForm(); setShowAddModal(true); }} className="btn btn-primary gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          Nouveau client
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowAddTypeModal(true)} className="btn btn-outline btn-sm gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Type
+          </button>
+          <button onClick={() => { resetForm(); setShowAddModal(true); }} className="btn btn-primary gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Nouveau client
+          </button>
+        </div>
       } />
 
       <div className="rounded-2xl border border-white/80 bg-white/75 p-4 shadow-lg shadow-slate-200/60 backdrop-blur">
@@ -325,6 +332,40 @@ export default function ClientsPage() {
             <button onClick={handleDeleteClient} disabled={isSubmitting} className="btn btn-error">{isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : <><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>Supprimer</>}</button>
           </div>
         </div>
+      </Modal>
+      {/* Add Type Modal */}
+      <Modal isOpen={showAddTypeModal} onClose={() => setShowAddTypeModal(false)} title="Nouveau type de client" size="sm">
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          const name = formData.get('name');
+          const description = formData.get('description');
+          
+          try {
+            const res = await fetch('/api/clients/types', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, description }),
+            });
+            if (!res.ok) throw new Error('Erreur');
+            toast.success('Type de client créé avec succès!');
+            setShowAddTypeModal(false);
+            fetchCustomerTypes();
+          } catch { toast.error('Erreur lors de la création'); }
+        }} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Nom *</label>
+            <input type="text" name="name" required className="input input-bordered w-full" placeholder="Ex: Particulier, Entreprise" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
+            <textarea name="description" className="textarea textarea-bordered w-full" rows={2} placeholder="Description optionnelle..." />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowAddTypeModal(false)} className="btn btn-ghost">Annuler</button>
+            <button type="submit" className="btn btn-primary">Créer</button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
