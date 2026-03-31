@@ -51,8 +51,8 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
   );
 }
 
-interface ClientFormData { name: string; phone: string; email: string; address: string; city: string; typeId: string; notes: string; }
-const initialFormData: ClientFormData = { name: '', phone: '', email: '', address: '', city: '', typeId: '', notes: '' };
+interface ClientFormData { name: string; phone: string; email: string; address: string; city: string; typeId: string; notes: string; newTypeName: string; }
+const initialFormData: ClientFormData = { name: '', phone: '', email: '', address: '', city: '', typeId: '', notes: '', newTypeName: '' };
 
 export default function ClientsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -91,16 +91,32 @@ export default function ClientsPage() {
     } catch (error) { console.error('Error:', error); }
   };
 
-  const resetForm = () => setFormData(initialFormData);
+  const resetForm = () => setFormData({ name: '', phone: '', email: '', address: '', city: '', typeId: '', notes: '', newTypeName: '' });
 
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      let typeId = formData.typeId ? parseInt(formData.typeId) : null;
+      
+      // If newTypeName is provided, create the type first
+      if (formData.newTypeName) {
+        const typeRes = await fetch('/api/clients/types', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: formData.newTypeName, description: null }),
+        });
+        if (!typeRes.ok) throw new Error('Erreur création type');
+        const newType = await typeRes.json();
+        typeId = newType.id;
+        // Refresh customer types list
+        fetchCustomerTypes();
+      }
+      
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: formData.name, phone: formData.phone || null, email: formData.email || null, address: formData.address || null, city: formData.city || null, typeId: formData.typeId ? parseInt(formData.typeId) : null, notes: formData.notes || null }),
+        body: JSON.stringify({ name: formData.name, phone: formData.phone || null, email: formData.email || null, address: formData.address || null, city: formData.city || null, typeId, notes: formData.notes || null }),
       });
       if (!res.ok) throw new Error('Erreur');
       toast.success('Client ajouté avec succès!');
@@ -147,7 +163,7 @@ export default function ClientsPage() {
 
   const openEditModal = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setFormData({ name: customer.name, phone: customer.phone || '', email: customer.email || '', address: customer.address || '', city: customer.city || '', typeId: customer.typeId?.toString() || '', notes: customer.notes || '' });
+    setFormData({ name: customer.name, phone: customer.phone || '', email: customer.email || '', address: customer.address || '', city: customer.city || '', typeId: customer.typeId?.toString() || '', notes: customer.notes || '', newTypeName: '' });
     setShowEditModal(true);
   };
 
@@ -234,7 +250,41 @@ export default function ClientsPage() {
             <div className="form-control"><label className="label"><span className="label-text font-medium">Email</span></label><input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input input-bordered" placeholder="email@exemple.com" /></div>
             <div className="form-control"><label className="label"><span className="label-text font-medium">Ville</span></label><input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input input-bordered" placeholder="Ville" /></div>
             <div className="form-control md:col-span-2"><label className="label"><span className="label-text font-medium">Adresse</span></label><input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered" placeholder="Adresse complète" /></div>
-            <div className="form-control md:col-span-2"><label className="label"><span className="label-text font-medium">Type de client</span></label><select value={formData.typeId} onChange={(e) => setFormData({ ...formData, typeId: e.target.value })} className="select select-bordered"><option value="">Sélectionner un type</option>{customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</select></div>
+            <div className="form-control md:col-span-2">
+              <label className="label"><span className="label-text font-medium">Type de client</span></label>
+              <div className="flex gap-2">
+                <select 
+                  value={formData.typeId} 
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') {
+                      const newTypeName = prompt('Entrez le nom du nouveau type de client:');
+                      if (newTypeName) {
+                        setFormData({ ...formData, typeId: '', newTypeName: newTypeName });
+                      }
+                    } else {
+                      setFormData({ ...formData, typeId: e.target.value, newTypeName: '' });
+                    }
+                  }} 
+                  className="select select-bordered flex-1"
+                >
+                  <option value="">Sélectionner un type</option>
+                  {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+                  <option value="__new__">+ Ajouter un nouveau type</option>
+                </select>
+                <input 
+                  type="text" 
+                  placeholder="Ou créer un nouveau type..."
+                  value={formData.newTypeName}
+                  onChange={(e) => setFormData({ ...formData, newTypeName: e.target.value, typeId: '' })}
+                  className="input input-bordered flex-1"
+                />
+              </div>
+              {formData.newTypeName && (
+                <div className="mt-2 text-sm text-sky-600">
+                  Nouveau type à créer: <strong>{formData.newTypeName}</strong>
+                </div>
+              )}
+            </div>
             <div className="form-control md:col-span-2"><label className="label"><span className="label-text font-medium">Notes</span></label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered" rows={3} placeholder="Notes supplémentaires..." /></div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
