@@ -247,6 +247,71 @@ export async function deletePurchaseInvoice(id: number) {
   return { success: true };
 }
 
+export async function getSalesInvoice(id: number) {
+  const invoices = await listSalesInvoices();
+  return invoices.find((invoice) => invoice.id === id) || null;
+}
+
+export async function updateSalesInvoice(id: number, input: {
+  customerName?: string;
+  date?: string;
+  paymentMethod?: string;
+  notes?: string;
+  amountPaid?: number;
+  lines?: LineInput[];
+}) {
+  const invoices = await listSalesInvoices();
+  const index = invoices.findIndex((invoice) => invoice.id === id);
+  
+  if (index === -1) {
+    throw new Error('Invoice not found');
+  }
+
+  const existingInvoice = invoices[index];
+  const items = input.lines 
+    ? await buildSalesItems(input.lines)
+    : existingInvoice.items;
+  const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  const amountPaid = input.amountPaid ?? existingInvoice.amountPaid;
+  const remainingAmount = Math.max(totalAmount - amountPaid, 0);
+
+  const paymentStatus: SalesInvoice["paymentStatus"] =
+    amountPaid <= 0
+      ? "En attente"
+      : remainingAmount > 0
+        ? "Partiel"
+        : "Paye";
+
+  const updatedInvoice: SalesInvoice = {
+    ...existingInvoice,
+    customerName: input.customerName ?? existingInvoice.customerName,
+    date: input.date ?? existingInvoice.date,
+    paymentMethod: input.paymentMethod ?? existingInvoice.paymentMethod,
+    notes: input.notes ?? existingInvoice.notes,
+    items,
+    totalAmount,
+    amountPaid,
+    remainingAmount,
+    paymentStatus,
+  };
+
+  invoices[index] = updatedInvoice;
+  await writeJsonFile(salesFile, invoices);
+  return updatedInvoice;
+}
+
+export async function deleteSalesInvoice(id: number) {
+  const invoices = await listSalesInvoices();
+  const filtered = invoices.filter((invoice) => invoice.id !== id);
+  
+  if (filtered.length === invoices.length) {
+    throw new Error('Invoice not found');
+  }
+
+  await writeJsonFile(salesFile, filtered);
+  return { success: true };
+}
+
 export async function getOperationsSnapshot() {
   const [purchases, sales] = await Promise.all([
     listPurchaseInvoices(),
