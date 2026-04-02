@@ -359,3 +359,156 @@ export async function getOperationsSnapshot() {
     ),
   };
 }
+
+// Stock Management Types
+export type StockMovementType = 'entry' | 'exit' | 'adjustment' | 'return';
+
+export type StockMovement = {
+  id: number;
+  productId: number;
+  productCode: string;
+  productName: string;
+  type: StockMovementType;
+  quantity: number;
+  reference: string;
+  notes: string;
+  createdAt: string;
+};
+
+export type StockItem = {
+  productId: number;
+  productCode: string;
+  productName: string;
+  capacity: string;
+  currentStock: number;
+  minStock: number;
+  lastEntry: string | null;
+  lastExit: string | null;
+};
+
+const stockFile = path.join(dataDirectory, "stock.json");
+const stockMovementsFile = path.join(dataDirectory, "stock-movements.json");
+
+async function readStockFile() {
+  await ensureFile(stockFile);
+  const content = await readFile(stockFile, "utf8");
+  return JSON.parse(content) as StockItem[];
+}
+
+async function writeStockFile(items: StockItem[]) {
+  await writeFile(stockFile, JSON.stringify(items, null, 2), "utf8");
+}
+
+async function readStockMovementsFile() {
+  await ensureFile(stockMovementsFile);
+  const content = await readFile(stockMovementsFile, "utf8");
+  return JSON.parse(content) as StockMovement[];
+}
+
+async function writeStockMovementsFile(movements: StockMovement[]) {
+  await writeFile(stockMovementsFile, JSON.stringify(movements, null, 2), "utf8");
+}
+
+export async function initializeStock() {
+  const products = await listProducts();
+  const stock = await readStockFile();
+  
+  // Initialize stock for all products if not exists
+  const existingProductIds = new Set(stock.map(s => s.productId));
+  const newStockItems = products
+    .filter(p => !existingProductIds.has(p.id))
+    .map(p => ({
+      productId: p.id,
+      productCode: p.code,
+      productName: p.name,
+      capacity: p.capacity,
+      currentStock: 0,
+      minStock: 10, // Default min stock
+      lastEntry: null,
+      lastExit: null,
+    }));
+  
+  if (newStockItems.length > 0) {
+    await writeStockFile([...stock, ...newStockItems]);
+  }
+  
+  return [...stock.filter(s => existingProductIds.has(s.productId)), ...newStockItems];
+}
+
+export async function getStock() {
+  return readStockFile();
+}
+
+export async function updateProductMinStock(productId: number, minStock: number) {
+  const stock = await readStockFile();
+  const index = stock.findIndex(s => s.productId === productId);
+  
+  if (index === -1) {
+    throw new Error('Product not found in stock');
+  }
+  
+  stock[index].minStock = minStock;
+  await writeStockFile(stock);
+  return stock[index];
+}
+
+export async function addStockMovement(input: {
+  productId: number;
+  type: StockMovementType;
+  quantity: number;
+  reference: string;
+  notes?: string;
+}) {
+  const products = await listProducts();
+  const product = products.find(p => p.id === input.productId);
+  
+  if (!product) {
+    throw new Error('Product not found');
+  }
+  
+  const movements = await readStockMovementsFile();
+  const stock = await readStockFile();
+  
+  const movement: StockMovement = {
+    id: movements.length > 0 ? Math.max(...movements.map(m => m.id)) + 1 : 1,
+    productId: input.productId,
+    productCode: product.code,
+    productName: product.name,
+    type: input.type,
+    quantity: input.quantity,
+    reference: input.reference,
+    notes: input.notes || '',
+    createdAt: new Date().toISOString(),
+  };
+  
+  // Update stock
+  const stockIndex = stock.findIndex(s => s.productId === input.productId);
+  if (stockIndex === -1) {
+    throw new Error('Product not found in stock');
+  }
+  
+  if (input.type === 'entry' || input.type === 'return') {
+    stock[stockIndex].currentStock += input.quantity;
+    stock[stockIndex].lastEntry = movement.createdAt;
+  } else if (input.type === 'exit') {
+    stock[stockIndex].currentStock -= input.quantity;
+    stock[stockIndex].lastExit = movement.createdAt;
+  } else if (input.type === 'adjustment') {
+    stock[stockIndex].currentStock = input.quantity;
+  }
+  
+  await writeStockFile(stock);
+  await writeStockMovementsFile([movement, ...movements]);
+  
+  return { movement, stock: stock[stockIndex] };
+}
+
+export async function getStockMovements(limit = 50) {
+  const movements = await readStockMovementsFile();
+  return movements.slice(0, limit);
+}
+
+export async function getLowStockAlerts() {
+  const stock = await readStockFile();
+  return stock.filter(s => s.currentStock <= s.minStock);
+}
