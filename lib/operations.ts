@@ -607,3 +607,62 @@ export async function getRapportData() {
     topCustomers,
   };
 }
+
+// Settings Management
+export type Settings = {
+  companyName: string;
+  companyAddress: string;
+  companyPhone: string;
+  companyEmail: string;
+  defaultMinStock: number;
+  currency: string;
+  currencySymbol: string;
+  dateFormat: string;
+  invoicePrefix: string;
+  purchasePrefix: string;
+  lowStockAlertEnabled: boolean;
+  theme: 'light' | 'dark';
+};
+
+const defaultSettings: Settings = {
+  companyName: 'Mini-Centre Distribution',
+  companyAddress: '',
+  companyPhone: '',
+  companyEmail: '',
+  defaultMinStock: 10,
+  currency: 'MAD',
+  currencySymbol: 'MAD',
+  dateFormat: 'DD/MM/YYYY',
+  invoicePrefix: 'FAC',
+  purchasePrefix: 'ACH',
+  lowStockAlertEnabled: true,
+  theme: 'light',
+};
+
+const settingsFile = path.join(dataDirectory, "settings.json");
+
+async function readSettingsFile(): Promise<Settings> {
+  try {
+    await ensureFile(settingsFile);
+    const content = await readFile(settingsFile, "utf8");
+    const data = JSON.parse(content);
+    return { ...defaultSettings, ...data };
+  } catch {
+    return defaultSettings;
+  }
+}
+
+async function writeSettingsFile(settings: Settings) {
+  await writeFile(settingsFile, JSON.stringify(settings, null, 2), "utf8");
+}
+
+export async function getSettings(): Promise<Settings> {
+  return readSettingsFile();
+}
+
+export async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
+  const currentSettings = await readSettingsFile();
+  const updatedSettings = { ...currentSettings, ...updates };
+  await writeSettingsFile(updatedSettings);
+  return updatedSettings;
+}
