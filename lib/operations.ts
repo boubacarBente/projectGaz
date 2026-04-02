@@ -512,3 +512,98 @@ export async function getLowStockAlerts() {
   const stock = await readStockFile();
   return stock.filter(s => s.currentStock <= s.minStock);
 }
+
+export async function getRapportData() {
+  const [purchases, sales, stock] = await Promise.all([
+    listPurchaseInvoices(),
+    listSalesInvoices(),
+    getStock(),
+  ]);
+
+  const totalPurchases = purchases.reduce((sum, inv) => sum + inv.totalAmount, 0);
+  const totalSales = sales.reduce((sum, inv) => sum + inv.totalAmount, 0);
+  const grossProfit = totalSales - totalPurchases;
+
+  // Sales by product
+  const soldByProduct = sales.flatMap((inv) => inv.items).reduce<
+    Record<string, { productCode: string; productName: string; quantity: number; revenue: number }>
+  >((acc, item) => {
+    const existing = acc[item.productCode];
+    acc[item.productCode] = {
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: (existing?.quantity ?? 0) + item.quantity,
+      revenue: (existing?.revenue ?? 0) + item.totalPrice,
+    };
+    return acc;
+  }, {});
+
+  // Monthly data (last 12 months)
+  const months: Record<string, { purchases: number; sales: number }> = {};
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    months[key] = { purchases: 0, sales: 0 };
+  }
+
+  purchases.forEach((inv) => {
+    const date = new Date(inv.date);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (months[key]) {
+      months[key].purchases += inv.totalAmount;
+    }
+  });
+
+  sales.forEach((inv) => {
+    const date = new Date(inv.date);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (months[key]) {
+      months[key].sales += inv.totalAmount;
+    }
+  });
+
+  // Top customers by revenue
+  const customersRevenue = sales.reduce<
+    Record<string, { name: string; totalSpent: number; invoiceCount: number }>
+  >((acc, inv) => {
+    const existing = acc[inv.customerName];
+    acc[inv.customerName] = {
+      name: inv.customerName,
+      totalSpent: (existing?.totalSpent ?? 0) + inv.totalAmount,
+      invoiceCount: (existing?.invoiceCount ?? 0) + 1,
+    };
+    return acc;
+  }, {});
+
+  const topCustomers = Object.values(customersRevenue)
+    .sort((a, b) => b.totalSpent - a.totalSpent)
+    .slice(0, 5);
+
+  // Summary stats
+  const totalBottlesSold = sales.reduce((sum, inv) => 
+    sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
+  );
+  const averageBasket = sales.length > 0 ? totalSales / sales.length : 0;
+  const totalBottlesInStock = stock.reduce((sum, s) => sum + s.currentStock, 0);
+
+  return {
+    summary: {
+      totalPurchases,
+      totalSales,
+      grossProfit,
+      totalBottlesSold,
+      averageBasket,
+      totalBottlesInStock,
+      totalInvoices: purchases.length + sales.length,
+      totalCustomers: Object.keys(customersRevenue).length,
+    },
+    monthlyData: Object.entries(months).map(([month, data]) => ({
+      month,
+      ...data,
+      profit: data.sales - data.purchases,
+    })),
+    soldByProduct: Object.values(soldByProduct).sort((a, b) => b.quantity - a.quantity),
+    topCustomers,
+  };
+}
