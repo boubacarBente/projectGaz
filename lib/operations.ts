@@ -153,6 +153,7 @@ export async function createPurchaseInvoice(input: {
   };
 
   await writeJsonFile(purchasesFile, [invoice, ...invoices]);
+  return invoice;
 }
 
 export async function createSalesInvoice(input: {
@@ -191,6 +192,59 @@ export async function createSalesInvoice(input: {
   };
 
   await writeJsonFile(salesFile, [invoice, ...invoices]);
+  return invoice;
+}
+
+export async function getPurchaseInvoice(id: number) {
+  const invoices = await listPurchaseInvoices();
+  return invoices.find((invoice) => invoice.id === id) || null;
+}
+
+export async function updatePurchaseInvoice(id: number, input: {
+  reference?: string;
+  supplier?: string;
+  date?: string;
+  notes?: string;
+  lines?: LineInput[];
+}) {
+  const invoices = await listPurchaseInvoices();
+  const index = invoices.findIndex((invoice) => invoice.id === id);
+  
+  if (index === -1) {
+    throw new Error('Invoice not found');
+  }
+
+  const existingInvoice = invoices[index];
+  const items = input.lines 
+    ? await buildPurchaseItems(input.lines)
+    : existingInvoice.items;
+  const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
+
+  const updatedInvoice: PurchaseInvoice = {
+    ...existingInvoice,
+    reference: input.reference ?? existingInvoice.reference,
+    supplier: input.supplier ?? existingInvoice.supplier,
+    date: input.date ?? existingInvoice.date,
+    notes: input.notes ?? existingInvoice.notes,
+    items,
+    totalAmount,
+  };
+
+  invoices[index] = updatedInvoice;
+  await writeJsonFile(purchasesFile, invoices);
+  return updatedInvoice;
+}
+
+export async function deletePurchaseInvoice(id: number) {
+  const invoices = await listPurchaseInvoices();
+  const filtered = invoices.filter((invoice) => invoice.id !== id);
+  
+  if (filtered.length === invoices.length) {
+    throw new Error('Invoice not found');
+  }
+
+  await writeJsonFile(purchasesFile, filtered);
+  return { success: true };
 }
 
 export async function getOperationsSnapshot() {
