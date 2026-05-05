@@ -198,7 +198,7 @@ export default function ProduitsPage() {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('fr-MA', {
       style: 'currency',
-      currency: 'MAD',
+      currency: 'GNF',
     }).format(amount);
 
   const activeProducts = products.filter((p) => p.isActive).length;
@@ -448,7 +448,7 @@ export default function ProduitsPage() {
             </div>
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium">Prix unitaire (MAD) *</span>
+                <span className="label-text font-medium">Prix unitaire (GNF) *</span>
               </label>
               <input
                 type="number"
@@ -581,7 +581,7 @@ export default function ProduitsPage() {
             </div>
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium">Prix unitaire (MAD) *</span>
+                <span className="label-text font-medium">Prix unitaire (GNF) *</span>
               </label>
               <input
                 type="number"

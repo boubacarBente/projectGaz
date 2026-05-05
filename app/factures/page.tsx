@@ -360,21 +360,21 @@ export default function FacturesPage() {
           <div className="stat">
             <div className="stat-title">Total ventes</div>
             <div className="stat-value text-info">{formatCurrency(totalAmount)}</div>
-            <div className="stat-desc">MAD</div>
+            <div className="stat-desc">GNF</div>
           </div>
         </div>
         <div className="stats shadow">
           <div className="stat">
             <div className="stat-title">Encaisse</div>
             <div className="stat-value text-success">{formatCurrency(totalPaid)}</div>
-            <div className="stat-desc">MAD</div>
+            <div className="stat-desc">GNF</div>
           </div>
         </div>
         <div className="stats shadow">
           <div className="stat">
             <div className="stat-title">Reste à payer</div>
             <div className="stat-value text-warning">{formatCurrency(totalRemaining)}</div>
-            <div className="stat-desc">MAD</div>
+            <div className="stat-desc">GNF</div>
           </div>
         </div>
         <div className="stats shadow">
