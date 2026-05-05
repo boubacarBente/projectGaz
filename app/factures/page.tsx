@@ -298,19 +298,35 @@ export default function FacturesPage() {
       toast.info('Génération du PDF en cours...');
       const { html2canvas: hc, jsPDF: pdf } = await loadExportLibraries();
       
-      // Create invoice content
-      const content = buildInvoiceHTML(invoice);
-      const container = document.createElement('div');
-      container.id = 'invoice-export-container';
-      container.innerHTML = content;
-      container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;background:#fff;padding:40px;font-family:Arial,sans-serif;';
-      document.body.appendChild(container);
+      // Use iframe to isolate from page CSS
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;';
+      document.body.appendChild(iframe);
       
-      const canvas = await hc(document.getElementById('invoice-export-container'), {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) throw new Error('Cannot access iframe document');
+      
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, Helvetica, sans-serif; background: rgb(255,255,255); padding: 40px; }
+          </style>
+        </head>
+        <body>${buildInvoiceHTML(invoice)}</body>
+        </html>
+      `);
+      iframeDoc.close();
+      
+      const canvas = await hc(iframeDoc.body, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff',
+        backgroundColor: 'rgb(255,255,255)',
+        logging: false,
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -320,7 +336,7 @@ export default function FacturesPage() {
       pdfDoc.addImage(imgData, 'PNG', 10, 10, pageWidth - 20, pageHeight - 20);
       pdfDoc.save(`facture-${invoice.invoiceNumber}.pdf`);
       
-      document.body.removeChild(container);
+      document.body.removeChild(iframe);
       toast.success('PDF téléchargé avec succès!');
     } catch (err) {
       console.error('PDF export error:', err);
@@ -333,18 +349,35 @@ export default function FacturesPage() {
       toast.info('Génération de l\'image en cours...');
       const { html2canvas: hc } = await loadExportLibraries();
       
-      const content = buildInvoiceHTML(invoice);
-      const container = document.createElement('div');
-      container.id = 'invoice-export-container';
-      container.innerHTML = content;
-      container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;background:#fff;padding:40px;font-family:Arial,sans-serif;';
-      document.body.appendChild(container);
+      // Use iframe to isolate from page CSS
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;';
+      document.body.appendChild(iframe);
       
-      const canvas = await hc(document.getElementById('invoice-export-container'), {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) throw new Error('Cannot access iframe document');
+      
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, Helvetica, sans-serif; background: rgb(255,255,255); padding: 40px; }
+          </style>
+        </head>
+        <body>${buildInvoiceHTML(invoice)}</body>
+        </html>
+      `);
+      iframeDoc.close();
+      
+      const canvas = await hc(iframeDoc.body, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff',
+        backgroundColor: 'rgb(255,255,255)',
+        logging: false,
       });
       
       const link = document.createElement('a');
@@ -352,7 +385,7 @@ export default function FacturesPage() {
       link.href = canvas.toDataURL('image/png');
       link.click();
       
-      document.body.removeChild(container);
+      document.body.removeChild(iframe);
       toast.success('Image téléchargée avec succès!');
     } catch (err) {
       console.error('Image export error:', err);
