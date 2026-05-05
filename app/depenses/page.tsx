@@ -119,6 +119,7 @@ export default function DepensesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
   const [formData, setFormData] = useState<PurchaseFormData>(initialFormData);
@@ -291,6 +292,11 @@ export default function DepensesPage() {
   const openDeleteModal = (invoice: PurchaseInvoice) => {
     setSelectedInvoice(invoice);
     setShowDeleteModal(true);
+  };
+
+  const openDetailModal = (invoice: PurchaseInvoice) => {
+    setSelectedInvoice(invoice);
+    setShowDetailModal(true);
   };
 
   // Export functions (same as factures)
@@ -538,7 +544,7 @@ export default function DepensesPage() {
                     <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} GNF</td>
                     <td className="text-right">
                       <div className="flex gap-1 justify-end">
-                        <button onClick={() => { setSelectedInvoice(invoice); setShowEditModal(true); }} className="btn btn-ghost btn-xs" title="Voir détails">
+                        <button onClick={() => openDetailModal(invoice)} className="btn btn-ghost btn-xs" title="Voir détails">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -884,6 +890,91 @@ export default function DepensesPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedInvoice(null);
+        }}
+        title={`Facture ${selectedInvoice?.reference}`}
+        size="xl"
+      >
+        {selectedInvoice && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-slate-500">Référence</p>
+                <p className="font-medium">{selectedInvoice.reference}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Date</p>
+                <p className="font-medium">{new Date(selectedInvoice.date).toLocaleDateString('fr-FR')}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Fournisseur</p>
+                <p className="font-medium">{selectedInvoice.supplier}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Montant total</p>
+                <p className="font-medium text-warning">{formatCurrency(selectedInvoice.totalAmount)} GNF</p>
+              </div>
+            </div>
+            
+            <div className="border rounded-lg overflow-hidden">
+              <table className="table table-xs">
+                <thead className="bg-slate-100">
+                  <tr>
+                    <th>Produit</th>
+                    <th className="text-center">Qté</th>
+                    <th className="text-right">Coût</th>
+                    <th className="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedInvoice.items.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>{item.productName}</td>
+                      <td className="text-center">{item.quantity}</td>
+                      <td className="text-right">{formatCurrency(item.unitCost)}</td>
+                      <td className="text-right">{formatCurrency(item.totalCost)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {selectedInvoice.notes && (
+              <div>
+                <p className="text-xs text-slate-500">Notes</p>
+                <p className="text-sm">{selectedInvoice.notes}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <button onClick={() => { setShowDetailModal(false); setShowEditModal(true); }} className="btn btn-info btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Modifier
+              </button>
+              <button onClick={() => handleExportPDF(selectedInvoice)} className="btn btn-primary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                PDF
+              </button>
+              <button onClick={() => handleExportImage(selectedInvoice)} className="btn btn-success btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Image
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Modal */}
