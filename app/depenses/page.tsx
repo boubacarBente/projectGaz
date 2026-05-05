@@ -116,6 +116,7 @@ function formatCurrency(value: number) {
 export default function DepensesPage() {
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<{id: number; name: string}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -132,14 +133,17 @@ export default function DepensesPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [invoicesRes, productsRes] = await Promise.all([
+      const [invoicesRes, productsRes, suppliersRes] = await Promise.all([
         fetch('/api/depenses'),
         fetch('/api/produits'),
+        fetch('/api/fournisseurs'),
       ]);
       const invoicesData = await invoicesRes.json();
       const productsData = await productsRes.json();
+      const suppliersData = await suppliersRes.json();
       setInvoices(invoicesData);
       setProducts(productsData);
+      setSuppliers(suppliersData);
       if (productsData.length > 0) {
         setFormData(prev => ({ 
           ...prev, 
@@ -601,14 +605,17 @@ export default function DepensesPage() {
               <label className="label">
                 <span className="label-text font-medium">Fournisseur</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={formData.supplier}
                 onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                className="input input-bordered"
-                placeholder="Usine"
-              />
+                className="select select-bordered"
+              >
+                <option value="">Sélectionner...</option>
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -758,13 +765,17 @@ export default function DepensesPage() {
               <label className="label">
                 <span className="label-text font-medium">Fournisseur</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={formData.supplier}
                 onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                className="input input-bordered"
-              />
+                className="select select-bordered"
+              >
+                <option value="">Sélectionner...</option>
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
