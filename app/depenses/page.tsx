@@ -383,7 +383,7 @@ export default function DepensesPage() {
     const formatCurrency = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
     const itemsHTML = invoice.items.map(item => `
       <tr>
-        <td style="padding:12px;border-bottom:1px solid #e2e8f0;">${item.productName}</td>
+        <td style="padding:12px;border-bottom:1px solid #e2e8f0;">${item.productCode}</td>
         <td style="padding:12px;text-align:center;border-bottom:1px solid #e2e8f0;">${item.quantity}</td>
         <td style="padding:12px;text-align:right;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.unitCost)} GNF</td>
         <td style="padding:12px;text-align:right;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.totalCost)} GNF</td>
@@ -404,7 +404,7 @@ export default function DepensesPage() {
         </div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:30px;">
           <thead><tr style="background:#f1f5f9;">
-            <th style="padding:12px;text-align:left;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Produit</th>
+            <th style="padding:12px;text-align:left;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Code</th>
             <th style="padding:12px;text-align:center;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Qté</th>
             <th style="padding:12px;text-align:right;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Coût Unit.</th>
             <th style="padding:12px;text-align:right;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Total</th>
@@ -927,7 +927,7 @@ export default function DepensesPage() {
               <table className="table table-xs">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th>Produit</th>
+                    <th>Code</th>
                     <th className="text-center">Qté</th>
                     <th className="text-right">Coût</th>
                     <th className="text-right">Total</th>
@@ -936,7 +936,7 @@ export default function DepensesPage() {
                 <tbody>
                   {selectedInvoice.items.map((item, idx) => (
                     <tr key={idx}>
-                      <td>{item.productName}</td>
+                      <td>{item.productCode}</td>
                       <td className="text-center">{item.quantity}</td>
                       <td className="text-right">{formatCurrency(item.unitCost)}</td>
                       <td className="text-right">{formatCurrency(item.totalCost)}</td>
