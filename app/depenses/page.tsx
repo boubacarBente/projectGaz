@@ -5,6 +5,18 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 
+// Dynamic import for PDF/image generation
+let html2canvas: any;
+let jsPDF: any;
+
+async function loadExportLibraries() {
+  if (!html2canvas || !jsPDF) {
+    html2canvas = (await import('html2canvas')).default;
+    jsPDF = (await import('jspdf')).default;
+  }
+  return { html2canvas, jsPDF };
+}
+
 type PurchaseInvoiceItem = {
   productId: number;
   productCode: string;
@@ -281,6 +293,139 @@ export default function DepensesPage() {
     setShowDeleteModal(true);
   };
 
+  // Export functions (same as factures)
+  const handleExportPDF = async (invoice: PurchaseInvoice) => {
+    try {
+      toast.info('Génération du PDF en cours...');
+      const { html2canvas: hc, jsPDF: pdf } = await loadExportLibraries();
+      
+      const content = buildPurchaseInvoiceHTML(invoice);
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;';
+      document.body.appendChild(iframe);
+      
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) throw new Error('Cannot access iframe');
+      
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html><html><head><style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, Helvetica, sans-serif; background: rgb(255,255,255); padding: 40px; }
+        </style></head><body>${content}</body></html>
+      `);
+      iframeDoc.close();
+      
+      const canvas = await hc(iframeDoc.body, {
+        scale: 2, useCORS: true, allowTaint: true, backgroundColor: 'rgb(255,255,255)', logging: false,
+      });
+      
+      const pdfDoc = new pdf({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = pdfDoc.internal.pageSize.getWidth();
+      const pageHeight = pdfDoc.internal.pageSize.getHeight();
+      pdfDoc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, pageWidth - 20, pageHeight - 20);
+      pdfDoc.save(`facture-usine-${invoice.reference}.pdf`);
+      
+      document.body.removeChild(iframe);
+      toast.success('PDF téléchargé!');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      toast.error('Erreur lors de la génération du PDF');
+    }
+  };
+
+  const handleExportImage = async (invoice: PurchaseInvoice) => {
+    try {
+      toast.info('Génération de l\'image en cours...');
+      const { html2canvas: hc } = await loadExportLibraries();
+      
+      const content = buildPurchaseInvoiceHTML(invoice);
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;';
+      document.body.appendChild(iframe);
+      
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) throw new Error('Cannot access iframe');
+      
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html><html><head><style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, Helvetica, sans-serif; background: rgb(255,255,255); padding: 40px; }
+        </style></head><body>${content}</body></html>
+      `);
+      iframeDoc.close();
+      
+      const canvas = await hc(iframeDoc.body, {
+        scale: 2, useCORS: true, allowTaint: true, backgroundColor: 'rgb(255,255,255)', logging: false,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `facture-usine-${invoice.reference}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      document.body.removeChild(iframe);
+      toast.success('Image téléchargée!');
+    } catch (err) {
+      console.error('Image export error:', err);
+      toast.error('Erreur lors de la génération de l\'image');
+    }
+  };
+
+  function buildPurchaseInvoiceHTML(invoice: PurchaseInvoice): string {
+    const formatCurrency = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
+    const itemsHTML = invoice.items.map(item => `
+      <tr>
+        <td style="padding:12px;border-bottom:1px solid #e2e8f0;">${item.productName}</td>
+        <td style="padding:12px;text-align:center;border-bottom:1px solid #e2e8f0;">${item.quantity}</td>
+        <td style="padding:12px;text-align:right;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.unitCost)} GNF</td>
+        <td style="padding:12px;text-align:right;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.totalCost)} GNF</td>
+      </tr>
+    `).join('');
+    
+    return `
+      <div style="max-width:720px;margin:0 auto;">
+        <div style="text-align:center;margin-bottom:30px;border-bottom:2px solid #1e293b;padding-bottom:20px;">
+          <h1 style="font-size:28px;color:#1e293b;margin:0 0 10px 0;">FACTURE USINE</h1>
+          <p style="font-size:18px;color:#475569;margin:0;">N° ${invoice.reference}</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:30px;">
+          <div><p style="font-size:12px;color:#64748b;margin:0;">Fournisseur</p><p style="font-size:16px;font-weight:bold;margin:5px 0 0 0;">${invoice.supplier}</p></div>
+          <div style="text-align:right;">
+            <p style="font-size:12px;color:#64748b;margin:0;">Date</p><p style="font-size:14px;margin:5px 0 0 0;">${new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:30px;">
+          <thead><tr style="background:#f1f5f9;">
+            <th style="padding:12px;text-align:left;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Produit</th>
+            <th style="padding:12px;text-align:center;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Qté</th>
+            <th style="padding:12px;text-align:right;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Coût Unit.</th>
+            <th style="padding:12px;text-align:right;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Total</th>
+          </tr></thead>
+          <tbody>${itemsHTML}</tbody>
+        </table>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:30px;">
+          <div style="width:250px;">
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0;">
+              <span style="font-size:14px;color:#475569;">Total</span>
+              <span style="font-size:16px;font-weight:bold;color:#1e293b;">${formatCurrency(invoice.totalAmount)} GNF</span>
+            </div>
+          </div>
+        </div>
+        ${invoice.notes ? `
+        <div style="margin-top:20px;padding:15px;background:#f8fafc;border-radius:8px;">
+          <p style="font-size:12px;color:#64748b;margin:0 0 5px 0;">Notes</p>
+          <p style="font-size:14px;margin:0;">${invoice.notes}</p>
+        </div>` : ''}
+        <div style="margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;">
+          <p style="font-size:12px;color:#64748b;margin:0;">Facture d'usine - Achat produits</p>
+          <p style="font-size:14px;font-weight:bold;margin:10px 0 0 0;">ProjectGaz</p>
+        </div>
+      </div>
+    `;
+  }
+
   const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
   const totalBottles = invoices.reduce((sum, inv) => 
     sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
@@ -393,6 +538,22 @@ export default function DepensesPage() {
                     <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} GNF</td>
                     <td className="text-right">
                       <div className="flex gap-1 justify-end">
+                        <button onClick={() => { setSelectedInvoice(invoice); setShowEditModal(true); }} className="btn btn-ghost btn-xs" title="Voir détails">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                        <button onClick={() => handleExportPDF(invoice)} className="btn btn-ghost btn-xs text-info" title="Télécharger PDF">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                        <button onClick={() => handleExportImage(invoice)} className="btn btn-ghost btn-xs text-success" title="Télécharger Image">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </button>
                         <button onClick={() => openEditModal(invoice)} className="btn btn-ghost btn-xs">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
