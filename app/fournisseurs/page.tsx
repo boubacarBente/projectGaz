@@ -94,10 +94,12 @@ export default function FournisseursPage() {
     setIsLoading(true);
     try {
       const res = await fetch('/api/fournisseurs');
+      if (!res.ok) throw new Error('Erreur');
       const data = await res.json();
-      setSuppliers(data);
+      setSuppliers(Array.isArray(data) ? data : []);
     } catch {
       toast.error('Erreur lors du chargement');
+      setSuppliers([]);
     } finally {
       setIsLoading(false);
     }
