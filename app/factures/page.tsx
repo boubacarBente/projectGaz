@@ -4,7 +4,18 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
-import { exportInvoice } from '@/lib/invoice-export';
+
+// Dynamic import for PDF generation (client-side only)
+let html2canvas: any;
+let jsPDF: any;
+
+async function loadExportLibraries() {
+  if (!html2canvas || !jsPDF) {
+    html2canvas = (await import('html2canvas')).default;
+    jsPDF = (await import('jspdf')).default;
+  }
+  return { html2canvas, jsPDF };
+}
 
 type SalesInvoiceItem = {
   productId: number;
@@ -284,21 +295,133 @@ export default function FacturesPage() {
 
   const handleExportPDF = async (invoice: SalesInvoice) => {
     try {
-      await exportInvoice(invoice, 'pdf');
+      toast.info('Génération du PDF en cours...');
+      const { html2canvas: hc, jsPDF: pdf } = await loadExportLibraries();
+      
+      // Create invoice content
+      const content = buildInvoiceHTML(invoice);
+      const container = document.createElement('div');
+      container.id = 'invoice-export-container';
+      container.innerHTML = content;
+      container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;background:#fff;padding:40px;font-family:Arial,sans-serif;';
+      document.body.appendChild(container);
+      
+      const canvas = await hc(document.getElementById('invoice-export-container'), {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdfDoc = new pdf({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = pdfDoc.internal.pageSize.getWidth();
+      const pageHeight = pdfDoc.internal.pageSize.getHeight();
+      pdfDoc.addImage(imgData, 'PNG', 10, 10, pageWidth - 20, pageHeight - 20);
+      pdfDoc.save(`facture-${invoice.invoiceNumber}.pdf`);
+      
+      document.body.removeChild(container);
       toast.success('PDF téléchargé avec succès!');
-    } catch {
+    } catch (err) {
+      console.error('PDF export error:', err);
       toast.error('Erreur lors de la génération du PDF');
     }
   };
 
   const handleExportImage = async (invoice: SalesInvoice) => {
     try {
-      await exportInvoice(invoice, 'image');
+      toast.info('Génération de l\'image en cours...');
+      const { html2canvas: hc } = await loadExportLibraries();
+      
+      const content = buildInvoiceHTML(invoice);
+      const container = document.createElement('div');
+      container.id = 'invoice-export-container';
+      container.innerHTML = content;
+      container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;background:#fff;padding:40px;font-family:Arial,sans-serif;';
+      document.body.appendChild(container);
+      
+      const canvas = await hc(document.getElementById('invoice-export-container'), {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
+      
+      const link = document.createElement('a');
+      link.download = `facture-${invoice.invoiceNumber}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      document.body.removeChild(container);
       toast.success('Image téléchargée avec succès!');
-    } catch {
+    } catch (err) {
+      console.error('Image export error:', err);
       toast.error('Erreur lors de la génération de l\'image');
     }
   };
+
+  // Build invoice HTML for export
+  function buildInvoiceHTML(invoice: SalesInvoice): string {
+    const formatCurrency = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
+    const itemsHTML = invoice.items.map(item => `
+      <tr>
+        <td style="padding:12px;border-bottom:1px solid #e2e8f0;">${item.productName}</td>
+        <td style="padding:12px;text-align:center;border-bottom:1px solid #e2e8f0;">${item.quantity}</td>
+        <td style="padding:12px;text-align:right;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.unitPrice)} GNF</td>
+        <td style="padding:12px;text-align:right;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.totalPrice)} GNF</td>
+      </tr>
+    `).join('');
+    
+    return `
+      <div style="max-width:720px;margin:0 auto;">
+        <div style="text-align:center;margin-bottom:30px;border-bottom:2px solid #1e293b;padding-bottom:20px;">
+          <h1 style="font-size:28px;color:#1e293b;margin:0 0 10px 0;">FACTURE</h1>
+          <p style="font-size:18px;color:#475569;margin:0;">N° ${invoice.invoiceNumber}</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:30px;">
+          <div><p style="font-size:12px;color:#64748b;margin:0;">Client</p><p style="font-size:16px;font-weight:bold;margin:5px 0 0 0;">${invoice.customerName}</p></div>
+          <div style="text-align:right;">
+            <p style="font-size:12px;color:#64748b;margin:0;">Date</p><p style="font-size:14px;margin:5px 0 0 0;">${new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
+            <p style="font-size:12px;color:#64748b;margin:15px 0 0 0;">Mode paiement</p><p style="font-size:14px;margin:5px 0 0 0;">${invoice.paymentMethod}</p>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:30px;">
+          <thead><tr style="background:#f1f5f9;">
+            <th style="padding:12px;text-align:left;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Article</th>
+            <th style="padding:12px;text-align:center;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Qté</th>
+            <th style="padding:12px;text-align:right;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Prix Unit.</th>
+            <th style="padding:12px;text-align:right;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;">Total</th>
+          </tr></thead>
+          <tbody>${itemsHTML}</tbody>
+        </table>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:30px;">
+          <div style="width:250px;">
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0;">
+              <span style="font-size:14px;color:#475569;">Total</span>
+              <span style="font-size:16px;font-weight:bold;">${formatCurrency(invoice.totalAmount)} GNF</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0;">
+              <span style="font-size:14px;color:#475569;">Avance</span>
+              <span style="font-size:16px;font-weight:bold;color:#16a34a;">${formatCurrency(invoice.amountPaid)} GNF</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0;">
+              <span style="font-size:14px;color:#475569;">Reste</span>
+              <span style="font-size:16px;font-weight:bold;color:#ea580c;">${formatCurrency(invoice.remainingAmount)} GNF</span>
+            </div>
+          </div>
+        </div>
+        ${invoice.notes ? `
+        <div style="margin-top:20px;padding:15px;background:#f8fafc;border-radius:8px;">
+          <p style="font-size:12px;color:#64748b;margin:0 0 5px 0;">Notes</p>
+          <p style="font-size:14px;margin:0;">${invoice.notes}</p>
+        </div>` : ''}
+        <div style="margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;">
+          <p style="font-size:12px;color:#64748b;margin:0;">Merci pour votre confiance</p>
+          <p style="font-size:14px;font-weight:bold;margin:10px 0 0 0;">ProjectGaz</p>
+        </div>
+      </div>
+    `;
+  }
 
   const addLine = () => {
     setFormData(prev => ({
