@@ -112,7 +112,7 @@ export default function ProduitsPage() {
     }
   };
 
-  const handleEditProduct = async (e: React.FormEvent) => {
+  const handleEditProduct = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedProduct) return;
     setIsSubmitting(true);
@@ -180,7 +180,7 @@ export default function ProduitsPage() {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('fr-MA', {
       style: 'currency',
-      currency: 'MAD',
+      currency: 'GNF',
     }).format(amount);
 
   const activeProducts = products.filter((p) => p.isActive).length;
