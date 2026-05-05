@@ -20,6 +20,11 @@ const navigation = [
     description: "Suivi des charges de l'activite",
   },
   {
+    href: "/fournisseurs",
+    label: "Fournisseurs",
+    description: "Fournisseurs et leurs factures",
+  },
+  {
     href: "/rapports",
     label: "Rapports",
     description: "Analyses et tendances",
