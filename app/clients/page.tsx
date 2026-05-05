@@ -189,7 +189,7 @@ export default function ClientsPage() {
 
   const openDeleteModal = (customer: Customer) => { setSelectedCustomer(customer); setShowDeleteModal(true); };
 
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD' }).format(amount);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-GN', { style: 'currency', currency: 'GNF' }).format(amount);
   const topCustomers = [...customers].sort((a, b) => b.totalPurchases - a.totalPurchases).slice(0, 5);
 
   return (

@@ -193,14 +193,14 @@ export default function DashboardPage() {
   const stats = [
     {
       label: 'Achats usine',
-      value: `${formatCurrency(snapshot.totalPurchases)} MAD`,
+      value: `${formatCurrency(snapshot.totalPurchases)} GNF`,
       hint: "Total des factures d'approvisionnement",
       icon: '📦',
       color: 'warning',
     },
     {
       label: 'Ventes clients',
-      value: `${formatCurrency(snapshot.totalSales)} MAD`,
+      value: `${formatCurrency(snapshot.totalSales)} GNF`,
       hint: 'Total des factures de vente',
       icon: '💰',
       color: 'info',
@@ -214,7 +214,7 @@ export default function DashboardPage() {
     },
     {
       label: 'Bénéfice brut',
-      value: `${formatCurrency(snapshot.grossProfit)} MAD`,
+      value: `${formatCurrency(snapshot.grossProfit)} GNF`,
       hint: 'Ventes - Achats',
       icon: '📈',
       color: snapshot.grossProfit >= 0 ? 'success' : 'error',
@@ -347,8 +347,8 @@ export default function DashboardPage() {
               <span className="text-slate-600">Panier moyen</span>
               <span className="font-semibold">
                 {snapshot.sales.length > 0 
-                  ? formatCurrency(snapshot.totalSales / snapshot.sales.length) + ' MAD'
-                  : '0 MAD'}
+                  ? formatCurrency(snapshot.totalSales / snapshot.sales.length) + ' GNF'
+                  : '0 GNF'}
               </span>
             </div>
           </div>
@@ -368,12 +368,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-600">Total achats</span>
-              <span className="font-semibold">{formatCurrency(snapshot.totalPurchases)} MAD</span>
+              <span className="font-semibold">{formatCurrency(snapshot.totalPurchases)} GNF</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-600">Marge brute</span>
               <span className={`font-semibold ${snapshot.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(snapshot.grossProfit)} MAD
+                {formatCurrency(snapshot.grossProfit)} GNF
               </span>
             </div>
           </div>

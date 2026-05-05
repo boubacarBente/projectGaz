@@ -185,14 +185,14 @@ export default function RapportsPage() {
           <div className="stat">
             <div className="stat-title">Total ventes</div>
             <div className="stat-value text-info">{formatCurrency(summary.totalSales)}</div>
-            <div className="stat-desc">MAD</div>
+            <div className="stat-desc">GNF</div>
           </div>
         </div>
         <div className="stats shadow">
           <div className="stat">
             <div className="stat-title">Total achats</div>
             <div className="stat-value text-warning">{formatCurrency(summary.totalPurchases)}</div>
-            <div className="stat-desc">MAD</div>
+            <div className="stat-desc">GNF</div>
           </div>
         </div>
         <div className="stats shadow">
@@ -201,7 +201,7 @@ export default function RapportsPage() {
             <div className={`stat-value ${summary.grossProfit >= 0 ? 'text-success' : 'text-error'}`}>
               {formatCurrency(summary.grossProfit)}
             </div>
-            <div className="stat-desc">MAD</div>
+            <div className="stat-desc">GNF</div>
           </div>
         </div>
         <div className="stats shadow">
@@ -219,7 +219,7 @@ export default function RapportsPage() {
           <div className="stat">
             <div className="stat-title">Panier moyen</div>
             <div className="stat-value text-lg">{formatCurrency(summary.averageBasket)}</div>
-            <div className="stat-desc">MAD/facture</div>
+            <div className="stat-desc">GNF/facture</div>
           </div>
         </div>
         <div className="stats shadow">
@@ -312,7 +312,7 @@ export default function RapportsPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-success">{formatCurrency(customer.totalSpent)}</p>
-                    <p className="text-xs text-slate-500">MAD</p>
+                    <p className="text-xs text-slate-500">GNF</p>
                   </div>
                 </div>
               ))}

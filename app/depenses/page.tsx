@@ -285,7 +285,7 @@ export default function DepensesPage() {
           <div className="stat">
             <div className="stat-title">Total approvisionnement</div>
             <div className="stat-value text-warning">{formatCurrency(totalAmount)}</div>
-            <div className="stat-desc">MAD</div>
+            <div className="stat-desc">GNF</div>
           </div>
         </div>
         <div className="stats shadow">
@@ -299,7 +299,7 @@ export default function DepensesPage() {
           <div className="stat">
             <div className="stat-title">Coût moyen</div>
             <div className="stat-value text-secondary">{formatCurrency(averageCost)}</div>
-            <div className="stat-desc">MAD par facture</div>
+            <div className="stat-desc">GNF par facture</div>
           </div>
         </div>
       </div>
@@ -349,7 +349,7 @@ export default function DepensesPage() {
                         ))}
                       </div>
                     </td>
-                    <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} MAD</td>
+                    <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} GNF</td>
                     <td className="text-right">
                       <div className="flex gap-1 justify-end">
                         <button onClick={() => openEditModal(invoice)} className="btn btn-ghost btn-xs">
@@ -453,7 +453,7 @@ export default function DepensesPage() {
             </div>
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium">Coût unitaire (MAD) *</span>
+                <span className="label-text font-medium">Coût unitaire (GNF) *</span>
               </label>
               <input
                 type="number"
@@ -588,7 +588,7 @@ export default function DepensesPage() {
             </div>
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium">Coût unitaire (MAD) *</span>
+                <span className="label-text font-medium">Coût unitaire (GNF) *</span>
               </label>
               <input
                 type="number"

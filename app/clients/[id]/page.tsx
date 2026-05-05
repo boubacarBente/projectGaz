@@ -130,7 +130,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-MA', {
       style: 'currency',
-      currency: 'MAD',
+      currency: 'GNF',
     }).format(amount);
   };
 

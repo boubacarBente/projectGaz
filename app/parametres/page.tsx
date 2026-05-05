@@ -26,8 +26,8 @@ const defaultSettings: Settings = {
   companyPhone: '',
   companyEmail: '',
   defaultMinStock: 10,
-  currency: 'MAD',
-  currencySymbol: 'MAD',
+  currency: 'GNF',
+  currencySymbol: 'GNF',
   dateFormat: 'DD/MM/YYYY',
   invoicePrefix: 'FAC',
   purchasePrefix: 'ACH',
@@ -238,7 +238,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               onChange={(e) => updateField('currency', e.target.value)}
               className="select select-bordered"
             >
-              <option value="MAD">MAD - Dirham Marocain</option>
+              <option value="GNF">GNF - Franc Guinéen</option>
               <option value="EUR">EUR - Euro</option>
               <option value="USD">USD - Dollar US</option>
             </select>
