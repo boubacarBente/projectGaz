@@ -75,14 +75,18 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
   );
 }
 
+interface PurchaseLine {
+  productId: string;
+  quantity: string;
+  unitCost: string;
+}
+
 interface PurchaseFormData {
   reference: string;
   supplier: string;
   date: string;
   notes: string;
-  productId: string;
-  quantity: string;
-  unitCost: string;
+  lines: PurchaseLine[];
 }
 
 const initialFormData: PurchaseFormData = {
@@ -90,9 +94,7 @@ const initialFormData: PurchaseFormData = {
   supplier: 'Usine',
   date: new Date().toISOString().slice(0, 10),
   notes: '',
-  productId: '',
-  quantity: '1',
-  unitCost: '',
+  lines: [{ productId: '', quantity: '1', unitCost: '' }],
 };
 
 function formatCurrency(value: number) {
@@ -126,7 +128,10 @@ export default function DepensesPage() {
       setInvoices(invoicesData);
       setProducts(productsData);
       if (productsData.length > 0) {
-        setFormData(prev => ({ ...prev, productId: productsData[0].id.toString() }));
+        setFormData(prev => ({ 
+          ...prev, 
+          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitCost: productsData[0].unitPrice.toString() }]
+        }));
       }
     } catch {
       toast.error('Erreur lors du chargement des données');
@@ -141,6 +146,18 @@ export default function DepensesPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const lines = formData.lines
+        .filter(line => line.productId && line.quantity && line.unitCost)
+        .map(line => ({
+          productId: parseInt(line.productId),
+          quantity: parseInt(line.quantity),
+          amount: parseFloat(line.unitCost),
+        }));
+      
+      if (lines.length === 0) {
+        throw new Error('Veuillez ajouter au moins un produit');
+      }
+      
       const res = await fetch('/api/depenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -149,11 +166,7 @@ export default function DepensesPage() {
           supplier: formData.supplier,
           date: formData.date,
           notes: formData.notes,
-          lines: [{
-            productId: parseInt(formData.productId),
-            quantity: parseInt(formData.quantity),
-            amount: parseFloat(formData.unitCost),
-          }],
+          lines,
         }),
       });
       if (!res.ok) throw new Error('Erreur');
@@ -161,8 +174,8 @@ export default function DepensesPage() {
       setShowAddModal(false);
       resetForm();
       fetchData();
-    } catch {
-      toast.error('Erreur lors de la création');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
       setIsSubmitting(false);
     }
@@ -173,6 +186,14 @@ export default function DepensesPage() {
     if (!selectedInvoice) return;
     setIsSubmitting(true);
     try {
+      const lines = formData.lines
+        .filter(line => line.productId && line.quantity && line.unitCost)
+        .map(line => ({
+          productId: parseInt(line.productId),
+          quantity: parseInt(line.quantity),
+          amount: parseFloat(line.unitCost),
+        }));
+      
       const res = await fetch(`/api/depenses/${selectedInvoice.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -181,11 +202,7 @@ export default function DepensesPage() {
           supplier: formData.supplier,
           date: formData.date,
           notes: formData.notes,
-          lines: [{
-            productId: parseInt(formData.productId),
-            quantity: parseInt(formData.quantity),
-            amount: parseFloat(formData.unitCost),
-          }],
+          lines,
         }),
       });
       if (!res.ok) throw new Error('Erreur');
@@ -222,17 +239,41 @@ export default function DepensesPage() {
 
   const openEditModal = (invoice: PurchaseInvoice) => {
     setSelectedInvoice(invoice);
-    const item = invoice.items[0];
     setFormData({
       reference: invoice.reference,
       supplier: invoice.supplier,
       date: invoice.date,
       notes: invoice.notes,
-      productId: item?.productId.toString() || '',
-      quantity: item?.quantity.toString() || '1',
-      unitCost: item?.unitCost.toString() || '',
+      lines: invoice.items.map(item => ({
+        productId: item.productId.toString(),
+        quantity: item.quantity.toString(),
+        unitCost: item.unitCost.toString(),
+      })),
     });
     setShowEditModal(true);
+  };
+
+  const addLine = () => {
+    setFormData(prev => ({
+      ...prev,
+      lines: [...prev.lines, { productId: products[0]?.id.toString() || '', quantity: '1', unitCost: products[0]?.unitPrice.toString() || '' }],
+    }));
+  };
+
+  const removeLine = (index: number) => {
+    if (formData.lines.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        lines: prev.lines.filter((_, i) => i !== index),
+      }));
+    }
+  };
+
+  const updateLine = (index: number, field: keyof PurchaseLine, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      lines: prev.lines.map((line, i) => i === index ? { ...line, [field]: value } : line),
+    }));
   };
 
   const openDeleteModal = (invoice: PurchaseInvoice) => {
@@ -373,7 +414,7 @@ export default function DepensesPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Nouvelle facture d'approvisionnement" size="lg">
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Nouvelle facture d'approvisionnement" size="xl">
         <form onSubmit={handleAddPurchase} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="form-control">
@@ -417,54 +458,74 @@ export default function DepensesPage() {
                 className="input input-bordered"
               />
             </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Produit *</span>
-              </label>
-              <select
-                required
-                value={formData.productId}
-                onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
-                className="select select-bordered"
-              >
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.code} - {product.name} ({product.capacity})
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Quantité *</span>
-              </label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="input input-bordered"
-                placeholder="1"
-              />
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium">Produits</h4>
+              <button type="button" onClick={addLine} className="btn btn-ghost btn-sm">
+                + Ajouter un produit
+              </button>
             </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Coût unitaire (GNF) *</span>
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                value={formData.unitCost}
-                onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
-                className="input input-bordered"
-                placeholder="0.00"
-              />
+            <div className="space-y-3">
+              {formData.lines.map((line, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-5">
+                    <label className="label">
+                      <span className="label-text font-medium text-xs">Produit</span>
+                    </label>
+                    <select
+                      value={line.productId}
+                      onChange={(e) => updateLine(index, 'productId', e.target.value)}
+                      className="select select-bordered select-sm w-full"
+                    >
+                      <option value="">Sélectionner...</option>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.code} - {product.name} ({product.capacity})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-3">
+                    <label className="label">
+                      <span className="label-text font-medium text-xs">Qté</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={line.quantity}
+                      onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                      className="input input-bordered input-sm w-full"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <label className="label">
+                      <span className="label-text font-medium text-xs">Coût (GNF)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.unitCost}
+                      onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
+                      className="input input-bordered input-sm w-full"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <button
+                      type="button"
+                      onClick={() => removeLine(index)}
+                      className="btn btn-ghost btn-sm btn-circle"
+                      disabled={formData.lines.length === 1}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -510,7 +571,7 @@ export default function DepensesPage() {
           resetForm();
         }}
         title={`Modifier: ${selectedInvoice?.reference}`}
-        size="lg"
+        size="xl"
       >
         <form onSubmit={handleEditPurchase} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -553,52 +614,74 @@ export default function DepensesPage() {
                 className="input input-bordered"
               />
             </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Produit *</span>
-              </label>
-              <select
-                required
-                value={formData.productId}
-                onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
-                className="select select-bordered"
-              >
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.code} - {product.name} ({product.capacity})
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Quantité *</span>
-              </label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="input input-bordered"
-              />
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium">Produits</h4>
+              <button type="button" onClick={addLine} className="btn btn-ghost btn-sm">
+                + Ajouter un produit
+              </button>
             </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Coût unitaire (GNF) *</span>
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                value={formData.unitCost}
-                onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
-                className="input input-bordered"
-              />
+            <div className="space-y-3">
+              {formData.lines.map((line, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-5">
+                    <label className="label">
+                      <span className="label-text font-medium text-xs">Produit</span>
+                    </label>
+                    <select
+                      value={line.productId}
+                      onChange={(e) => updateLine(index, 'productId', e.target.value)}
+                      className="select select-bordered select-sm w-full"
+                    >
+                      <option value="">Sélectionner...</option>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.code} - {product.name} ({product.capacity})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-3">
+                    <label className="label">
+                      <span className="label-text font-medium text-xs">Qté</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={line.quantity}
+                      onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                      className="input input-bordered input-sm w-full"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <label className="label">
+                      <span className="label-text font-medium text-xs">Coût (GNF)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.unitCost}
+                      onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
+                      className="input input-bordered input-sm w-full"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <button
+                      type="button"
+                      onClick={() => removeLine(index)}
+                      className="btn btn-ghost btn-sm btn-circle"
+                      disabled={formData.lines.length === 1}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
