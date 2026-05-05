@@ -143,7 +143,7 @@ export default function DepensesPage() {
       if (productsData.length > 0) {
         setFormData(prev => ({ 
           ...prev, 
-          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitCost: productsData[0].unitPrice.toString() }]
+          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitCost: '' }]
         }));
       }
     } catch {
@@ -269,7 +269,7 @@ export default function DepensesPage() {
   const addLine = () => {
     setFormData(prev => ({
       ...prev,
-      lines: [...prev.lines, { productId: products[0]?.id.toString() || '', quantity: '1', unitCost: products[0]?.unitPrice.toString() || '' }],
+      lines: [...prev.lines, { productId: products[0]?.id.toString() || '', quantity: '1', unitCost: '' }],
     }));
   };
 
