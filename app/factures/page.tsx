@@ -408,7 +408,7 @@ export default function FacturesPage() {
     return `
       <div style="max-width:720px;margin:0 auto;">
         <div style="text-align:center;margin-bottom:30px;border-bottom:2px solid #1e293b;padding-bottom:20px;">
-          <h1 style="font-size:28px;color:#1e293b;margin:0 0 10px 0;">FACTURE</h1>
+          <h1 style="font-size:28px;color:#1e293b;margin:0 0 10px 0;">FACTURE DE KORBE</h1>
           <p style="font-size:18px;color:#475569;margin:0;">N° ${invoice.invoiceNumber}</p>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:30px;">
