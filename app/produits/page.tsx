@@ -40,10 +40,10 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', duration: 0.4, bounce: 0.3 }}
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -80, scale: 0.95 }}
+            transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
             className={`modal-box ${sizeClasses[size]} w-full relative z-10 shadow-2xl`}
           >
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
