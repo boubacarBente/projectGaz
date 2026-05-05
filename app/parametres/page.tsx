@@ -152,7 +152,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               value={formData.companyPhone}
               onChange={(e) => updateField('companyPhone', e.target.value)}
               className="input input-bordered"
-              placeholder="+212 6XX XXX XXX"
+              placeholder="+224 6XX XXX XXX"
             />
           </div>
           <div className="form-control md:col-span-2">

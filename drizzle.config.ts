@@ -5,6 +5,6 @@ export default defineConfig({
   schema: './db/schema.ts',
   out: './db/migrations',
   dbCredentials: {
-    url: "./db/gaz.db",
+    url: "./db/database.db",
   },
 });
