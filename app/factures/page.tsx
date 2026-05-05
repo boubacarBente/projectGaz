@@ -823,13 +823,19 @@ export default function FacturesPage() {
               <label className="label">
                 <span className="label-text font-medium">Client *</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                className="input input-bordered"
-              />
+                className="select select-bordered"
+              >
+                <option value="">Sélectionner un client...</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="form-control">
               <label className="label">

@@ -26,6 +26,19 @@ export const customers = sqliteTable('customers', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
+// Table des fournisseurs/usines
+export const suppliers = sqliteTable('suppliers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+  phone: text('phone'),
+  address: text('address'),
+  totalPurchases: real('total_purchases').default(0),
+  notes: text('notes'),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
+
 // Table des produits
 export const products = sqliteTable('products', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -42,6 +55,7 @@ export const products = sqliteTable('products', {
 export const purchaseInvoices = sqliteTable('purchase_invoices', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   reference: text('reference').notNull(),
+  supplierId: integer('supplier_id').references(() => suppliers.id),
   supplier: text('supplier').notNull(),
   date: text('date').notNull(),
   notes: text('notes'),
