@@ -89,11 +89,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar - Elegant Dark Design */}
-      <aside className="hidden lg:flex flex-col w-72 min-h-screen from-slate-900 to-slate-800 bg-gradient-to-br text-white">
+      <aside className="hidden lg:flex flex-col w-72 min-h-screen from-slate-900 to-slate-800 bg-linear-to-br text-white">
         {/* Logo/Header */}
         <div className="p-6 border-b border-slate-700/50">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-linear-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+            <div className="w-12 h-12 rounded-xl bg-linear-to-br from-amber-700 to-orange-800 flex items-center justify-center shadow-lg shadow-amber-500/20">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
