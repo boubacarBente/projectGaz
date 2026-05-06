@@ -123,7 +123,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Company Info */}
-      <div className="bg-slate-50 rounded-xl p-4">
+      <div className="bg-base-200/30 rounded-xl p-4">
         <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -139,7 +139,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               type="text"
               value={formData.companyName}
               onChange={(e) => updateField('companyName', e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered input-info focus:input-focus"
               placeholder="Mini-Centre Distribution"
             />
           </div>
@@ -152,7 +152,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               value={formData.companyPhone}
               onChange={(e) => updateField('companyPhone', e.target.value)}
               className="input input-bordered"
-              placeholder="+224 6XX XXX XXX"
+              placeholder="+212 6XX XXX XXX"
             />
           </div>
           <div className="form-control md:col-span-2">
@@ -162,7 +162,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
             <textarea
               value={formData.companyAddress}
               onChange={(e) => updateField('companyAddress', e.target.value)}
-              className="textarea textarea-bordered"
+              className="textarea textarea-bordered textarea-info focus:textarea-focus"
               rows={2}
               placeholder="Adresse complète..."
             />
@@ -175,7 +175,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               type="email"
               value={formData.companyEmail}
               onChange={(e) => updateField('companyEmail', e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered input-info focus:input-focus"
               placeholder="contact@entreprise.ma"
             />
           </div>
@@ -183,7 +183,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
       </div>
 
       {/* Stock Settings */}
-      <div className="bg-slate-50 rounded-xl p-4">
+      <div className="bg-base-200/30 rounded-xl p-4">
         <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -200,7 +200,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               min="0"
               value={formData.defaultMinStock}
               onChange={(e) => updateField('defaultMinStock', parseInt(e.target.value) || 0)}
-              className="input input-bordered"
+              className="input input-bordered input-info focus:input-focus"
             />
             <label className="label">
               <span className="label-text-alt">Alerte quand le stock atteint cette valeur</span>
@@ -221,7 +221,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
       </div>
 
       {/* Currency & Format */}
-      <div className="bg-slate-50 rounded-xl p-4">
+      <div className="bg-base-200/30 rounded-xl p-4">
         <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -236,7 +236,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
             <select
               value={formData.currency}
               onChange={(e) => updateField('currency', e.target.value)}
-              className="select select-bordered"
+              className="select select-bordered select-info focus:select-focus"
             >
               <option value="GNF">GNF - Franc Guinéen</option>
               <option value="EUR">EUR - Euro</option>
@@ -250,7 +250,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
             <select
               value={formData.dateFormat}
               onChange={(e) => updateField('dateFormat', e.target.value)}
-              className="select select-bordered"
+              className="select select-bordered select-info focus:select-focus"
             >
               <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
               <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
@@ -261,7 +261,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
       </div>
 
       {/* Invoice Prefixes */}
-      <div className="bg-slate-50 rounded-xl p-4">
+      <div className="bg-base-200/30 rounded-xl p-4">
         <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -277,7 +277,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               type="text"
               value={formData.invoicePrefix}
               onChange={(e) => updateField('invoicePrefix', e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered input-info focus:input-focus"
               placeholder="FAC"
             />
           </div>
@@ -289,7 +289,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               type="text"
               value={formData.purchasePrefix}
               onChange={(e) => updateField('purchasePrefix', e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered input-info focus:input-focus"
               placeholder="ACH"
             />
           </div>

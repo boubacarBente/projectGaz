@@ -1,1 +1,14 @@
-[]
+{
+  "companyName": "Korbe Distribution GAZ",
+  "companyAddress": "",
+  "companyPhone": "",
+  "companyEmail": "",
+  "defaultMinStock": 10,
+  "currency": "GNF",
+  "currencySymbol": "GNF",
+  "dateFormat": "DD/MM/YYYY",
+  "invoicePrefix": "FAC",
+  "purchasePrefix": "ACH",
+  "lowStockAlertEnabled": true,
+  "theme": "light"
+}
