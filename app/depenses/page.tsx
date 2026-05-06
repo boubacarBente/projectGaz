@@ -49,7 +49,7 @@ type Product = {
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: string | React.ReactNode;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
@@ -599,167 +599,228 @@ export default function DepensesPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Nouvelle facture d'approvisionnement" size="xl">
-        <form onSubmit={handleAddPurchase} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Référence facture *</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.reference}
-                onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                className="input input-bordered"
-                placeholder="USINE-2026-001"
-              />
+      <Modal 
+        isOpen={showAddModal} 
+        onClose={() => setShowAddModal(false)} 
+        title={
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Nouvelle facture d'approvisionnement
+          </div>
+        } 
+        size="xl"
+      >
+        <form onSubmit={handleAddPurchase} className="space-y-6">
+          {/* Section: Informations générales */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Informations générales
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Référence facture *</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.reference}
+                  onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                  className="input input-bordered input-primary focus:input-focus"
+                  placeholder="USINE-2026-001"
+                />
+                <label className="label">
+                  <span className="label-text-alt">Numéro de référence unique</span>
+                </label>
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Fournisseur</span>
+                </label>
+                <select
+                  required
+                  value={formData.supplier}
+                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  className="select select-bordered select-primary focus:select-focus"
+                >
+                  <option value="">Sélectionner un fournisseur...</option>
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Fournisseur</span>
-              </label>
-              <select
-                required
-                value={formData.supplier}
-                onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                className="select select-bordered"
-              >
-                <option value="">Sélectionner...</option>
-                {suppliers.map(s => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
-                ))}
-              </select>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Date de la facture</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="input input-bordered input-primary focus:input-focus"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Section: Paiement */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              Paiement
+            </h4>
             <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Date</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="input input-bordered"
-              />
+              <div className="form-control">
+                <label className="label cursor-pointer justify-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPaid}
+                    onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                    className="toggle toggle-success toggle-lg"
+                  />
+                  <div className="flex flex-col items-start">
+                    <span className="label-text font-semibold text-lg">Facture payée</span>
+                    <span className="text-sm text-base-content/60">
+                      {formData.isPaid ? 'La facture a été réglée au fournisseur' : 'La facture n\'a pas encore été réglée'}
+                    </span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
 
-          {/* Paid checkbox */}
-          <div className="form-control">
-            <label className="label cursor-pointer justify-start gap-3">
-              <input
-                type="checkbox"
-                checked={formData.isPaid}
-                onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                className="checkbox checkbox-success"
-              />
-              <span className="label-text font-medium">Facture payée</span>
-              {formData.isPaid && (
-                <span className="badge badge-success ml-2">Payée</span>
-              )}
-            </label>
-          </div>
-
-          <div className="border rounded-lg p-4">
+          {/* Section: Produits */}
+          <div className="bg-base-200/30 rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium">Produits</h4>
-              <button type="button" onClick={addLine} className="btn btn-ghost btn-sm">
-                + Ajouter un produit
+              <h4 className="font-semibold text-sm text-base-content/70 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                Produits commandés
+              </h4>
+              <button type="button" onClick={addLine} className="btn btn-sm btn-primary btn-outline gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Ajouter
               </button>
             </div>
-            <div className="space-y-3">
-              {formData.lines.map((line, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
-                    <label className="label">
-                      <span className="label-text font-medium text-xs">Produit</span>
-                    </label>
-                    <select
-                      value={line.productId}
-                      onChange={(e) => updateLine(index, 'productId', e.target.value)}
-                      className="select select-bordered select-sm w-full"
-                    >
-                      <option value="">Sélectionner...</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.code} - {product.name} ({product.capacity})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-3">
-                    <label className="label">
-                      <span className="label-text font-medium text-xs">Qté</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={line.quantity}
-                      onChange={(e) => updateLine(index, 'quantity', e.target.value)}
-                      className="input input-bordered input-sm w-full"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <label className="label">
-                      <span className="label-text font-medium text-xs">Coût (GNF)</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.unitCost}
-                      onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
-                      className="input input-bordered input-sm w-full"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <button
-                      type="button"
-                      onClick={() => removeLine(index)}
-                      className="btn btn-ghost btn-sm btn-circle"
-                      disabled={formData.lines.length === 1}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="table table-xs">
+                <thead>
+                  <tr>
+                    <th className="bg-base-100">Produit</th>
+                    <th className="bg-base-100 text-center">Quantité</th>
+                    <th className="bg-base-100 text-right">Coût unitaire (GNF)</th>
+                    <th className="bg-base-100 text-right">Total</th>
+                    <th className="bg-base-100"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.lines.map((line, index) => (
+                    <tr key={index}>
+                      <td>
+                        <select
+                          value={line.productId}
+                          onChange={(e) => updateLine(index, 'productId', e.target.value)}
+                          className="select select-bordered select-sm w-full focus:select-focus"
+                        >
+                          <option value="">Sélectionner...</option>
+                          {products.map((product) => (
+                            <option key={product.id} value={product.id}>
+                              {product.code} - {product.name} ({product.capacity})
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="1"
+                          value={line.quantity}
+                          onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                          className="input input-bordered input-sm w-20 text-center focus:input-focus"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={line.unitCost}
+                          onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
+                          className="input input-bordered input-sm w-28 text-right focus:input-focus"
+                          placeholder="0"
+                        />
+                      </td>
+                      <td className="text-right font-semibold text-warning">
+                        {line.quantity && line.unitCost 
+                          ? formatCurrency(parseInt(line.quantity) * parseFloat(line.unitCost || '0')) 
+                          : '0'} GNF
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => removeLine(index)}
+                          className="btn btn-ghost btn-sm btn-circle"
+                          disabled={formData.lines.length === 1}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
+          {/* Notes */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-medium">Notes</span>
+              <span className="label-text font-medium">Notes (optionnel)</span>
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="textarea textarea-bordered"
-              placeholder="Transport, observations..."
-              rows={3}
+              className="textarea textarea-bordered textarea-primary focus:textarea-focus"
+              rows={2}
+              placeholder="Ajouter des notes ou remarques..."
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-            <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
+            <button
+              type="button"
+              onClick={() => setShowAddModal(false)}
+              className="btn btn-ghost"
+            >
               Annuler
             </button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-warning">
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (
-                <>
+                <div className="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Enregistrer
-                </>
+                  Enregistrer la facture
+                </div>
               )}
             </button>
           </div>
@@ -774,154 +835,204 @@ export default function DepensesPage() {
           setSelectedInvoice(null);
           resetForm();
         }}
-        title={`Modifier: ${selectedInvoice?.reference}`}
+        title={
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Modifier la facture
+          </div>
+        }
         size="xl"
       >
-        <form onSubmit={handleEditPurchase} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Référence facture *</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.reference}
-                onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                className="input input-bordered"
-              />
+        <form onSubmit={handleEditPurchase} className="space-y-6">
+          {/* Section: Informations générales */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Informations générales
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Référence facture *</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.reference}
+                  onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                  className="input input-bordered input-primary focus:input-focus"
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Fournisseur</span>
+                </label>
+                <select
+                  required
+                  value={formData.supplier}
+                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  className="select select-bordered select-primary focus:select-focus"
+                >
+                  <option value="">Sélectionner un fournisseur...</option>
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Fournisseur</span>
-              </label>
-              <select
-                required
-                value={formData.supplier}
-                onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                className="select select-bordered"
-              >
-                <option value="">Sélectionner...</option>
-                {suppliers.map(s => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
-                ))}
-              </select>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Date de la facture</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="input input-bordered input-primary focus:input-focus"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Section: Paiement */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              Paiement
+            </h4>
             <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Date</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="input input-bordered"
-              />
+              <div className="form-control">
+                <label className="label cursor-pointer justify-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPaid}
+                    onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                    className="toggle toggle-success toggle-lg"
+                  />
+                  <div className="flex flex-col items-start">
+                    <span className="label-text font-semibold text-lg">Facture payée</span>
+                    <span className="text-sm text-base-content/60">
+                      {formData.isPaid ? 'La facture a été réglée au fournisseur' : 'La facture n\'a pas encore été réglée'}
+                    </span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
 
-          {/* Paid checkbox */}
-          <div className="form-control">
-            <label className="label cursor-pointer justify-start gap-3">
-              <input
-                type="checkbox"
-                checked={formData.isPaid}
-                onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                className="checkbox checkbox-success"
-              />
-              <span className="label-text font-medium">Facture payée</span>
-              {formData.isPaid && (
-                <span className="badge badge-success ml-2">Payée</span>
-              )}
-            </label>
-          </div>
-
-          <div className="border rounded-lg p-4">
+          {/* Section: Produits */}
+          <div className="bg-base-200/30 rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium">Produits</h4>
-              <button type="button" onClick={addLine} className="btn btn-ghost btn-sm">
-                + Ajouter un produit
+              <h4 className="font-semibold text-sm text-base-content/70 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                Produits commandés
+              </h4>
+              <button type="button" onClick={addLine} className="btn btn-sm btn-primary btn-outline gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Ajouter
               </button>
             </div>
-            <div className="space-y-3">
-              {formData.lines.map((line, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
-                    <label className="label">
-                      <span className="label-text font-medium text-xs">Produit</span>
-                    </label>
-                    <select
-                      value={line.productId}
-                      onChange={(e) => updateLine(index, 'productId', e.target.value)}
-                      className="select select-bordered select-sm w-full"
-                    >
-                      <option value="">Sélectionner...</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.code} - {product.name} ({product.capacity})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-3">
-                    <label className="label">
-                      <span className="label-text font-medium text-xs">Qté</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={line.quantity}
-                      onChange={(e) => updateLine(index, 'quantity', e.target.value)}
-                      className="input input-bordered input-sm w-full"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <label className="label">
-                      <span className="label-text font-medium text-xs">Coût (GNF)</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.unitCost}
-                      onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
-                      className="input input-bordered input-sm w-full"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <button
-                      type="button"
-                      onClick={() => removeLine(index)}
-                      className="btn btn-ghost btn-sm btn-circle"
-                      disabled={formData.lines.length === 1}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="table table-xs">
+                <thead>
+                  <tr>
+                    <th className="bg-base-100">Produit</th>
+                    <th className="bg-base-100 text-center">Quantité</th>
+                    <th className="bg-base-100 text-right">Coût unitaire (GNF)</th>
+                    <th className="bg-base-100 text-right">Total</th>
+                    <th className="bg-base-100"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.lines.map((line, index) => (
+                    <tr key={index}>
+                      <td>
+                        <select
+                          value={line.productId}
+                          onChange={(e) => updateLine(index, 'productId', e.target.value)}
+                          className="select select-bordered select-sm w-full focus:select-focus"
+                        >
+                          <option value="">Sélectionner...</option>
+                          {products.map((product) => (
+                            <option key={product.id} value={product.id}>
+                              {product.code} - {product.name} ({product.capacity})
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="1"
+                          value={line.quantity}
+                          onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                          className="input input-bordered input-sm w-20 text-center focus:input-focus"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={line.unitCost}
+                          onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
+                          className="input input-bordered input-sm w-28 text-right focus:input-focus"
+                          placeholder="0"
+                        />
+                      </td>
+                      <td className="text-right font-semibold text-warning">
+                        {line.quantity && line.unitCost 
+                          ? formatCurrency(parseInt(line.quantity) * parseFloat(line.unitCost || '0')) 
+                          : '0'} GNF
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => removeLine(index)}
+                          className="btn btn-ghost btn-sm btn-circle"
+                          disabled={formData.lines.length === 1}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
+          {/* Notes */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-medium">Notes</span>
+              <span className="label-text font-medium">Notes (optionnel)</span>
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="textarea textarea-bordered"
-              rows={3}
+              className="textarea textarea-bordered textarea-primary focus:textarea-focus"
+              rows={2}
+              placeholder="Ajouter des notes ou remarques..."
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
             <button
               type="button"
               onClick={() => {
@@ -937,12 +1048,12 @@ export default function DepensesPage() {
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (
-                <>
+                <div className="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Enregistrer
-                </>
+                  Enregistrer les modifications
+                </div>
               )}
             </button>
           </div>
