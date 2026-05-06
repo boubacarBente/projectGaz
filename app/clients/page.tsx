@@ -30,7 +30,7 @@ type CustomerType = {
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: string | React.ReactNode;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
@@ -268,73 +268,191 @@ export default function ClientsPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); resetForm(); }} title="Ajouter un nouveau client" size="lg">
-        <form onSubmit={handleAddClient} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control"><label className="label"><span className="label-text font-medium">Nom *</span></label><input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered" placeholder="Nom du client" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-medium">Téléphone</span></label><input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered" placeholder="+212 6XX-XXXXXX" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-medium">Email</span></label><input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input input-bordered" placeholder="email@exemple.com" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-medium">Ville</span></label><input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input input-bordered" placeholder="Ville" /></div>
-            <div className="form-control md:col-span-2"><label className="label"><span className="label-text font-medium">Adresse</span></label><input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered" placeholder="Adresse complète" /></div>
-            <div className="form-control md:col-span-2">
-              <label className="label"><span className="label-text font-medium">Type de client</span></label>
-              <div className="flex gap-2">
-                <select 
-                  value={formData.typeId} 
-                  onChange={(e) => {
-                    if (e.target.value === '__new__') {
-                      const newTypeName = prompt('Entrez le nom du nouveau type de client:');
-                      if (newTypeName) {
-                        setFormData({ ...formData, typeId: '', newTypeName: newTypeName });
-                      }
-                    } else {
-                      setFormData({ ...formData, typeId: e.target.value, newTypeName: '' });
-                    }
-                  }} 
-                  className="select select-bordered flex-1"
-                >
-                  <option value="">Sélectionner un type</option>
-                  {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
-                  {/* <option value="__new__">+ Ajouter un nouveau type</option> */}
-                </select>
-                {/* <input 
-                  type="text" 
-                  placeholder="Ou créer un nouveau type..."
-                  value={formData.newTypeName}
-                  onChange={(e) => setFormData({ ...formData, newTypeName: e.target.value, typeId: '' })}
-                  className="input input-bordered flex-1"
-                /> */}
+      <Modal 
+        isOpen={showAddModal} 
+        onClose={() => { setShowAddModal(false); resetForm(); }} 
+        title={
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            Nouveau client
+          </div>
+        } 
+        size="lg"
+      >
+        <form onSubmit={handleAddClient} className="space-y-6">
+          {/* Section: Informations personnelles */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Informations personnelles
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Nom complet *</span></label>
+                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Nom du client" />
               </div>
-              {formData.newTypeName && (
-                <div className="mt-2 text-sm text-sky-600">
-                  Nouveau type à créer: <strong>{formData.newTypeName}</strong>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Téléphone</span></label>
+                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="+224 6XX-XXXXXX" />
+              </div>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Email</span></label>
+                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="email@exemple.com" />
+              </div>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Ville</span></label>
+                <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Ville" />
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Adresse */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Adresse
+            </h4>
+            <div className="form-control">
+              <label className="label"><span className="label-text font-medium">Adresse complète</span></label>
+              <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Adresse complète" />
+            </div>
+          </div>
+
+          {/* Section: Classification */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Classification
+            </h4>
+            <div className="form-control">
+              <label className="label"><span className="label-text font-medium">Type de client</span></label>
+              <select value={formData.typeId} onChange={(e) => setFormData({ ...formData, typeId: e.target.value, newTypeName: '' })} className="select select-bordered select-primary focus:select-focus">
+                <option value="">Sélectionner un type...</option>
+                {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Section: Notes */}
+          <div className="form-control">
+            <label className="label"><span className="label-text font-medium">Notes (optionnel)</span></label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-primary focus:textarea-focus" rows={2} placeholder="Notes supplémentaires..." />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
+            <button type="button" onClick={() => { setShowAddModal(false); resetForm(); }} className="btn btn-ghost">Annuler</button>
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
+              {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : (
+                <div className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  Ajouter le client
                 </div>
               )}
-            </div>
-            <div className="form-control md:col-span-2"><label className="label"><span className="label-text font-medium">Notes</span></label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered" rows={3} placeholder="Notes supplémentaires..." /></div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-            <button type="button" onClick={() => { setShowAddModal(false); resetForm(); }} className="btn btn-ghost">Annuler</button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-primary">{isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : <><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Ajouter</>}</button>
+            </button>
           </div>
         </form>
       </Modal>
 
       {/* Edit Modal */}
-      <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }} title={selectedCustomer ? `Modifier: ${selectedCustomer.name}` : 'Modifier client'} size="lg">
-        <form onSubmit={handleEditClient} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control"><label className="label"><span className="label-text font-medium">Nom *</span></label><input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered" placeholder="Nom du client" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-medium">Téléphone</span></label><input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered" placeholder="+212 6XX-XXXXXX" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-medium">Email</span></label><input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input input-bordered" placeholder="email@exemple.com" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-medium">Ville</span></label><input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input input-bordered" placeholder="Ville" /></div>
-            <div className="form-control md:col-span-2"><label className="label"><span className="label-text font-medium">Adresse</span></label><input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered" placeholder="Adresse complète" /></div>
-            <div className="form-control md:col-span-2"><label className="label"><span className="label-text font-medium">Type de client</span></label><select value={formData.typeId} onChange={(e) => setFormData({ ...formData, typeId: e.target.value })} className="select select-bordered"><option value="">Sélectionner un type</option>{customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</select></div>
-            <div className="form-control md:col-span-2"><label className="label"><span className="label-text font-medium">Notes</span></label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered" rows={3} placeholder="Notes supplémentaires..." /></div>
+      <Modal 
+        isOpen={showEditModal} 
+        onClose={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }} 
+        title={
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Modifier le client
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+        } 
+        size="lg"
+      >
+        <form onSubmit={handleEditClient} className="space-y-6">
+          {/* Section: Informations personnelles */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Informations personnelles
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Nom complet *</span></label>
+                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Nom du client" />
+              </div>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Téléphone</span></label>
+                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="+224 6XX-XXXXXX" />
+              </div>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Email</span></label>
+                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="email@exemple.com" />
+              </div>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Ville</span></label>
+                <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Ville" />
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Adresse */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Adresse
+            </h4>
+            <div className="form-control">
+              <label className="label"><span className="label-text font-medium">Adresse complète</span></label>
+              <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Adresse complète" />
+            </div>
+          </div>
+
+          {/* Section: Classification */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Classification
+            </h4>
+            <div className="form-control">
+              <label className="label"><span className="label-text font-medium">Type de client</span></label>
+              <select value={formData.typeId} onChange={(e) => setFormData({ ...formData, typeId: e.target.value })} className="select select-bordered select-primary focus:select-focus">
+                <option value="">Sélectionner un type...</option>
+                {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Section: Notes */}
+          <div className="form-control">
+            <label className="label"><span className="label-text font-medium">Notes (optionnel)</span></label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-primary focus:textarea-focus" rows={2} placeholder="Notes supplémentaires..." />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
             <button type="button" onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }} className="btn btn-ghost">Annuler</button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-info">{isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : <><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Enregistrer</>}</button>
+            <button type="submit" disabled={isSubmitting} className="btn btn-info">
+              {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : (
+                <div className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  Enregistrer les modifications
+                </div>
+              )}
+            </button>
           </div>
         </form>
       </Modal>

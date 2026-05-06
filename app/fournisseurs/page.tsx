@@ -39,7 +39,7 @@ type SupplierData = {
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: string | React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -221,62 +221,67 @@ export default function FournisseursPage() {
       )}
 
       {/* Add Modal */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Nouveau fournisseur">
-        <form onSubmit={handleAddSupplier} className="space-y-4">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Nom *</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="input input-bordered"
-              placeholder="Nom de l'usine"
-            />
+      <Modal 
+        isOpen={showAddModal} 
+        onClose={() => setShowAddModal(false)} 
+        title={
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0v2m0-2v-2m0 2H9m2 2v-2m0 2h6m-6 0H7m14 0v2m0-2v-2m0 2H9" />
+            </svg>
+            Nouveau fournisseur
           </div>
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Téléphone</span>
-            </label>
-            <input
-              type="text"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="input input-bordered"
-              placeholder="Numéro de téléphone"
-            />
+        }
+      >
+        <form onSubmit={handleAddSupplier} className="space-y-6">
+          {/* Section: Informations */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0v2m0-2v-2m0 2H9m2 2v-2m0 2h6" />
+              </svg>
+              Informations du fournisseur
+            </h4>
+            <div className="form-control">
+              <label className="label"><span className="label-text font-medium">Nom *</span></label>
+              <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered input-warning focus:input-focus" placeholder="Nom de l'usine" />
+            </div>
+            <div className="form-control mt-4">
+              <label className="label"><span className="label-text font-medium">Téléphone</span></label>
+              <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered input-warning focus:input-focus" placeholder="+224 6XX-XXXXXX" />
+            </div>
           </div>
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Adresse</span>
-            </label>
-            <input
-              type="text"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="input input-bordered"
-              placeholder="Adresse"
-            />
+
+          {/* Section: Adresse */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Adresse
+            </h4>
+            <div className="form-control">
+              <label className="label"><span className="label-text font-medium">Adresse</span></label>
+              <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-warning focus:input-focus" placeholder="Adresse du fournisseur" />
+            </div>
           </div>
+
+          {/* Section: Notes */}
           <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Notes</span>
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="textarea textarea-bordered"
-              rows={3}
-            />
+            <label className="label"><span className="label-text font-medium">Notes (optionnel)</span></label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-warning focus:textarea-focus" rows={2} placeholder="Notes supplémentaires..." />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">
-              Annuler
-            </button>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
+            <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">Annuler</button>
             <button type="submit" disabled={isSubmitting} className="btn btn-warning">
-              {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : 'Ajouter'}
+              {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : (
+                <div className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  Ajouter le fournisseur
+                </div>
+              )}
             </button>
           </div>
         </form>
@@ -286,7 +291,14 @@ export default function FournisseursPage() {
       <Modal
         isOpen={showDetailModal}
         onClose={() => { setShowDetailModal(false); setSelectedSupplier(null); }}
-        title={`${selectedSupplier?.supplier.name}`}
+        title={
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0v2m0-2v-2m0 2H9m2 2v-2m0 2h6" />
+            </svg>
+            {selectedSupplier?.supplier.name}
+          </div>
+        }
       >
         {selectedSupplier && (
           <div className="space-y-4">
