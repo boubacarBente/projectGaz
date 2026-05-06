@@ -107,7 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-300 mb-3 px-3">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-white/60 mb-3 px-3">
             Navigation
           </h2>
           <ul className="space-y-1">
@@ -117,11 +117,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   href={item.href} 
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                     isActive(item.href) 
-                      ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-amber-400 border border-amber-500/30' 
-                      : 'text-gray-200 hover:bg-slate-700/60 hover:text-white border border-transparent'
+                      ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-white border border-amber-500/30' 
+                      : 'text-white hover:bg-slate-700/60 hover:text-white border border-transparent'
                   }`}
                 >
-                  <span className={isActive(item.href) ? "text-amber-400" : "text-gray-400"}>
+                  <span className={isActive(item.href) ? "text-white" : "text-white/70"}>
                     {item.icon}
                   </span>
                   <span className="font-medium">{item.label}</span>
