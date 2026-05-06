@@ -362,7 +362,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         <button
           type="submit"
           disabled={isSubmitting}
-          className="btn btn-primary gap-2 min-w-[200px]"
+          className="btn btn-primary gap-2 min-w-50"
         >
           {isSubmitting ? (
             <span className="loading loading-spinner loading-sm"></span>
