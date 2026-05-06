@@ -12,7 +12,7 @@ export function PageHeader({
   actions,
 }: PageHeaderProps) {
   return (
-    <section className="rounded-[2rem] border border-white/80 bg-white/75 p-6 shadow-lg shadow-slate-200/60 backdrop-blur md:p-8">
+    <section className="rounded-4xl border border-white/80 bg-white/75 p-6 shadow-lg shadow-slate-200/60 backdrop-blur md:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-sky-700">
