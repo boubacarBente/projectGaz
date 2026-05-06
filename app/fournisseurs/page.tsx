@@ -243,18 +243,18 @@ export default function FournisseursPage() {
               Informations du fournisseur
             </h4>
             <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Nom *</span></label>
-              <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered input-warning focus:input-focus" placeholder="Nom de l'usine" />
+              <label className="label"><span className="label-text font-medium text-sm">Nom *</span></label>
+              <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full" placeholder="Nom de l'usine ou du fournisseur" />
             </div>
-            <div className="form-control mt-4">
-              <label className="label"><span className="label-text font-medium">Téléphone</span></label>
-              <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered input-warning focus:input-focus" placeholder="+224 6XX-XXXXXX" />
+            <div className="form-control">
+              <label className="label"><span className="label-text font-medium text-sm">Téléphone</span></label>
+              <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full" placeholder="+224 6XX XXXXXX" />
             </div>
           </div>
 
           {/* Section: Adresse */}
-          <div className="bg-base-200/30 rounded-xl p-4">
-            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+          <div className="space-y-4 pt-2">
+            <h4 className="font-semibold text-sm text-base-content/70 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -262,25 +262,22 @@ export default function FournisseursPage() {
               Adresse
             </h4>
             <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Adresse</span></label>
-              <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-warning focus:input-focus" placeholder="Adresse du fournisseur" />
+              <label className="label"><span className="label-text font-medium text-sm">Adresse</span></label>
+              <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full" placeholder="Adresse du fournisseur" />
             </div>
           </div>
 
           {/* Section: Notes */}
           <div className="form-control">
-            <label className="label"><span className="label-text font-medium">Notes (optionnel)</span></label>
-            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-warning focus:textarea-focus" rows={2} placeholder="Notes supplémentaires..." />
+            <label className="label"><span className="label-text font-medium text-sm">Notes (optionnel)</span></label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full" rows={3} placeholder="Informations supplémentaires..." />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">Annuler</button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-warning">
+            <button type="submit" disabled={isSubmitting} className="btn btn-warning gap-2">
               {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : (
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  Ajouter le fournisseur
-                </div>
+                <><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Ajouter le fournisseur</>
               )}
             </button>
           </div>
@@ -301,25 +298,42 @@ export default function FournisseursPage() {
         }
       >
         {selectedSupplier && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Info Cards */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-slate-500">Téléphone</p>
-                <p>{selectedSupplier.supplier.phone || '-'}</p>
+              <div className="bg-base-200/30 rounded-xl p-4">
+                <p className="text-xs text-base-content/60 uppercase tracking-wide mb-1">Téléphone</p>
+                <p className="font-medium">{selectedSupplier.supplier.phone || '-'}</p>
               </div>
-              <div>
-                <p className="text-xs text-slate-500">Total achats</p>
-                <p className="font-medium text-warning">{formatCurrency(selectedSupplier.supplier.totalPurchases)} GNF</p>
+              <div className="bg-warning/10 rounded-xl p-4">
+                <p className="text-xs text-warning/70 uppercase tracking-wide mb-1">Total achats</p>
+                <p className="font-bold text-warning text-lg">{formatCurrency(selectedSupplier.supplier.totalPurchases)} GNF</p>
               </div>
             </div>
 
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Factures ({selectedSupplier.invoices.length})</h4>
+            {selectedSupplier.supplier.address && (
+              <div className="bg-base-200/30 rounded-xl p-4 flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-base-content/50 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p className="text-sm">{selectedSupplier.supplier.address}</p>
+              </div>
+            )}
+
+            {/* Invoices */}
+            <div className="border-t border-base-200 pt-5">
+              <h4 className="font-semibold mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Factures ({selectedSupplier.invoices.length})
+              </h4>
               {selectedSupplier.invoices.length === 0 ? (
-                <p className="text-slate-500">Aucune facture</p>
+                <p className="text-base-content/60 py-4 text-center">Aucune facture</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="table table-xs">
+                  <table className="table table-sm">
                     <thead>
                       <tr>
                         <th>Référence</th>
@@ -330,9 +344,9 @@ export default function FournisseursPage() {
                     <tbody>
                       {selectedSupplier.invoices.map((inv) => (
                         <tr key={inv.id}>
-                          <td>{inv.reference}</td>
+                          <td className="font-medium">{inv.reference}</td>
                           <td>{new Date(inv.date).toLocaleDateString('fr-FR')}</td>
-                          <td className="text-right text-warning">{formatCurrency(inv.totalAmount)} GNF</td>
+                          <td className="text-right text-warning font-medium">{formatCurrency(inv.totalAmount)} GNF</td>
                         </tr>
                       ))}
                     </tbody>
