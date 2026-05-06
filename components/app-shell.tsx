@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { useSettings } from "@/app/parametres/page";
 
 const navigation = [
@@ -83,115 +83,89 @@ const navigation = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { settings, isLoading } = useSettings();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const companyName = isLoading ? "Gestion Gaz" : settings.companyName;
+  const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="min-h-screen bg-base-100">
-      {/* Navbar */}
-      <div className="navbar bg-base-200 shadow-sm sticky top-0 z-50">
-        <div className="flex-1">
-          <div className="dropdown dropdown-bottom lg:hidden">
-            <button tabIndex={0} className="btn btn-ghost btn-square" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+    <div className="flex min-h-screen">
+      {/* Sidebar - Elegant Dark Design */}
+      <aside className="hidden lg:flex flex-col w-72 min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50">
+        {/* Logo/Header */}
+        <div className="p-6 border-b border-slate-700/50">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-            </button>
-            {isMobileMenuOpen && (
-              <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-base-100 rounded-box w-52 mt-2">
-                {navigation.map((item) => (
-                  <li key={item.href}>
-                    <Link 
-                      href={item.href} 
-                      className={pathname === item.href ? "active bg-primary text-primary-content" : ""}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <Link href="/" className="btn btn-ghost text-xl font-bold">
-            <div className="flex items-center gap-2">
-              <div className="avatar">
-                <div className="w-10 rounded-full bg-warning">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-warning-content" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-              </div>
-              <span className="hidden sm:inline">{companyName}</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">{companyName}</h1>
+              <p className="text-xs text-slate-400">Gestion</p>
             </div>
           </Link>
         </div>
-        <div className="flex-none gap-2">
-          <div className="form-control hidden sm:block">
-            <input type="text" placeholder="Rechercher..." className="input input-bordered input-sm w-40 lg:w-64" />
-          </div>
-          <div className="dropdown dropdown-end">
-            <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-              <div className="w-10 rounded-full">
-                <img alt="User Avatar" src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 px-3">
+            Navigation
+          </h2>
+          <ul className="space-y-1">
+            {navigation.map((item) => (
+              <li key={item.href}>
+                <Link 
+                  href={item.href} 
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                    isActive(item.href) 
+                      ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-amber-400 border border-amber-500/30' 
+                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white border border-transparent'
+                  }`}
+                >
+                  <span className={isActive(item.href) ? "text-amber-400" : "text-slate-400"}>
+                    {item.icon}
+                  </span>
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* Settings Card */}
+        <div className="p-4 border-t border-slate-700/50">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-700/50 border border-slate-700/50">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-white text-sm">Paramètres</h3>
+                <p className="text-xs text-slate-400">Configurez</p>
               </div>
             </div>
-            <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-base-100 rounded-box w-52 mt-2">
-              <li><Link href="/parametres">Paramètres</Link></li>
-              <li><a>Déconnexion</a></li>
-            </ul>
+            <Link 
+              href="/parametres" 
+              className="btn btn-sm w-full bg-gradient-to-r from-blue-500 to-cyan-500 border-0 text-white hover:from-blue-600 hover:to-cyan-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Ouvrir les paramètres
+            </Link>
           </div>
         </div>
-      </div>
+      </aside>
 
-      <div className="flex">
-        {/* Sidebar - Desktop */}
-        <aside className="hidden lg:block w-64 min-h-[calc(100vh-4rem)] bg-base-200 border-r border-base-300">
-          <div className="p-4">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-4">
-              Navigation
-            </h2>
-            <ul className="menu gap-1">
-              {navigation.map((item) => (
-                <li key={item.href}>
-                  <Link 
-                    href={item.href} 
-                    className={pathname === item.href ? "active bg-primary text-primary-content" : ""}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          <div className="absolute bottom-0 w-64 p-4">
-            <div className="card bg-base-100 shadow-lg">
-              <div className="card-body p-4">
-                <h3 className="card-title text-sm">Paramètres</h3>
-                <p className="text-xs text-base-content/60">Configurez l'application</p>
-                <div className="card-actions mt-2">
-                  <Link href="/parametres" className="btn btn-primary btn-sm btn-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Settings
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
-      </div>
+      {/* Main Content */}
+      <main className="flex-1 bg-gradient-to-br from-slate-50 via-white to-slate-100 min-h-screen">
+        <div className="max-w-7xl mx-auto p-6">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
