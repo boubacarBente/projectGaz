@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import Image from 'next/image';
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { useSettings } from "@/app/parametres/page";
@@ -93,11 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Logo/Header */}
         <div className="p-6 border-b border-slate-700/50">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-linear-to-br from-amber-700 to-orange-800 flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
+            <Image src={'/logo.jpeg'} alt="" width={100} height={50}></Image>
             <div>
               <h1 className="text-xl font-bold text-white">{companyName}</h1>
               <p className="text-xs text-slate-400">Gestion</p>
