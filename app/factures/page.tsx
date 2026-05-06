@@ -652,7 +652,7 @@ export default function FacturesPage() {
         <form onSubmit={handleAddInvoice} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="form-control">
-              <label className="label">
+              <label className="label block">
                 <span className="label-text font-medium">Client *</span>
               </label>
               <input
@@ -669,7 +669,7 @@ export default function FacturesPage() {
               </datalist>
             </div>
             <div className="form-control">
-              <label className="label">
+              <label className="label block">
                 <span className="label-text font-medium">Date</span>
               </label>
               <input
@@ -820,7 +820,7 @@ export default function FacturesPage() {
         <form onSubmit={handleEditInvoice} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="form-control">
-              <label className="label">
+              <label className="label block">
                 <span className="label-text font-medium">Client *</span>
               </label>
               <select
@@ -838,7 +838,7 @@ export default function FacturesPage() {
               </select>
             </div>
             <div className="form-control">
-              <label className="label">
+              <label className="label block">
                 <span className="label-text font-medium">Date</span>
               </label>
               <input
