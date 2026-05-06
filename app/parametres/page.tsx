@@ -42,7 +42,7 @@ const SettingsContext = createContext<{
   isLoading: boolean;
 }>({
   settings: defaultSettings,
-  updateSettings: async () => {},
+  updateSettings: async () => { },
   isLoading: true,
 });
 
@@ -98,13 +98,13 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
 // ============================================
 // Card Component for sections
 // ============================================
-function SettingsCard({ 
-  title, 
-  icon, 
+function SettingsCard({
+  title,
+  icon,
   iconBg,
-  children 
-}: { 
-  title: string; 
+  children
+}: {
+  title: string;
   icon: React.ReactNode;
   iconBg: string;
   children: React.ReactNode;
@@ -165,44 +165,35 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         iconBg="bg-info/10 text-info"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium text-sm">Nom de l'entreprise</span>
-            </label>
-            <input
-              type="text"
-              value={formData.companyName}
-              onChange={(e) => updateField('companyName', e.target.value)}
-              className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
-              placeholder="Mini-Centre Distribution"
-            />
+
+          <div className='flex justify-center gap-4'>
+            <div className="form-control w-full">
+              <label className="label block">
+                <span className="label-text font-medium text-sm">Nom de l'entreprise</span>
+              </label>
+              <input
+                type="text"
+                value={formData.companyName}
+                onChange={(e) => updateField('companyName', e.target.value)}
+                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
+                placeholder="Mini-Centre Distribution"
+              />
+            </div>
+            <div className="form-control w-full">
+              <label className="label block">
+                <span className="label-text font-medium text-sm">Téléphone</span>
+              </label>
+              <input
+                type="tel"
+                value={formData.companyPhone}
+                onChange={(e) => updateField('companyPhone', e.target.value)}
+                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
+                placeholder="+224 6XX XXX XXX"
+              />
+            </div>
           </div>
           <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium text-sm">Téléphone</span>
-            </label>
-            <input
-              type="tel"
-              value={formData.companyPhone}
-              onChange={(e) => updateField('companyPhone', e.target.value)}
-              className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
-              placeholder="+224 6XX XXX XXX"
-            />
-          </div>
-          <div className="form-control md:col-span-2">
-            <label className="label">
-              <span className="label-text font-medium text-sm">Adresse</span>
-            </label>
-            <textarea
-              value={formData.companyAddress}
-              onChange={(e) => updateField('companyAddress', e.target.value)}
-              className="textarea textarea-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
-              rows={2}
-              placeholder="Adresse complète..."
-            />
-          </div>
-          <div className="form-control">
-            <label className="label">
+            <label className="label block">
               <span className="label-text font-medium text-sm">Email</span>
             </label>
             <input
@@ -211,6 +202,18 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               onChange={(e) => updateField('companyEmail', e.target.value)}
               className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
               placeholder="contact@entreprise.ma"
+            />
+          </div>
+          <div className="form-control md:col-span-2">
+            <label className="label block">
+              <span className="label-text font-medium text-sm">Adresse</span>
+            </label>
+            <textarea
+              value={formData.companyAddress}
+              onChange={(e) => updateField('companyAddress', e.target.value)}
+              className="textarea textarea-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
+              rows={5}
+              placeholder="Adresse complète..."
             />
           </div>
         </div>
@@ -356,9 +359,9 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
 
       {/* Submit Button */}
       <div className="flex justify-end pt-4">
-        <button 
-          type="submit" 
-          disabled={isSubmitting} 
+        <button
+          type="submit"
+          disabled={isSubmitting}
           className="btn btn-primary gap-2 min-w-[200px]"
         >
           {isSubmitting ? (
@@ -427,7 +430,7 @@ export default function ParametresPage() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6 max-w-5xl mx-auto"
@@ -439,9 +442,9 @@ export default function ParametresPage() {
       />
 
       <div className="rounded-2xl border border-base-200 bg-base-100 p-1 shadow-xl shadow-base-200/30">
-        <SettingsForm 
-          onSave={handleSave} 
-          initialSettings={settings} 
+        <SettingsForm
+          onSave={handleSave}
+          initialSettings={settings}
           isSubmitting={isSubmitting}
           setIsSubmitting={setIsSubmitting}
         />

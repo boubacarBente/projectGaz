@@ -118,7 +118,7 @@ export default function ClientsPage() {
     setIsSubmitting(true);
     try {
       let typeId = formData.typeId ? parseInt(formData.typeId) : null;
-      
+
       // If newTypeName is provided, create the type first
       if (formData.newTypeName) {
         const typeRes = await fetch('/api/clients/types', {
@@ -132,7 +132,7 @@ export default function ClientsPage() {
         // Refresh customer types list
         fetchCustomerTypes();
       }
-      
+
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -195,8 +195,8 @@ export default function ClientsPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Clients" title="Gestion des clients" description="Consultation et gestion de la clientèle avec recherche rapide et identification des meilleurs comptes." actions={
-        <div className="flex gap-2">
-          <button onClick={() => setShowAddTypeModal(true)} className="btn btn-outline btn-sm gap-1">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowAddTypeModal(true)} className="btn btn-outline btn- gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             Type
           </button>
@@ -239,7 +239,7 @@ export default function ClientsPage() {
                 <tbody>
                   {customers.map((customer) => (
                     <tr key={customer.id} className="hover:bg-slate-50">
-                      <td><div className="flex items-center gap-3"><div className="avatar placeholder"><div className="bg-primary text-primary-content w-10 rounded-full"><span className="text-lg">{customer.name.charAt(0).toUpperCase()}</span></div></div><div><div className="font-semibold">{customer.name}</div><div className="text-xs text-slate-500">{customer.isActive ? <span className="badge badge-success badge-xs">Actif</span> : <span className="badge badge-ghost badge-xs">Inactif</span>}</div></div></div></td>
+                      <td><div className="flex items-center gap-3"><div className="avatar placeholder"><div className="bg-primary text-primary-content w-10 rounded-full text-center"><span className="text-lg">{customer.name.charAt(0).toUpperCase()}</span></div></div><div><div className="font-semibold">{customer.name}</div><div className="text-xs text-slate-500">{customer.isActive ? <span className="badge badge-success badge-xs">Actif</span> : <span className="badge badge-ghost badge-xs">Inactif</span>}</div></div></div></td>
                       <td><div className="text-sm">{customer.phone && <div className="flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>{customer.phone}</div>}{customer.email && <div className="flex items-center gap-1 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>{customer.email}</div>}</div></td>
                       <td>{customer.city || '-'}</td>
                       <td>{customer.type ? <span className="badge badge-outline">{customer.type.name}</span> : <span className="text-slate-400">-</span>}</td>
@@ -256,9 +256,9 @@ export default function ClientsPage() {
         <div className="lg:col-span-1 rounded-2xl border border-white/80 bg-white/75 shadow-lg shadow-slate-200/60 backdrop-blur">
           <div className="border-b border-slate-200 p-4"><h3 className="font-semibold text-lg flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>Top Clients</h3></div>
           <div className="p-4 space-y-4">
-            {topCustomers.length === 0 ? <p className="text-center text-slate-500 py-4">Aucun client</p> : topCustomers.map((customer, index) => (
+            {topCustomers.length === 0 ? <p className="text-slate-500 py-4">Aucun client</p> : topCustomers.map((customer, index) => (
               <div key={customer.id} className="flex items-center gap-3">
-                <div className={`avatar placeholder ${index === 0 ? 'online' : ''}`}><div className={`w-10 rounded-full ${index === 0 ? 'bg-warning text-warning-content' : index === 1 ? 'bg-slate-400 text-slate-900' : index === 2 ? 'bg-orange-600 text-white' : 'bg-slate-200 text-slate-700'}`}><span className="text-lg font-bold">#{index + 1}</span></div></div>
+                <div className={`avatar placeholder ${index === 0 ? 'online' : ''}`}><div className={`w-10 rounded-full text-center ${index === 0 ? 'bg-warning text-warning-content' : index === 1 ? 'bg-slate-400 text-slate-900' : index === 2 ? 'bg-orange-600 text-white' : 'bg-slate-200 text-slate-700'}`}><span className="text-lg font-bold">#{index + 1}</span></div></div>
                 <div className="flex-1 min-w-0"><p className="font-semibold truncate">{customer.name}</p><p className="text-xs text-slate-500">{customer.city || 'N/A'}</p></div>
                 <span className="font-bold text-primary text-sm">{formatCurrency(customer.totalPurchases)}</span>
               </div>
@@ -268,9 +268,9 @@ export default function ClientsPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal 
-        isOpen={showAddModal} 
-        onClose={() => { setShowAddModal(false); resetForm(); }} 
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => { setShowAddModal(false); resetForm(); }}
         title={
           <div className="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -278,7 +278,7 @@ export default function ClientsPage() {
             </svg>
             Nouveau client
           </div>
-        } 
+        }
         size="lg"
       >
         <form onSubmit={handleAddClient} className="space-y-6">
@@ -310,41 +310,44 @@ export default function ClientsPage() {
             </div>
           </div>
 
-          {/* Section: Adresse */}
-          <div className="bg-base-200/30 rounded-xl p-4">
-            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Adresse
-            </h4>
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Adresse complète</span></label>
-              <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Adresse complète" />
+          <div className='flex'>
+            {/* Section: Adresse */}
+            <div className="bg-base-200/30 rounded-xl p-4">
+              <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Adresse
+              </h4>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Adresse complète</span></label>
+                <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Adresse complète" />
+              </div>
+            </div>
+
+            {/* Section: Classification */}
+            <div className="bg-base-200/30 rounded-xl p-4">
+              <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Classification
+              </h4>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Type de client</span></label>
+                <select value={formData.typeId} onChange={(e) => setFormData({ ...formData, typeId: e.target.value, newTypeName: '' })} className="select select-bordered select-primary focus:select-focus">
+                  <option value="">Sélectionner un type...</option>
+                  {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Section: Classification */}
-          <div className="bg-base-200/30 rounded-xl p-4">
-            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              Classification
-            </h4>
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Type de client</span></label>
-              <select value={formData.typeId} onChange={(e) => setFormData({ ...formData, typeId: e.target.value, newTypeName: '' })} className="select select-bordered select-primary focus:select-focus">
-                <option value="">Sélectionner un type...</option>
-                {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
-              </select>
-            </div>
-          </div>
 
           {/* Section: Notes */}
           <div className="form-control">
-            <label className="label"><span className="label-text font-medium">Notes (optionnel)</span></label>
+            <label className="label block"><span className="label-text font-medium">Notes (optionnel)</span></label>
             <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-primary focus:textarea-focus" rows={2} placeholder="Notes supplémentaires..." />
           </div>
 
@@ -363,9 +366,9 @@ export default function ClientsPage() {
       </Modal>
 
       {/* Edit Modal */}
-      <Modal 
-        isOpen={showEditModal} 
-        onClose={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }} 
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }}
         title={
           <div className="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -373,7 +376,7 @@ export default function ClientsPage() {
             </svg>
             Modifier le client
           </div>
-        } 
+        }
         size="lg"
       >
         <form onSubmit={handleEditClient} className="space-y-6">
@@ -405,42 +408,45 @@ export default function ClientsPage() {
             </div>
           </div>
 
-          {/* Section: Adresse */}
-          <div className="bg-base-200/30 rounded-xl p-4">
-            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Adresse
-            </h4>
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Adresse complète</span></label>
-              <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Adresse complète" />
+          <div className='flex'>
+            {/* Section: Adresse */}
+            <div className="bg-base-200/30 rounded-xl p-4">
+              <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Adresse
+              </h4>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Adresse complète</span></label>
+                <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Adresse complète" />
+              </div>
+            </div>
+
+            {/* Section: Classification */}
+            <div className="bg-base-200/30 rounded-xl p-4">
+              <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Classification
+              </h4>
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Type de client</span></label>
+                <select value={formData.typeId} onChange={(e) => setFormData({ ...formData, typeId: e.target.value })} className="select select-bordered select-primary focus:select-focus">
+                  <option value="">Sélectionner un type...</option>
+                  {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Section: Classification */}
-          <div className="bg-base-200/30 rounded-xl p-4">
-            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              Classification
-            </h4>
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Type de client</span></label>
-              <select value={formData.typeId} onChange={(e) => setFormData({ ...formData, typeId: e.target.value })} className="select select-bordered select-primary focus:select-focus">
-                <option value="">Sélectionner un type...</option>
-                {customerTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
-              </select>
-            </div>
-          </div>
 
           {/* Section: Notes */}
           <div className="form-control">
-            <label className="label"><span className="label-text font-medium">Notes (optionnel)</span></label>
-            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-primary focus:textarea-focus" rows={2} placeholder="Notes supplémentaires..." />
+            <label className="label block"><span className="label-text font-medium">Notes (optionnel)</span></label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-primary focus:textarea-focus" rows={5} placeholder="Notes supplémentaires..." />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
@@ -477,7 +483,7 @@ export default function ClientsPage() {
           const formData = new FormData(e.currentTarget);
           const name = formData.get('name');
           const description = formData.get('description');
-          
+
           try {
             const res = await fetch('/api/clients/types', {
               method: 'POST',
