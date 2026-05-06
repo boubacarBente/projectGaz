@@ -221,9 +221,9 @@ export default function FournisseursPage() {
       )}
 
       {/* Add Modal */}
-      <Modal 
-        isOpen={showAddModal} 
-        onClose={() => setShowAddModal(false)} 
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
         title={
           <div className="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -233,7 +233,7 @@ export default function FournisseursPage() {
           </div>
         }
       >
-        <form onSubmit={handleAddSupplier} className="space-y-6">
+        <form onSubmit={handleAddSupplier} className="space-y-6 p-3">
           {/* Section: Informations */}
           <div className="bg-base-200/30 rounded-xl p-4">
             <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
@@ -242,14 +242,17 @@ export default function FournisseursPage() {
               </svg>
               Informations du fournisseur
             </h4>
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium text-sm">Nom *</span></label>
-              <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full" placeholder="Nom de l'usine ou du fournisseur" />
+            <div className='flex justify-center gap-4 '>
+              <div className="form-control w-full">
+                <label className="label"><span className="label-text font-medium text-sm">Nom *</span></label>
+                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full" placeholder="Nom de l'usine ou du fournisseur" />
+              </div>
+              <div className="form-control w-full">
+                <label className="label"><span className="label-text font-medium text-sm">Téléphone</span></label>
+                <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full" placeholder="+224 6XX XXXXXX" />
+              </div>
             </div>
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium text-sm">Téléphone</span></label>
-              <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full" placeholder="+224 6XX XXXXXX" />
-            </div>
+
           </div>
 
           {/* Section: Adresse */}
