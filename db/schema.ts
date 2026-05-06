@@ -60,6 +60,7 @@ export const purchaseInvoices = sqliteTable('purchase_invoices', {
   date: text('date').notNull(),
   notes: text('notes'),
   totalAmount: real('total_amount').default(0),
+  isPaid: integer('is_paid', { mode: 'boolean' }).default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });

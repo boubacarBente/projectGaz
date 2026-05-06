@@ -34,6 +34,7 @@ type PurchaseInvoice = {
   notes: string;
   items: PurchaseInvoiceItem[];
   totalAmount: number;
+  isPaid: boolean;
   createdAt: string;
 };
 
@@ -99,6 +100,7 @@ interface PurchaseFormData {
   date: string;
   notes: string;
   lines: PurchaseLine[];
+  isPaid: boolean;
 }
 
 const initialFormData: PurchaseFormData = {
@@ -107,6 +109,7 @@ const initialFormData: PurchaseFormData = {
   date: new Date().toISOString().slice(0, 10),
   notes: '',
   lines: [{ productId: '', quantity: '1', unitCost: '' }],
+  isPaid: false,
 };
 
 function formatCurrency(value: number) {
@@ -184,6 +187,7 @@ export default function DepensesPage() {
           date: formData.date,
           notes: formData.notes,
           lines,
+          isPaid: formData.isPaid,
         }),
       });
       if (!res.ok) throw new Error('Erreur');
@@ -220,6 +224,7 @@ export default function DepensesPage() {
           date: formData.date,
           notes: formData.notes,
           lines,
+          isPaid: formData.isPaid,
         }),
       });
       if (!res.ok) throw new Error('Erreur');
@@ -266,6 +271,7 @@ export default function DepensesPage() {
         quantity: item.quantity.toString(),
         unitCost: item.unitCost.toString(),
       })),
+      isPaid: invoice.isPaid,
     });
     setShowEditModal(true);
   };
@@ -527,6 +533,7 @@ export default function DepensesPage() {
                   <th>Date</th>
                   <th>Produits</th>
                   <th>Total</th>
+                  <th>Statut</th>
                   <th className="text-right">Actions</th>
                 </tr>
               </thead>
@@ -546,6 +553,13 @@ export default function DepensesPage() {
                       </div>
                     </td>
                     <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} GNF</td>
+                    <td>
+                      {invoice.isPaid ? (
+                        <span className="badge badge-success">Payée</span>
+                      ) : (
+                        <span className="badge badge-ghost">Non payée</span>
+                      )}
+                    </td>
                     <td className="text-right">
                       <div className="flex gap-1 justify-end">
                         <button onClick={() => openDetailModal(invoice)} className="btn btn-ghost btn-xs" title="Voir détails">
@@ -632,6 +646,22 @@ export default function DepensesPage() {
                 className="input input-bordered"
               />
             </div>
+          </div>
+
+          {/* Paid checkbox */}
+          <div className="form-control">
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                checked={formData.isPaid}
+                onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                className="checkbox checkbox-success"
+              />
+              <span className="label-text font-medium">Facture payée</span>
+              {formData.isPaid && (
+                <span className="badge badge-success ml-2">Payée</span>
+              )}
+            </label>
           </div>
 
           <div className="border rounded-lg p-4">
@@ -794,6 +824,22 @@ export default function DepensesPage() {
             </div>
           </div>
 
+          {/* Paid checkbox */}
+          <div className="form-control">
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                checked={formData.isPaid}
+                onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                className="checkbox checkbox-success"
+              />
+              <span className="label-text font-medium">Facture payée</span>
+              {formData.isPaid && (
+                <span className="badge badge-success ml-2">Payée</span>
+              )}
+            </label>
+          </div>
+
           <div className="border rounded-lg p-4">
             <div className="flex items-center justify-between mb-4">
               <h4 className="font-medium">Produits</h4>
@@ -931,6 +977,14 @@ export default function DepensesPage() {
               <div>
                 <p className="text-xs text-slate-500">Montant total</p>
                 <p className="font-medium text-warning">{formatCurrency(selectedInvoice.totalAmount)} GNF</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Statut</p>
+                {selectedInvoice.isPaid ? (
+                  <span className="badge badge-success">Payée</span>
+                ) : (
+                  <span className="badge badge-ghost">Non payée</span>
+                )}
               </div>
             </div>
             

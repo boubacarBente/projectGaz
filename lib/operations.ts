@@ -20,6 +20,7 @@ export type PurchaseInvoice = {
   notes: string;
   items: PurchaseInvoiceItem[];
   totalAmount: number;
+  isPaid: boolean;
   createdAt: string;
 };
 
@@ -136,6 +137,7 @@ export async function createPurchaseInvoice(input: {
   date: string;
   notes: string;
   lines: LineInput[];
+  isPaid?: boolean;
 }) {
   const invoices = await listPurchaseInvoices();
   const items = await buildPurchaseItems(input.lines);
@@ -149,6 +151,7 @@ export async function createPurchaseInvoice(input: {
     notes: input.notes,
     items,
     totalAmount,
+    isPaid: input.isPaid ?? false,
     createdAt: new Date().toISOString(),
   };
 
@@ -206,6 +209,7 @@ export async function updatePurchaseInvoice(id: number, input: {
   date?: string;
   notes?: string;
   lines?: LineInput[];
+  isPaid?: boolean;
 }) {
   const invoices = await listPurchaseInvoices();
   const index = invoices.findIndex((invoice) => invoice.id === id);
@@ -228,6 +232,7 @@ export async function updatePurchaseInvoice(id: number, input: {
     notes: input.notes ?? existingInvoice.notes,
     items,
     totalAmount,
+    isPaid: input.isPaid ?? existingInvoice.isPaid,
   };
 
   invoices[index] = updatedInvoice;

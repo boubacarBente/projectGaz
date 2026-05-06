@@ -39,7 +39,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { reference, supplier, date, notes, lines } = body;
+    const { reference, supplier, date, notes, lines, isPaid } = body;
 
     const invoice = await updatePurchaseInvoice(invoiceId, {
       ...(reference && { reference }),
@@ -47,6 +47,7 @@ export async function PUT(
       ...(date && { date }),
       ...(notes !== undefined && { notes }),
       ...(lines && { lines }),
+      ...(isPaid !== undefined && { isPaid }),
     });
 
     return NextResponse.json(invoice);
