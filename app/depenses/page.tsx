@@ -494,7 +494,7 @@ export default function DepensesPage() {
           <div className="stat">
             <div className="stat-title">Bouteilles reçues</div>
             <div className="stat-value text-info">{totalBottles}</div>
-            <div className="stat-desc">Total единиц</div>
+            <div className="stat-desc">Total bouteilles reçu</div>
           </div>
         </div>
         <div className="stats shadow">
