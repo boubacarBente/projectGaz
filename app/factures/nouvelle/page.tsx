@@ -71,7 +71,7 @@ export default async function NouvelleFacturePage() {
                 <input
                   type="number" step="any"
                   name="quantity"
-                  min="1"
+                  
                   defaultValue="1"
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
                   required
@@ -85,7 +85,7 @@ export default async function NouvelleFacturePage() {
                 <input
                   type="number" step="any"
                   name="unitPrice"
-                  min="1"
+                  
                   defaultValue={defaultProduct?.unitPrice ?? 0}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
                   required
@@ -97,7 +97,7 @@ export default async function NouvelleFacturePage() {
                 <input
                   type="number" step="any"
                   name="amountPaid"
-                  min="0"
+                  
                   defaultValue={defaultProduct?.unitPrice ?? 0}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500"
                   required

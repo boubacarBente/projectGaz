@@ -517,7 +517,7 @@ export default function StockPage() {
               <input
                 type="number" step="any"
                 required
-                min="1"
+                
                 value={movementForm.quantity}
                 onChange={(e) => setMovementForm({ ...movementForm, quantity: e.target.value })}
                 className="input input-bordered"
@@ -583,7 +583,7 @@ export default function StockPage() {
             <input
               type="number" step="any"
               required
-              min="0"
+              
               value={settingsForm.minStock}
               onChange={(e) => setSettingsForm({ ...settingsForm, minStock: e.target.value })}
               className="input input-bordered"

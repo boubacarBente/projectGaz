@@ -716,7 +716,7 @@ export default function FacturesPage() {
               </label>
               <input
                 type="number" step="any"
-                min="0"
+                
                 
                 value={formData.amountPaid}
                 onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
@@ -764,7 +764,7 @@ export default function FacturesPage() {
                     <label className="label text-xs"><span className="label-text">Qté</span></label>
                     <input
                       type="number" step="any"
-                      min="1"
+                      
                       value={line.quantity}
                       onChange={(e) => updateLine(index, 'quantity', e.target.value)}
                       className="input input-bordered input-sm w-full"
@@ -774,7 +774,7 @@ export default function FacturesPage() {
                     <label className="label text-xs"><span className="label-text">Prix</span></label>
                     <input
                       type="number" step="any"
-                      min="0"
+                      
                       
                       value={line.unitPrice}
                       onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
@@ -885,7 +885,7 @@ export default function FacturesPage() {
               </label>
               <input
                 type="number" step="any"
-                min="0"
+                
                 
                 value={formData.amountPaid}
                 onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
@@ -931,7 +931,7 @@ export default function FacturesPage() {
                     <label className="label text-xs"><span className="label-text">Qté</span></label>
                     <input
                       type="number" step="any"
-                      min="1"
+                      
                       value={line.quantity}
                       onChange={(e) => updateLine(index, 'quantity', e.target.value)}
                       className="input input-bordered input-sm w-full"
@@ -941,7 +941,7 @@ export default function FacturesPage() {
                     <label className="label text-xs"><span className="label-text">Prix</span></label>
                     <input
                       type="number" step="any"
-                      min="0"
+                      
                       
                       value={line.unitPrice}
                       onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}

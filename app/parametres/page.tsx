@@ -236,7 +236,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
             </label>
             <input
               type="number" step="any"
-              min="0"
+              
               value={formData.defaultMinStock}
               onChange={(e) => updateField('defaultMinStock', parseInt(e.target.value) || 0)}
               className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
