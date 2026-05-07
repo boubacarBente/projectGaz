@@ -105,6 +105,11 @@ export default function ProduitsPage() {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    const unitPriceNum = parseFloat(formData.unitPrice);
+    if (isNaN(unitPriceNum) || unitPriceNum <= 0) {
+      toast.error('Prix invalide');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/produits', {
@@ -133,6 +138,11 @@ export default function ProduitsPage() {
   const handleEditProduct = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedProduct) return;
+    const unitPriceNum = parseFloat(formData.unitPrice);
+    if (isNaN(unitPriceNum) || unitPriceNum <= 0) {
+      toast.error('Prix invalide');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/produits/${selectedProduct.id}`, {
@@ -453,6 +463,7 @@ export default function ProduitsPage() {
               <input
                 type="number" step="any"
                 required
+                required
                 value={formData.unitPrice}
                 onChange={(e) =>
                   setFormData({ ...formData, unitPrice: e.target.value })
@@ -585,6 +596,7 @@ export default function ProduitsPage() {
               </label>
               <input
                 type="number" step="any"
+                required
                 required
                 value={formData.unitPrice}
                 onChange={(e) =>
