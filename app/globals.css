@@ -3,8 +3,22 @@
 @import "react-toastify/dist/ReactToastify.css";
 
 :root {
-  --background: #eaf0f7;
-  --foreground: #0f172a;
+  --background: #f8fafc;
+  --foreground: #1e293b;
+  --primary: #3b82f6;
+  --primary-dark: #60a5fa;
+  --secondary: #10b981;
+  --secondary-dark: #34d399;
+  --accent: #f59e0b;
+  --accent-dark: #fbbf24;
+  --danger: #ef4444;
+  --danger-dark: #f87171;
+  --warning: #f59e0b;
+  --warning-dark: #fbbf24;
+  --success: #10b981;
+  --success-dark: #34d399;
+  --info: #06b6d4;
+  --info-dark: #0891b2;
   --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Cascadia Code", "Consolas", "Courier New", monospace;
 }
@@ -12,6 +26,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-info: var(--info);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
 }
@@ -45,6 +66,20 @@ a {
 html.dark {
   --background: #0f172a;
   --foreground: #f1f5f9;
+  --primary: #60a5fa;
+  --primary-dark: #3b82f6;
+  --secondary: #34d399;
+  --secondary-dark: #10b981;
+  --accent: #fbbf24;
+  --accent-dark: #f59e0b;
+  --danger: #f87171;
+  --danger-dark: #ef4444;
+  --warning: #fbbf24;
+  --warning-dark: #f59e0b;
+  --success: #34d399;
+  --success-dark: #10b981;
+  --info: #0891b2;
+  --info-dark: #06b6d4;
 }
 
 html.dark body,
@@ -87,6 +122,51 @@ html.dark .border-slate-300 {
   border-color: #475569 !important;
 }
 
+/* Improved button styles for dark mode */
+html.dark .btn-primary {
+  background-color: var(--primary-dark) !important;
+  border-color: var(--primary-dark) !important;
+  color: white !important;
+}
+
+html.dark .btn-primary:hover {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+html.dark .btn-secondary {
+  background-color: var(--secondary-dark) !important;
+  border-color: var(--secondary-dark) !important;
+  color: white !important;
+}
+
+html.dark .btn-secondary:hover {
+  background-color: var(--secondary) !important;
+  border-color: var(--secondary) !important;
+}
+
+html.dark .btn-success {
+  background-color: var(--success-dark) !important;
+  border-color: var(--success-dark) !important;
+  color: white !important;
+}
+
+html.dark .btn-success:hover {
+  background-color: var(--success) !important;
+  border-color: var(--success) !important;
+}
+
+html.dark .btn-danger {
+  background-color: var(--danger-dark) !important;
+  border-color: var(--danger-dark) !important;
+  color: white !important;
+}
+
+html.dark .btn-danger:hover {
+  background-color: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
 html.dark .input,
 html.dark .select,
 html.dark .textarea {
@@ -111,6 +191,31 @@ html.dark .modal-box {
 
 html.dark .surface-card {
   background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Improved card styles for dark mode */
+html.dark .card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.dark .card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Improved metric card styles for dark mode */
+html.dark .metric-card {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+  border-color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.dark .metric-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(-1px) !important;
 }
 
 /* Theme-aware base backgrounds */
