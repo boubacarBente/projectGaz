@@ -119,7 +119,7 @@ function formatCurrency(value: number) {
 export default function DepensesPage() {
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [suppliers, setSuppliers] = useState<{id: number; name: string}[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: number; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -148,8 +148,8 @@ export default function DepensesPage() {
       setProducts(productsData);
       setSuppliers(suppliersData);
       if (productsData.length > 0) {
-        setFormData(prev => ({ 
-          ...prev, 
+        setFormData(prev => ({
+          ...prev,
           lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitCost: '' }]
         }));
       }
@@ -171,20 +171,20 @@ export default function DepensesPage() {
         quantity: parseInt(line.quantity),
         amount: parseFloat(line.unitCost),
       }));
-    
+
     if (lines.length === 0) {
       toast.error('Veuillez ajouter au moins un produit');
       return;
     }
-    
+
     if (lines.some(line => isNaN(line.quantity) || isNaN(line.amount) || line.quantity <= 0 || line.amount <= 0)) {
       toast.error('Quantité ou prix invalide');
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
-      
+
       const res = await fetch('/api/depenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -219,20 +219,20 @@ export default function DepensesPage() {
         quantity: parseInt(line.quantity),
         amount: parseFloat(line.unitCost),
       }));
-    
+
     if (lines.length === 0) {
       toast.error('Veuillez ajouter au moins un produit');
       return;
     }
-    
+
     if (lines.some(line => isNaN(line.quantity) || isNaN(line.amount) || line.quantity <= 0 || line.amount <= 0)) {
       toast.error('Quantité ou prix invalide');
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
-      
+
       const res = await fetch(`/api/depenses/${selectedInvoice.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -332,15 +332,15 @@ export default function DepensesPage() {
     try {
       toast.info('Génération du PDF en cours...');
       const { html2canvas: hc, jsPDF: pdf } = await loadExportLibraries();
-      
+
       const content = buildPurchaseInvoiceHTML(invoice);
       const iframe = document.createElement('iframe');
       iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;';
       document.body.appendChild(iframe);
-      
+
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
       if (!iframeDoc) throw new Error('Cannot access iframe');
-      
+
       iframeDoc.open();
       iframeDoc.write(`
         <!DOCTYPE html><html><head><style>
@@ -349,17 +349,17 @@ export default function DepensesPage() {
         </style></head><body>${content}</body></html>
       `);
       iframeDoc.close();
-      
+
       const canvas = await hc(iframeDoc.body, {
         scale: 2, useCORS: true, allowTaint: true, backgroundColor: 'rgb(255,255,255)', logging: false,
       });
-      
+
       const pdfDoc = new pdf({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageWidth = pdfDoc.internal.pageSize.getWidth();
       const pageHeight = pdfDoc.internal.pageSize.getHeight();
       pdfDoc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, pageWidth - 20, pageHeight - 20);
       pdfDoc.save(`facture-usine-${invoice.reference}.pdf`);
-      
+
       document.body.removeChild(iframe);
       toast.success('PDF téléchargé!');
     } catch (err) {
@@ -372,15 +372,15 @@ export default function DepensesPage() {
     try {
       toast.info('Génération de l\'image en cours...');
       const { html2canvas: hc } = await loadExportLibraries();
-      
+
       const content = buildPurchaseInvoiceHTML(invoice);
       const iframe = document.createElement('iframe');
       iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;';
       document.body.appendChild(iframe);
-      
+
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
       if (!iframeDoc) throw new Error('Cannot access iframe');
-      
+
       iframeDoc.open();
       iframeDoc.write(`
         <!DOCTYPE html><html><head><style>
@@ -389,16 +389,16 @@ export default function DepensesPage() {
         </style></head><body>${content}</body></html>
       `);
       iframeDoc.close();
-      
+
       const canvas = await hc(iframeDoc.body, {
         scale: 2, useCORS: true, allowTaint: true, backgroundColor: 'rgb(255,255,255)', logging: false,
       });
-      
+
       const link = document.createElement('a');
       link.download = `facture-usine-${invoice.reference}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      
+
       document.body.removeChild(iframe);
       toast.success('Image téléchargée!');
     } catch (err) {
@@ -417,7 +417,7 @@ export default function DepensesPage() {
         <td style="padding:12px;text-align:right;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.totalCost)} GNF</td>
       </tr>
     `).join('');
-    
+
     return `
       <div style="max-width:720px;margin:0 auto;">
         <div style="text-align:center;margin-bottom:30px;border-bottom:2px solid #1e293b;padding-bottom:20px;">
@@ -461,7 +461,7 @@ export default function DepensesPage() {
   }
 
   const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const totalBottles = invoices.reduce((sum, inv) => 
+  const totalBottles = invoices.reduce((sum, inv) =>
     sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
   );
   const averageCost = invoices.length > 0 ? totalAmount / invoices.length : 0;
@@ -530,7 +530,7 @@ export default function DepensesPage() {
           <h3 className="font-semibold text-lg">Historique des factures</h3>
           <p className="text-sm text-slate-500">{invoices.length} facture(s) enregistrée(s)</p>
         </div>
-        
+
         {invoices.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -617,9 +617,9 @@ export default function DepensesPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal 
-        isOpen={showAddModal} 
-        onClose={() => setShowAddModal(false)} 
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
         title={
           <div className="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -627,7 +627,7 @@ export default function DepensesPage() {
             </svg>
             Nouvelle facture d'approvisionnement
           </div>
-        } 
+        }
         size="xl"
       >
         <form onSubmit={handleAddPurchase} className="space-y-6">
@@ -673,7 +673,7 @@ export default function DepensesPage() {
                 </select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
               <div className="form-control">
                 <label className="label">
@@ -765,7 +765,6 @@ export default function DepensesPage() {
                       <td>
                         <input
                           type="number" step="any"
-
                           value={line.quantity}
                           onChange={(e) => updateLine(index, 'quantity', e.target.value)}
                           className="input input-bordered input-sm w-20 text-center focus:input-focus"
@@ -774,8 +773,6 @@ export default function DepensesPage() {
                       <td>
                         <input
                           type="number" step="any"
-
-                          
                           value={line.unitCost}
                           onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
                           className="input input-bordered input-sm w-28 text-right focus:input-focus"
@@ -783,8 +780,8 @@ export default function DepensesPage() {
                         />
                       </td>
                       <td className="text-right font-semibold text-warning">
-                        {line.quantity && line.unitCost 
-                          ? formatCurrency(parseInt(line.quantity) * parseFloat(line.unitCost || '0')) 
+                        {line.quantity && line.unitCost
+                          ? formatCurrency(parseInt(line.quantity) * parseFloat(line.unitCost || '0'))
                           : '0'} GNF
                       </td>
                       <td>
@@ -902,7 +899,7 @@ export default function DepensesPage() {
                 </select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
               <div className="form-control">
                 <label className="label">
@@ -1004,7 +1001,7 @@ export default function DepensesPage() {
                         <input
                           type="number" step="any"
 
-                          
+
                           value={line.unitCost}
                           onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
                           className="input input-bordered input-sm w-28 text-right focus:input-focus"
@@ -1012,8 +1009,8 @@ export default function DepensesPage() {
                         />
                       </td>
                       <td className="text-right font-semibold text-warning">
-                        {line.quantity && line.unitCost 
-                          ? formatCurrency(parseInt(line.quantity) * parseFloat(line.unitCost || '0')) 
+                        {line.quantity && line.unitCost
+                          ? formatCurrency(parseInt(line.quantity) * parseFloat(line.unitCost || '0'))
                           : '0'} GNF
                       </td>
                       <td>
@@ -1116,7 +1113,7 @@ export default function DepensesPage() {
                 )}
               </div>
             </div>
-            
+
             <div className="border rounded-lg overflow-hidden">
               <table className="table table-xs">
                 <thead className="bg-slate-100">
