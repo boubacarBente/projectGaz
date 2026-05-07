@@ -1,21 +1,11 @@
 'use client';
 
 import { useSettings } from '@/app/parametres/page';
-import { useEffect } from 'react';
 
 export function ThemeToggle() {
   const { settings, updateSettings, isLoading } = useSettings();
 
   const isDark = settings.theme === 'dark';
-
-  // Apply theme to document
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark]);
 
   const toggleTheme = async () => {
     const newTheme = isDark ? 'light' : 'dark';

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { ToastContainer } from "react-toastify";
 import { SettingsProvider } from "./parametres/page";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,19 +20,21 @@ export default function RootLayout({
     <html lang="fr" className="h-full antialiased">
       <body className="min-h-full">
         <SettingsProvider>
-          <AppShell>{children}</AppShell>
-          <ToastContainer
-            position="top-right"
-            autoClose={4000}
-            hideProgressBar={false}
-            newestOnTop={true}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="colored"
-          />
+          <ThemeProvider>
+            <AppShell>{children}</AppShell>
+            <ToastContainer
+              position="top-right"
+              autoClose={4000}
+              hideProgressBar={false}
+              newestOnTop={true}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="colored"
+            />
+          </ThemeProvider>
         </SettingsProvider>
       </body>
     </html>
