@@ -162,8 +162,8 @@ export async function createProduct(input: {
     code: input.code,
     name: input.name,
     capacity: input.capacity,
-    unitPrice: input.unitPrice,
-    isActive: input.isActive,
+    unitPrice: Number(input.unitPrice) || 0,
+    isActive: Boolean(input.isActive),
   });
 }
 
@@ -217,8 +217,8 @@ export async function updateProduct(
     code: input.code,
     name: input.name,
     capacity: input.capacity,
-    unitPrice: input.unitPrice,
-    isActive: input.isActive,
+    unitPrice: Number(input.unitPrice) || 0,
+    isActive: Boolean(input.isActive),
   }).where(eq(products.id, id));
 }
 

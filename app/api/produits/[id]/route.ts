@@ -54,7 +54,7 @@ export async function PUT(
         code: body.code,
         name: body.name,
         capacity: body.capacity,
-        unitPrice: body.unitPrice,
+        unitPrice: Number(body.unitPrice) || 0,
         isActive: body.isActive,
         updatedAt: new Date(),
       })
