@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { useSettings } from "@/app/parametres/page";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navigation = [
   { 
@@ -153,6 +154,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               </svg>
               Ouvrir les paramètres
             </Link>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-xs text-slate-400">Thème</span>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </aside>
