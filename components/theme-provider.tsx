@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
-import { toast } from 'react-toastify';
 
 const THEME_KEY = 'app-theme';
 
@@ -23,22 +22,36 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Apply theme instantly to the document
+  const applyTheme = (newTheme: 'light' | 'dark') => {
+    // Apply both data-theme attribute (for DaisyUI) and class (for our CSS)
+    document.documentElement.setAttribute('data-theme', newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
   useEffect(() => {
-    // Load theme from API (SQLite) or localStorage
     async function loadTheme() {
       try {
         const res = await fetch('/api/parametres');
         const data = await res.json();
         const serverTheme = data.theme || 'light';
         setTheme(serverTheme);
+        applyTheme(serverTheme);
         localStorage.setItem(THEME_KEY, serverTheme);
       } catch {
-        // Fallback to localStorage
         const saved = localStorage.getItem(THEME_KEY) as 'light' | 'dark' | null;
-        if (saved) setTheme(saved);
-        else {
+        if (saved) {
+          setTheme(saved);
+          applyTheme(saved);
+        } else {
           const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          setTheme(prefersDark ? 'dark' : 'light');
+          const newTheme = prefersDark ? 'dark' : 'light';
+          setTheme(newTheme);
+          applyTheme(newTheme);
         }
       } finally {
         setIsLoading(false);
@@ -47,21 +60,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     loadTheme();
   }, []);
 
-  useEffect(() => {
-    if (!isLoading) {
-      // Apply theme class
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      localStorage.setItem(THEME_KEY, theme);
-    }
-  }, [theme, isLoading]);
-
   const handleSetTheme = async (newTheme: 'light' | 'dark') => {
+    // Apply instantly for immediate feedback
     setTheme(newTheme);
-    // Save to database in background (optional - will work offline)
+    applyTheme(newTheme);
+    localStorage.setItem(THEME_KEY, newTheme);
+    
+    // Save to database in background
     try {
       await fetch('/api/parametres', {
         method: 'PUT',

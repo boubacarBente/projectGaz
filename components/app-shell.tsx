@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { useSettings } from "@/app/parametres/page";
+import { useTheme } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const navigation = [
@@ -85,27 +86,53 @@ const navigation = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { settings, isLoading } = useSettings();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const companyName = isLoading ? "Gestion Gaz" : settings.companyName;
   const isActive = (href: string) => pathname === href;
 
+  // Theme-aware colors for sidebar
+  const sidebarColors = isDark 
+    ? {
+        bg: 'from-slate-900 to-slate-800',
+        border: 'border-slate-700/50',
+        text: 'text-white',
+        textSecondary: 'text-slate-400',
+        textMuted: 'text-slate-500',
+        hover: 'hover:bg-slate-700/60',
+        activeBg: 'from-amber-500/20 to-orange-500/10',
+      }
+    : {
+        bg: 'from-slate-800 to-slate-900',
+        border: 'border-slate-700/50',
+        text: 'text-white',
+        textSecondary: 'text-slate-400',
+        textMuted: 'text-slate-500',
+        hover: 'hover:bg-slate-700/60',
+        activeBg: 'from-amber-500/20 to-orange-500/10',
+      };
+
+  // Main content background
+  const contentBg = isDark ? 'bg-slate-900' : 'bg-base-100';
+
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar - Elegant Dark Design */}
-      <aside className="hidden lg:flex flex-col w-72 min-h-screen from-slate-900 to-slate-800 bg-linear-to-br text-white">
+      {/* Sidebar */}
+      <aside className={`hidden lg:flex flex-col w-72 min-h-screen bg-linear-to-br ${sidebarColors.bg} text-white`}>
         {/* Logo/Header */}
-        <div className="p-6 border-b border-slate-700/50">
+        <div className={`p-6 border-b ${sidebarColors.border}`}>
           <Link href="/" className="flex items-center gap-3">
             <Image src={'/logo.jpeg'} alt="" width={100} height={50}></Image>
             <div>
               <h1 className="text-xl font-bold text-white">{companyName}</h1>
-              <p className="text-xs text-slate-400">Gestion</p>
+              <p className={`text-xs ${sidebarColors.textSecondary}`}>Gestion</p>
             </div>
           </Link>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-white/60 mb-3 px-3">
+          <h2 className={`text-xs font-bold uppercase tracking-wider ${sidebarColors.textSecondary} mb-3 px-3`}>
             Navigation
           </h2>
           <ul className="space-y-1">
@@ -115,11 +142,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   href={item.href} 
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                     isActive(item.href) 
-                      ? 'bg-linear-to-r from-amber-500/20 to-orange-500/10 text-white border border-amber-500/30' 
-                      : 'text-white hover:bg-slate-700/60 hover:text-white border border-transparent'
+                      ? `bg-linear-to-r ${sidebarColors.activeBg} text-white border border-amber-500/30` 
+                      : `text-white ${sidebarColors.hover} hover:text-white border border-transparent`
                   }`}
                 >
-                  <span className={isActive(item.href) ? "text-white" : "text-white/70"}>
+                  <span className={isActive(item.href) ? "text-white" : sidebarColors.textSecondary}>
                     {item.icon}
                   </span>
                   <span className="font-medium">{item.label}</span>
@@ -130,8 +157,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         {/* Settings Card */}
-        <div className="p-4 border-t border-slate-700/50">
-          <div className="p-4 rounded-2xl bg-linear-to-br from-slate-800 to-slate-700/50 border border-slate-700/50">
+        <div className={`p-4 border-t ${sidebarColors.border}`}>
+          <div className={`p-4 rounded-2xl bg-linear-to-br from-slate-800 to-slate-700/50 border ${sidebarColors.border}`}>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -141,7 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
               <div>
                 <h3 className="font-semibold text-white text-sm">Paramètres</h3>
-                <p className="text-xs text-slate-400">Configurez</p>
+                <p className={`text-xs ${sidebarColors.textSecondary}`}>Configurez</p>
               </div>
             </div>
             <Link 
@@ -155,7 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               Ouvrir les paramètres
             </Link>
             <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs text-slate-400">Thème</span>
+              <span className={`text-xs ${sidebarColors.textSecondary}`}>Thème</span>
               <ThemeToggle />
             </div>
           </div>
@@ -163,7 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 bg-base-100 min-h-screen">
+      <main className={`flex-1 ${contentBg} min-h-screen`}>
         <div className="max-w-7xl mx-auto p-6">
           {children}
         </div>

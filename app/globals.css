@@ -22,12 +22,14 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--background);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  min-height: 100vh;
 }
 
 a {
@@ -45,7 +47,8 @@ html.dark {
   --foreground: #f1f5f9;
 }
 
-html.dark body {
+html.dark body,
+html.dark html {
   background: var(--background);
   color: var(--foreground);
 }
@@ -108,4 +111,14 @@ html.dark .modal-box {
 
 html.dark .surface-card {
   background-color: #1e293b !important;
+}
+
+/* Theme-aware base backgrounds */
+.bg-base-100 {
+  background-color: var(--background, #ffffff);
+}
+
+/* Base content area needs theme background */
+html.dark .bg-base-100 {
+  background-color: #0f172a;
 }
