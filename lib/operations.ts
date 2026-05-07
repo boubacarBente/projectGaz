@@ -185,9 +185,9 @@ async function buildPurchaseItems(lines: LineInput[]) {
       productId: product.id,
       productCode: product.code,
       productName: product.name,
-      quantity: line.quantity,
-      unitCost: line.amount,
-      totalCost: line.quantity * line.amount,
+      quantity: Number(line.quantity) || 0,
+      unitCost: Number(line.amount) || 0,
+      totalCost: (Number(line.quantity) || 0) * (Number(line.amount) || 0),
     };
   });
 }
@@ -206,9 +206,9 @@ async function buildSalesItems(lines: LineInput[]) {
       productId: product.id,
       productCode: product.code,
       productName: product.name,
-      quantity: line.quantity,
-      unitPrice: line.amount,
-      totalPrice: line.quantity * line.amount,
+      quantity: Number(line.quantity) || 0,
+      unitPrice: Number(line.amount) || 0,
+      totalPrice: (Number(line.quantity) || 0) * (Number(line.amount) || 0),
     };
   });
 }
@@ -992,14 +992,15 @@ export async function addStockMovement(input: {
   const now = new Date().toISOString();
 
   // Mettre à jour le stock selon le type de mouvement
+  const qty = Number(input.quantity) || 0;
   if (input.type === 'entry' || input.type === 'return') {
-    newStockAmount += input.quantity;
+    newStockAmount += qty;
     lastEntry = now;
   } else if (input.type === 'exit') {
-    newStockAmount -= input.quantity;
+    newStockAmount -= qty;
     lastExit = now;
   } else if (input.type === 'adjustment') {
-    newStockAmount = input.quantity;
+    newStockAmount = qty;
   }
 
   await db.update(stock).set({
@@ -1014,7 +1015,7 @@ export async function addStockMovement(input: {
     productCode: product.code,
     productName: product.name,
     type: input.type,
-    quantity: input.quantity,
+    quantity: qty,
     reference: input.reference,
     notes: input.notes || '',
   }).returning({ id: stockMovements.id });
@@ -1025,7 +1026,7 @@ export async function addStockMovement(input: {
     productCode: product.code,
     productName: product.name,
     type: input.type,
-    quantity: input.quantity,
+    quantity: qty,
     reference: input.reference,
     notes: input.notes || '',
     createdAt: now,
