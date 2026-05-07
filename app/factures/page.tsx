@@ -717,7 +717,7 @@ export default function FacturesPage() {
               <input
                 type="number" step="any"
                 min="0"
-                step="0.01"
+                
                 value={formData.amountPaid}
                 onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
                 className="input input-bordered"
@@ -775,7 +775,7 @@ export default function FacturesPage() {
                     <input
                       type="number" step="any"
                       min="0"
-                      step="0.01"
+                      
                       value={line.unitPrice}
                       onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
                       className="input input-bordered input-sm w-full"
@@ -886,7 +886,7 @@ export default function FacturesPage() {
               <input
                 type="number" step="any"
                 min="0"
-                step="0.01"
+                
                 value={formData.amountPaid}
                 onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
                 className="input input-bordered"
@@ -942,7 +942,7 @@ export default function FacturesPage() {
                     <input
                       type="number" step="any"
                       min="0"
-                      step="0.01"
+                      
                       value={line.unitPrice}
                       onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
                       className="input input-bordered input-sm w-full"

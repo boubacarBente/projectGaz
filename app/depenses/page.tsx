@@ -765,7 +765,7 @@ export default function DepensesPage() {
                       <td>
                         <input
                           type="number" step="any"
-                          min="1"
+
                           value={line.quantity}
                           onChange={(e) => updateLine(index, 'quantity', e.target.value)}
                           className="input input-bordered input-sm w-20 text-center focus:input-focus"
@@ -774,7 +774,7 @@ export default function DepensesPage() {
                       <td>
                         <input
                           type="number" step="any"
-                          min="0"
+
                           
                           value={line.unitCost}
                           onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
@@ -994,7 +994,7 @@ export default function DepensesPage() {
                       <td>
                         <input
                           type="number" step="any"
-                          min="1"
+
                           value={line.quantity}
                           onChange={(e) => updateLine(index, 'quantity', e.target.value)}
                           className="input input-bordered input-sm w-20 text-center focus:input-focus"
@@ -1003,7 +1003,7 @@ export default function DepensesPage() {
                       <td>
                         <input
                           type="number" step="any"
-                          min="0"
+
                           
                           value={line.unitCost}
                           onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
