@@ -258,6 +258,33 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
           </div>
         </div>
       </SettingsCard>
+{/* Appearance Card */}
+      <SettingsCard
+        title="Apparence"
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        }
+        iconBg="bg-accent/10 text-accent"
+      >
+        <div className="flex items-center gap-4">
+          <div className="form-control">
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                checked={formData.theme === 'dark'}
+                onChange={(e) => updateField('theme', e.target.checked ? 'dark' : 'light')}
+                className="checkbox checkbox-primary checkbox-sm"
+              />
+              <span className="label-text font-medium text-sm">Mode sombre</span>
+            </label>
+          </div>
+          <div className="text-sm text-base-content/60">
+            {formData.theme === 'dark' ? '🌙' : '☀️'}
+          </div>
+        </div>
+      </SettingsCard>
 
       {/* Currency & Format Card */}
       <SettingsCard
