@@ -1,6 +1,17 @@
 ﻿import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-
+import { db } from "../db/index";
+import { 
+  products, 
+  purchaseInvoices, 
+  purchaseInvoiceItems,
+  salesInvoices,
+  salesInvoiceItems,
+  stock,
+  stockMovements,
+  settings
+} from "../db/schema";
+import { eq, desc, asc, like, sql, and, or } from "drizzle-orm";
 import { listProducts } from "@/lib/products";
 
 export type PurchaseInvoiceItem = {
@@ -48,39 +59,110 @@ export type SalesInvoice = {
   createdAt: string;
 };
 
-const dataDirectory = path.join(process.cwd(), "data");
-const purchasesFile = path.join(dataDirectory, "purchase-invoices.json");
-const salesFile = path.join(dataDirectory, "sales-invoices.json");
+// --- CODE JSON (commenté - utilisation SQLite) ---
 
-async function ensureFile(filePath: string) {
-  await mkdir(dataDirectory, { recursive: true });
+// const dataDirectory = path.join(process.cwd(), "data");
+// const purchasesFile = path.join(dataDirectory, "purchase-invoices.json");
+// const salesFile = path.join(dataDirectory, "sales-invoices.json");
 
-  try {
-    await readFile(filePath, "utf8");
-  } catch {
-    await writeFile(filePath, "[]", "utf8");
-  }
-}
+// async function ensureFile(filePath: string) {
+//   await mkdir(dataDirectory, { recursive: true });
 
-async function readJsonFile<T>(filePath: string) {
-  await ensureFile(filePath);
-  const content = await readFile(filePath, "utf8");
-  return JSON.parse(content) as T;
-}
+//   try {
+//     await readFile(filePath, "utf8");
+//   } catch {
+//     await writeFile(filePath, "[]", "utf8");
+//   }
+// }
 
-async function writeJsonFile(filePath: string, value: unknown) {
-  await ensureFile(filePath);
-  await writeFile(filePath, JSON.stringify(value, null, 2), "utf8");
-}
+// async function readJsonFile<T>(filePath: string) {
+//   await ensureFile(filePath);
+//   const content = await readFile(filePath, "utf8");
+//   return JSON.parse(content) as T;
+// }
+
+// async function writeJsonFile(filePath: string, value: unknown) {
+//   await ensureFile(filePath);
+//   await writeFile(filePath, JSON.stringify(value, null, 2), "utf8");
+// }
 
 export async function listPurchaseInvoices() {
-  const invoices = await readJsonFile<PurchaseInvoice[]>(purchasesFile);
-  return invoices.sort((a, b) => b.date.localeCompare(a.date));
+  // --- CODE JSON (commenté) ---
+  // const invoices = await readJsonFile<PurchaseInvoice[]>(purchasesFile);
+  // return invoices.sort((a, b) => b.date.localeCompare(a.date));
+
+  // --- CODE SQL ---
+  const invoices = await db.select().from(purchaseInvoices).orderBy(desc(purchaseInvoices.date));
+  
+  const invoicesWithItems: PurchaseInvoice[] = await Promise.all(
+    invoices.map(async (inv) => {
+      const items = await db.select()
+        .from(purchaseInvoiceItems)
+        .where(eq(purchaseInvoiceItems.invoiceId, inv.id));
+      
+      return {
+        id: inv.id,
+        reference: inv.reference,
+        supplier: inv.supplier,
+        date: inv.date,
+        notes: inv.notes || "",
+        items: items.map(item => ({
+          productId: item.productId,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          totalCost: item.totalCost,
+        })),
+        totalAmount: inv.totalAmount,
+        isPaid: inv.isPaid,
+        createdAt: inv.createdAt?.toISOString() || "",
+      };
+    })
+  );
+  
+  return invoicesWithItems;
 }
 
 export async function listSalesInvoices() {
-  const invoices = await readJsonFile<SalesInvoice[]>(salesFile);
-  return invoices.sort((a, b) => b.date.localeCompare(a.date));
+  // --- CODE JSON (commenté) ---
+  // const invoices = await readJsonFile<SalesInvoice[]>(salesFile);
+  // return invoices.sort((a, b) => b.date.localeCompare(a.date));
+
+  // --- CODE SQL ---
+  const invoices = await db.select().from(salesInvoices).orderBy(desc(salesInvoices.date));
+  
+  const invoicesWithItems: SalesInvoice[] = await Promise.all(
+    invoices.map(async (inv) => {
+      const items = await db.select()
+        .from(salesInvoiceItems)
+        .where(eq(salesInvoiceItems.invoiceId, inv.id));
+      
+      return {
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        customerName: inv.customerName,
+        date: inv.date,
+        paymentMethod: inv.paymentMethod || "Espèces",
+        notes: inv.notes || "",
+        items: items.map(item => ({
+          productId: item.productId,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        })),
+        totalAmount: inv.totalAmount,
+        amountPaid: inv.amountPaid,
+        remainingAmount: inv.remainingAmount,
+        paymentStatus: inv.paymentStatus as "Paye" | "Partiel" | "En attente",
+        createdAt: inv.createdAt?.toISOString() || "",
+      };
+    })
+  );
+  
+  return invoicesWithItems;
 }
 
 type LineInput = {
@@ -139,12 +221,56 @@ export async function createPurchaseInvoice(input: {
   lines: LineInput[];
   isPaid?: boolean;
 }) {
-  const invoices = await listPurchaseInvoices();
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listPurchaseInvoices();
+  // const items = await buildPurchaseItems(input.lines);
+  // const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
+
+  // const invoice: PurchaseInvoice = {
+  //   id: invoices.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+  //   reference: input.reference,
+  //   supplier: input.supplier,
+  //   date: input.date,
+  //   notes: input.notes,
+  //   items,
+  //   totalAmount,
+  //   isPaid: input.isPaid ?? false,
+  //   createdAt: new Date().toISOString(),
+  // };
+
+  // await writeJsonFile(purchasesFile, [invoice, ...invoices]);
+  // return invoice;
+
+  // --- CODE SQL ---
   const items = await buildPurchaseItems(input.lines);
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
-  const invoice: PurchaseInvoice = {
-    id: invoices.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+  const result = await db.insert(purchaseInvoices).values({
+    reference: input.reference,
+    supplier: input.supplier,
+    date: input.date,
+    notes: input.notes,
+    totalAmount,
+    isPaid: input.isPaid ?? false,
+  }).returning({ id: purchaseInvoices.id });
+
+  const invoiceId = result[0].id;
+
+  // Insérer les items
+  for (const item of items) {
+    await db.insert(purchaseInvoiceItems).values({
+      invoiceId,
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      totalCost: item.totalCost,
+    });
+  }
+
+  return {
+    id: invoiceId,
     reference: input.reference,
     supplier: input.supplier,
     date: input.date,
@@ -154,9 +280,6 @@ export async function createPurchaseInvoice(input: {
     isPaid: input.isPaid ?? false,
     createdAt: new Date().toISOString(),
   };
-
-  await writeJsonFile(purchasesFile, [invoice, ...invoices]);
-  return invoice;
 }
 
 export async function createSalesInvoice(input: {
@@ -167,7 +290,38 @@ export async function createSalesInvoice(input: {
   amountPaid: number;
   lines: LineInput[];
 }) {
-  const invoices = await listSalesInvoices();
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listSalesInvoices();
+  // const items = await buildSalesItems(input.lines);
+  // const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  // const remainingAmount = Math.max(totalAmount - input.amountPaid, 0);
+
+  // const paymentStatus: SalesInvoice["paymentStatus"] =
+  //   input.amountPaid <= 0
+  //     ? "En attente"
+  //     : remainingAmount > 0
+  //       ? "Partiel"
+  //       : "Paye";
+
+  // const invoice: SalesInvoice = {
+  //   id: invoices.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+  //   invoiceNumber: `N ${String(invoices.length + 1).padStart(6, "0")}`,
+  //   customerName: input.customerName,
+  //   date: input.date,
+  //   paymentMethod: input.paymentMethod,
+  //   notes: input.notes,
+  //   items,
+  //   totalAmount,
+  //   amountPaid: input.amountPaid,
+  //   remainingAmount,
+  //   paymentStatus,
+  //   createdAt: new Date().toISOString(),
+  // };
+
+  // await writeJsonFile(salesFile, [invoice, ...invoices]);
+  // return invoice;
+
+  // --- CODE SQL ---
   const items = await buildSalesItems(input.lines);
   const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
   const remainingAmount = Math.max(totalAmount - input.amountPaid, 0);
@@ -179,9 +333,41 @@ export async function createSalesInvoice(input: {
         ? "Partiel"
         : "Paye";
 
-  const invoice: SalesInvoice = {
-    id: invoices.reduce((max, item) => Math.max(max, item.id), 0) + 1,
-    invoiceNumber: `N ${String(invoices.length + 1).padStart(6, "0")}`,
+  // Générer le numéro de facture
+  const countResult = await db.select({ count: sql<number>`count(*)`.from(salesInvoices) });
+  const invoiceCount = countResult[0].count || 0;
+  const invoiceNumber = `N ${String(invoiceCount + 1).padStart(6, "0")}`;
+
+  const result = await db.insert(salesInvoices).values({
+    invoiceNumber,
+    customerName: input.customerName,
+    date: input.date,
+    paymentMethod: input.paymentMethod,
+    notes: input.notes,
+    totalAmount,
+    amountPaid: input.amountPaid,
+    remainingAmount,
+    paymentStatus,
+  }).returning({ id: salesInvoices.id });
+
+  const invoiceId = result[0].id;
+
+  // Insérer les items
+  for (const item of items) {
+    await db.insert(salesInvoiceItems).values({
+      invoiceId,
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    });
+  }
+
+  return {
+    id: invoiceId,
+    invoiceNumber,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -193,14 +379,38 @@ export async function createSalesInvoice(input: {
     paymentStatus,
     createdAt: new Date().toISOString(),
   };
-
-  await writeJsonFile(salesFile, [invoice, ...invoices]);
-  return invoice;
 }
 
 export async function getPurchaseInvoice(id: number) {
-  const invoices = await listPurchaseInvoices();
-  return invoices.find((invoice) => invoice.id === id) || null;
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listPurchaseInvoices();
+  // return invoices.find((invoice) => invoice.id === id) || null;
+
+  // --- CODE SQL ---
+  const invoices = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
+  if (invoices.length === 0) return null;
+  
+  const inv = invoices[0];
+  const items = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
+  
+  return {
+    id: inv.id,
+    reference: inv.reference,
+    supplier: inv.supplier,
+    date: inv.date,
+    notes: inv.notes || "",
+    items: items.map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      totalCost: item.totalCost,
+    })),
+    totalAmount: inv.totalAmount,
+    isPaid: inv.isPaid,
+    createdAt: inv.createdAt?.toISOString() || "",
+  };
 }
 
 export async function updatePurchaseInvoice(id: number, input: {
@@ -211,50 +421,152 @@ export async function updatePurchaseInvoice(id: number, input: {
   lines?: LineInput[];
   isPaid?: boolean;
 }) {
-  const invoices = await listPurchaseInvoices();
-  const index = invoices.findIndex((invoice) => invoice.id === id);
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listPurchaseInvoices();
+  // const index = invoices.findIndex((invoice) => invoice.id === id);
   
-  if (index === -1) {
+  // if (index === -1) {
+  //   throw new Error('Invoice not found');
+  // }
+
+  // const existingInvoice = invoices[index];
+  // const items = input.lines 
+  //   ? await buildPurchaseItems(input.lines)
+  //   : existingInvoice.items;
+  // const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
+
+  // const updatedInvoice: PurchaseInvoice = {
+  //   ...existingInvoice,
+  //   reference: input.reference ?? existingInvoice.reference,
+  //   supplier: input.supplier ?? existingInvoice.supplier,
+  //   date: input.date ?? existingInvoice.date,
+  //   notes: input.notes ?? existingInvoice.notes,
+  //   items,
+  //   totalAmount,
+  //   isPaid: input.isPaid ?? existingInvoice.isPaid,
+  // };
+
+  // invoices[index] = updatedInvoice;
+  // await writeJsonFile(purchasesFile, invoices);
+  // return updatedInvoice;
+
+  // --- CODE SQL ---
+  // Vérifier si la facture existe
+  const existing = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
+  if (existing.length === 0) {
     throw new Error('Invoice not found');
   }
 
-  const existingInvoice = invoices[index];
   const items = input.lines 
     ? await buildPurchaseItems(input.lines)
-    : existingInvoice.items;
+    : await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
-  const updatedInvoice: PurchaseInvoice = {
-    ...existingInvoice,
-    reference: input.reference ?? existingInvoice.reference,
-    supplier: input.supplier ?? existingInvoice.supplier,
-    date: input.date ?? existingInvoice.date,
-    notes: input.notes ?? existingInvoice.notes,
-    items,
+  // Mettre à jour la facture
+  await db.update(purchaseInvoices).set({
+    reference: input.reference,
+    supplier: input.supplier,
+    date: input.date,
+    notes: input.notes,
     totalAmount,
-    isPaid: input.isPaid ?? existingInvoice.isPaid,
-  };
+    isPaid: input.isPaid,
+  }).where(eq(purchaseInvoices.id, id));
 
-  invoices[index] = updatedInvoice;
-  await writeJsonFile(purchasesFile, invoices);
-  return updatedInvoice;
+  // Si nouvelles lignes, supprimer les anciennes et insérer les nouvelles
+  if (input.lines) {
+    await db.delete(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
+    for (const item of items) {
+      await db.insert(purchaseInvoiceItems).values({
+        invoiceId: id,
+        productId: item.productId,
+        productCode: item.productCode,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitCost: item.unitCost,
+        totalCost: item.totalCost,
+      });
+    }
+  }
+
+  return {
+    id,
+    reference: input.reference ?? existing[0].reference,
+    supplier: input.supplier ?? existing[0].supplier,
+    date: input.date ?? existing[0].date,
+    notes: input.notes ?? existing[0].notes || "",
+    items: items.map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      totalCost: item.totalCost,
+    })),
+    totalAmount,
+    isPaid: input.isPaid ?? existing[0].isPaid,
+    createdAt: existing[0].createdAt?.toISOString() || "",
+  };
 }
 
 export async function deletePurchaseInvoice(id: number) {
-  const invoices = await listPurchaseInvoices();
-  const filtered = invoices.filter((invoice) => invoice.id !== id);
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listPurchaseInvoices();
+  // const filtered = invoices.filter((invoice) => invoice.id !== id);
   
-  if (filtered.length === invoices.length) {
+  // if (filtered.length === invoices.length) {
+  //   throw new Error('Invoice not found');
+  // }
+
+  // await writeJsonFile(purchasesFile, filtered);
+  // return { success: true };
+
+  // --- CODE SQL ---
+  const existing = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
+  if (existing.length === 0) {
     throw new Error('Invoice not found');
   }
 
-  await writeJsonFile(purchasesFile, filtered);
+  // Supprimer les items
+  await db.delete(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
+  // Supprimer la facture
+  await db.delete(purchaseInvoices).where(eq(purchaseInvoices.id, id));
+  
   return { success: true };
 }
 
 export async function getSalesInvoice(id: number) {
-  const invoices = await listSalesInvoices();
-  return invoices.find((invoice) => invoice.id === id) || null;
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listSalesInvoices();
+  // return invoices.find((invoice) => invoice.id === id) || null;
+
+  // --- CODE SQL ---
+  const invoices = await db.select().from(salesInvoices).where(eq(salesInvoices.id, id));
+  if (invoices.length === 0) return null;
+  
+  const inv = invoices[0];
+  const items = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
+  
+  return {
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber,
+    customerName: inv.customerName,
+    date: inv.date,
+    paymentMethod: inv.paymentMethod || "Espèces",
+    notes: inv.notes || "",
+    items: items.map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    })),
+    totalAmount: inv.totalAmount,
+    amountPaid: inv.amountPaid,
+    remainingAmount: inv.remainingAmount,
+    paymentStatus: inv.paymentStatus as "Paye" | "Partiel" | "En attente",
+    createdAt: inv.createdAt?.toISOString() || "",
+  };
 }
 
 export async function updateSalesInvoice(id: number, input: {
@@ -265,19 +577,57 @@ export async function updateSalesInvoice(id: number, input: {
   amountPaid?: number;
   lines?: LineInput[];
 }) {
-  const invoices = await listSalesInvoices();
-  const index = invoices.findIndex((invoice) => invoice.id === id);
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listSalesInvoices();
+  // const index = invoices.findIndex((invoice) => invoice.id === id);
   
-  if (index === -1) {
+  // if (index === -1) {
+  //   throw new Error('Invoice not found');
+  // }
+
+  // const existingInvoice = invoices[index];
+  // const items = input.lines 
+  //   ? await buildSalesItems(input.lines)
+  //   : existingInvoice.items;
+  // const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  // const amountPaid = input.amountPaid ?? existingInvoice.amountPaid;
+  // const remainingAmount = Math.max(totalAmount - amountPaid, 0);
+
+  // const paymentStatus: SalesInvoice["paymentStatus"] =
+  //   amountPaid <= 0
+  //     ? "En attente"
+  //     : remainingAmount > 0
+  //       ? "Partiel"
+  //       : "Paye";
+
+  // const updatedInvoice: SalesInvoice = {
+  //   ...existingInvoice,
+  //   customerName: input.customerName ?? existingInvoice.customerName,
+  //   date: input.date ?? existingInvoice.date,
+  //   paymentMethod: input.paymentMethod ?? existingInvoice.paymentMethod,
+  //   notes: input.notes ?? existingInvoice.notes,
+  //   items,
+  //   totalAmount,
+  //   amountPaid,
+  //   remainingAmount,
+  //   paymentStatus,
+  // };
+
+  // invoices[index] = updatedInvoice;
+  // await writeJsonFile(salesFile, invoices);
+  // return updatedInvoice;
+
+  // --- CODE SQL ---
+  const existing = await db.select().from(salesInvoices).where(eq(salesInvoices.id, id));
+  if (existing.length === 0) {
     throw new Error('Invoice not found');
   }
 
-  const existingInvoice = invoices[index];
   const items = input.lines 
     ? await buildSalesItems(input.lines)
-    : existingInvoice.items;
+    : await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
   const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
-  const amountPaid = input.amountPaid ?? existingInvoice.amountPaid;
+  const amountPaid = input.amountPaid ?? existing[0].amountPaid;
   const remainingAmount = Math.max(totalAmount - amountPaid, 0);
 
   const paymentStatus: SalesInvoice["paymentStatus"] =
@@ -287,33 +637,76 @@ export async function updateSalesInvoice(id: number, input: {
         ? "Partiel"
         : "Paye";
 
-  const updatedInvoice: SalesInvoice = {
-    ...existingInvoice,
-    customerName: input.customerName ?? existingInvoice.customerName,
-    date: input.date ?? existingInvoice.date,
-    paymentMethod: input.paymentMethod ?? existingInvoice.paymentMethod,
-    notes: input.notes ?? existingInvoice.notes,
-    items,
+  await db.update(salesInvoices).set({
+    customerName: input.customerName,
+    date: input.date,
+    paymentMethod: input.paymentMethod,
+    notes: input.notes,
     totalAmount,
     amountPaid,
     remainingAmount,
     paymentStatus,
-  };
+  }).where(eq(salesInvoices.id, id));
 
-  invoices[index] = updatedInvoice;
-  await writeJsonFile(salesFile, invoices);
-  return updatedInvoice;
+  if (input.lines) {
+    await db.delete(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
+    for (const item of items) {
+      await db.insert(salesInvoiceItems).values({
+        invoiceId: id,
+        productId: item.productId,
+        productCode: item.productCode,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+      });
+    }
+  }
+
+  return {
+    id,
+    invoiceNumber: existing[0].invoiceNumber,
+    customerName: input.customerName ?? existing[0].customerName,
+    date: input.date ?? existing[0].date,
+    paymentMethod: input.paymentMethod ?? existing[0].paymentMethod,
+    notes: input.notes ?? existing[0].notes || "",
+    items: items.map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    })),
+    totalAmount,
+    amountPaid,
+    remainingAmount,
+    paymentStatus,
+    createdAt: existing[0].createdAt?.toISOString() || "",
+  };
 }
 
 export async function deleteSalesInvoice(id: number) {
-  const invoices = await listSalesInvoices();
-  const filtered = invoices.filter((invoice) => invoice.id !== id);
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listSalesInvoices();
+  // const filtered = invoices.filter((invoice) => invoice.id !== id);
   
-  if (filtered.length === invoices.length) {
+  // if (filtered.length === invoices.length) {
+  //   throw new Error('Invoice not found');
+  // }
+
+  // await writeJsonFile(salesFile, filtered);
+  // return { success: true };
+
+  // --- CODE SQL ---
+  const existing = await db.select().from(salesInvoices).where(eq(salesInvoices.id, id));
+  if (existing.length === 0) {
     throw new Error('Invoice not found');
   }
 
-  await writeJsonFile(salesFile, filtered);
+  await db.delete(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
+  await db.delete(salesInvoices).where(eq(salesInvoices.id, id));
+  
   return { success: true };
 }
 
@@ -391,35 +784,62 @@ export type StockItem = {
   lastExit: string | null;
 };
 
-const stockFile = path.join(dataDirectory, "stock.json");
-const stockMovementsFile = path.join(dataDirectory, "stock-movements.json");
+// --- CODE JSON (commenté - utilisation SQLite) ---
 
-async function readStockFile() {
-  await ensureFile(stockFile);
-  const content = await readFile(stockFile, "utf8");
-  return JSON.parse(content) as StockItem[];
-}
+// const stockFile = path.join(dataDirectory, "stock.json");
+// const stockMovementsFile = path.join(dataDirectory, "stock-movements.json");
 
-async function writeStockFile(items: StockItem[]) {
-  await writeFile(stockFile, JSON.stringify(items, null, 2), "utf8");
-}
+// async function readStockFile() {
+//   await ensureFile(stockFile);
+//   const content = await readFile(stockFile, "utf8");
+//   return JSON.parse(content) as StockItem[];
+// }
 
-async function readStockMovementsFile() {
-  await ensureFile(stockMovementsFile);
-  const content = await readFile(stockMovementsFile, "utf8");
-  return JSON.parse(content) as StockMovement[];
-}
+// async function writeStockFile(items: StockItem[]) {
+//   await writeFile(stockFile, JSON.stringify(items, null, 2), "utf8");
+// }
 
-async function writeStockMovementsFile(movements: StockMovement[]) {
-  await writeFile(stockMovementsFile, JSON.stringify(movements, null, 2), "utf8");
-}
+// async function readStockMovementsFile() {
+//   await ensureFile(stockMovementsFile);
+//   const content = await readFile(stockMovementsFile, "utf8");
+//   return JSON.parse(content) as StockMovement[];
+// }
+
+// async function writeStockMovementsFile(movements: StockMovement[]) {
+//   await writeFile(stockMovementsFile, JSON.stringify(movements, null, 2), "utf8");
+// }
 
 export async function initializeStock() {
-  const products = await listProducts();
-  const stock = await readStockFile();
+  // --- CODE JSON (commenté) ---
+  // const products = await listProducts();
+  // const stock = await readStockFile();
   
-  // Initialize stock for all products if not exists
-  const existingProductIds = new Set(stock.map(s => s.productId));
+  // // Initialize stock for all products if not exists
+  // const existingProductIds = new Set(stock.map(s => s.productId));
+  // const newStockItems = products
+  //   .filter(p => !existingProductIds.has(p.id))
+  //   .map(p => ({
+  //     productId: p.id,
+  //     productCode: p.code,
+  //     productName: p.name,
+  //     capacity: p.capacity,
+  //     currentStock: 0,
+  //     minStock: 10, // Default min stock
+  //     lastEntry: null,
+  //     lastExit: null,
+  //   }));
+  
+  // if (newStockItems.length > 0) {
+  //   await writeStockFile([...stock, ...newStockItems]);
+  // }
+  
+  // return [...stock.filter(s => existingProductIds.has(s.productId)), ...newStockItems];
+
+  // --- CODE SQL ---
+  const products = await listProducts();
+  const existingStock = await db.select().from(stock);
+  const existingProductIds = new Set(existingStock.map(s => s.productId));
+  
   const newStockItems = products
     .filter(p => !existingProductIds.has(p.id))
     .map(p => ({
@@ -428,33 +848,76 @@ export async function initializeStock() {
       productName: p.name,
       capacity: p.capacity,
       currentStock: 0,
-      minStock: 10, // Default min stock
-      lastEntry: null,
-      lastExit: null,
+      minStock: 10,
     }));
   
-  if (newStockItems.length > 0) {
-    await writeStockFile([...stock, ...newStockItems]);
+  for (const item of newStockItems) {
+    await db.insert(stock).values(item);
   }
   
-  return [...stock.filter(s => existingProductIds.has(s.productId)), ...newStockItems];
+  const allStock = await db.select().from(stock);
+  return allStock.map(s => ({
+    productId: s.productId,
+    productCode: s.productCode,
+    productName: s.productName,
+    capacity: s.capacity,
+    currentStock: s.currentStock,
+    minStock: s.minStock,
+    lastEntry: s.lastEntry,
+    lastExit: s.lastExit,
+  }));
 }
 
 export async function getStock() {
-  return readStockFile();
+  // --- CODE JSON (commenté) ---
+  // return readStockFile();
+
+  // --- CODE SQL ---
+  const allStock = await db.select().from(stock);
+  return allStock.map(s => ({
+    productId: s.productId,
+    productCode: s.productCode,
+    productName: s.productName,
+    capacity: s.capacity,
+    currentStock: s.currentStock,
+    minStock: s.minStock,
+    lastEntry: s.lastEntry,
+    lastExit: s.lastExit,
+  }));
 }
 
 export async function updateProductMinStock(productId: number, minStock: number) {
-  const stock = await readStockFile();
-  const index = stock.findIndex(s => s.productId === productId);
+  // --- CODE JSON (commenté) ---
+  // const stock = await readStockFile();
+  // const index = stock.findIndex(s => s.productId === productId);
   
-  if (index === -1) {
+  // if (index === -1) {
+  //   throw new Error('Product not found in stock');
+  // }
+  
+  // stock[index].minStock = minStock;
+  // await writeStockFile(stock);
+  // return stock[index];
+
+  // --- CODE SQL ---
+  const existing = await db.select().from(stock).where(eq(stock.productId, productId));
+  if (existing.length === 0) {
     throw new Error('Product not found in stock');
   }
-  
-  stock[index].minStock = minStock;
-  await writeStockFile(stock);
-  return stock[index];
+
+  await db.update(stock).set({ minStock }).where(eq(stock.productId, productId));
+
+  const updated = await db.select().from(stock).where(eq(stock.productId, productId));
+  return {
+    productId: updated[0].productId,
+    productCode: updated[0].productCode,
+    productName: updated[0].productName,
+    capacity: updated[0].capacity,
+    currentStock: updated[0].currentStock,
+    minStock: updated[0].minStock,
+    lastEntry: updated[0].lastEntry,
+    lastExit: updated[0].lastExit,
+  };
 }
 
 export async function addStockMovement(input: {
@@ -464,18 +927,89 @@ export async function addStockMovement(input: {
   reference: string;
   notes?: string;
 }) {
+  // --- CODE JSON (commenté) ---
+  // const products = await listProducts();
+  // const product = products.find(p => p.id === input.productId);
+  
+  // if (!product) {
+  //   throw new Error('Product not found');
+  // }
+  
+  // const movements = await readStockMovementsFile();
+  // const stock = await readStockFile();
+  
+  // const movement: StockMovement = {
+  //   id: movements.length > 0 ? Math.max(...movements.map(m => m.id)) + 1 : 1,
+  //   productId: input.productId,
+  //   productCode: product.code,
+  //   productName: product.name,
+  //   type: input.type,
+  //   quantity: input.quantity,
+  //   reference: input.reference,
+  //   notes: input.notes || '',
+  //   createdAt: new Date().toISOString(),
+  // };
+  
+  // // Update stock
+  // const stockIndex = stock.findIndex(s => s.productId === input.productId);
+  // if (stockIndex === -1) {
+  //   throw new Error('Product not found in stock');
+  // }
+  
+  // if (input.type === 'entry' || input.type === 'return') {
+  //   stock[stockIndex].currentStock += input.quantity;
+  //   stock[stockIndex].lastEntry = movement.createdAt;
+  // } else if (input.type === 'exit') {
+  //   stock[stockIndex].currentStock -= input.quantity;
+  //   stock[stockIndex].lastExit = movement.createdAt;
+  // } else if (input.type === 'adjustment') {
+  //   stock[stockIndex].currentStock = input.quantity;
+  // }
+  
+  // await writeStockFile(stock);
+  // await writeStockMovementsFile([movement, ...movements]);
+  
+  // return { movement, stock: stock[stockIndex] };
+
+  // --- CODE SQL ---
   const products = await listProducts();
   const product = products.find(p => p.id === input.productId);
   
   if (!product) {
     throw new Error('Product not found');
   }
-  
-  const movements = await readStockMovementsFile();
-  const stock = await readStockFile();
-  
-  const movement: StockMovement = {
-    id: movements.length > 0 ? Math.max(...movements.map(m => m.id)) + 1 : 1,
+
+  // Récupérer le stock actuel
+  const existingStock = await db.select().from(stock).where(eq(stock.productId, input.productId));
+  if (existingStock.length === 0) {
+    throw new Error('Product not found in stock');
+  }
+
+  const currentStock = existingStock[0];
+  let newStockAmount = currentStock.currentStock;
+  let lastEntry = currentStock.lastEntry;
+  let lastExit = currentStock.lastExit;
+  const now = new Date().toISOString();
+
+  // Mettre à jour le stock selon le type de mouvement
+  if (input.type === 'entry' || input.type === 'return') {
+    newStockAmount += input.quantity;
+    lastEntry = now;
+  } else if (input.type === 'exit') {
+    newStockAmount -= input.quantity;
+    lastExit = now;
+  } else if (input.type === 'adjustment') {
+    newStockAmount = input.quantity;
+  }
+
+  await db.update(stock).set({
+    currentStock: newStockAmount,
+    lastEntry,
+    lastExit,
+  }).where(eq(stock.productId, input.productId));
+
+  // Enregistrer le mouvement
+  const result = await db.insert(stockMovements).values({
     productId: input.productId,
     productCode: product.code,
     productName: product.name,
@@ -483,39 +1017,79 @@ export async function addStockMovement(input: {
     quantity: input.quantity,
     reference: input.reference,
     notes: input.notes || '',
-    createdAt: new Date().toISOString(),
+  }).returning({ id: stockMovements.id });
+
+  const movement: StockMovement = {
+    id: result[0].id,
+    productId: input.productId,
+    productCode: product.code,
+    productName: product.name,
+    type: input.type,
+    quantity: input.quantity,
+    reference: input.reference,
+    notes: input.notes || '',
+    createdAt: now,
   };
-  
-  // Update stock
-  const stockIndex = stock.findIndex(s => s.productId === input.productId);
-  if (stockIndex === -1) {
-    throw new Error('Product not found in stock');
-  }
-  
-  if (input.type === 'entry' || input.type === 'return') {
-    stock[stockIndex].currentStock += input.quantity;
-    stock[stockIndex].lastEntry = movement.createdAt;
-  } else if (input.type === 'exit') {
-    stock[stockIndex].currentStock -= input.quantity;
-    stock[stockIndex].lastExit = movement.createdAt;
-  } else if (input.type === 'adjustment') {
-    stock[stockIndex].currentStock = input.quantity;
-  }
-  
-  await writeStockFile(stock);
-  await writeStockMovementsFile([movement, ...movements]);
-  
-  return { movement, stock: stock[stockIndex] };
+
+  const updatedStock = await db.select().from(stock).where(eq(stock.productId, input.productId));
+  return {
+    movement,
+    stock: {
+      productId: updatedStock[0].productId,
+      productCode: updatedStock[0].productCode,
+      productName: updatedStock[0].productName,
+      capacity: updatedStock[0].capacity,
+      currentStock: updatedStock[0].currentStock,
+      minStock: updatedStock[0].minStock,
+      lastEntry: updatedStock[0].lastEntry,
+      lastExit: updatedStock[0].lastExit,
+    },
+  };
 }
 
 export async function getStockMovements(limit = 50) {
-  const movements = await readStockMovementsFile();
-  return movements.slice(0, limit);
+  // --- CODE JSON (commenté) ---
+  // const movements = await readStockMovementsFile();
+  // return movements.slice(0, limit);
+
+  // --- CODE SQL ---
+  const movements = await db.select()
+    .from(stockMovements)
+    .orderBy(desc(stockMovements.createdAt))
+    .limit(limit);
+  
+  return movements.map(m => ({
+    id: m.id,
+    productId: m.productId,
+    productCode: m.productCode,
+    productName: m.productName,
+    type: m.type as StockMovementType,
+    quantity: m.quantity,
+    reference: m.reference,
+    notes: m.notes || "",
+    createdAt: m.createdAt?.toISOString() || "",
+  }));
 }
 
 export async function getLowStockAlerts() {
-  const stock = await readStockFile();
-  return stock.filter(s => s.currentStock <= s.minStock);
+  // --- CODE JSON (commenté) ---
+  // const stock = await readStockFile();
+  // return stock.filter(s => s.currentStock <= s.minStock);
+
+  // --- CODE SQL ---
+  const allStock = await db.select().from(stock);
+  return allStock
+    .filter(s => s.currentStock <= s.minStock)
+    .map(s => ({
+      productId: s.productId,
+      productCode: s.productCode,
+      productName: s.productName,
+      capacity: s.capacity,
+      currentStock: s.currentStock,
+      minStock: s.minStock,
+      lastEntry: s.lastEntry,
+      lastExit: s.lastExit,
+    }));
 }
 
 export async function getRapportData() {
@@ -644,30 +1218,111 @@ const defaultSettings: Settings = {
   theme: 'light',
 };
 
-const settingsFile = path.join(dataDirectory, "settings.json");
+// --- CODE JSON (commenté - utilisation SQLite) ---
 
-async function readSettingsFile(): Promise<Settings> {
-  try {
-    await ensureFile(settingsFile);
-    const content = await readFile(settingsFile, "utf8");
-    const data = JSON.parse(content);
-    return { ...defaultSettings, ...data };
-  } catch {
-    return defaultSettings;
-  }
-}
+// const settingsFile = path.join(dataDirectory, "settings.json");
 
-async function writeSettingsFile(settings: Settings) {
-  await writeFile(settingsFile, JSON.stringify(settings, null, 2), "utf8");
-}
+// async function readSettingsFile(): Promise<Settings> {
+//   try {
+//     await ensureFile(settingsFile);
+//     const content = await readFile(settingsFile, "utf8");
+//     const data = JSON.parse(content);
+//     return { ...defaultSettings, ...data };
+//   } catch {
+//     return defaultSettings;
+//   }
+// }
+
+// async function writeSettingsFile(settings: Settings) {
+//   await writeFile(settingsFile, JSON.stringify(settings, null, 2), "utf8");
+// }
 
 export async function getSettings(): Promise<Settings> {
-  return readSettingsFile();
+  // --- CODE JSON (commenté) ---
+  // return readSettingsFile();
+
+  // --- CODE SQL ---
+  const allSettings = await db.select().from(settings);
+  if (allSettings.length === 0) {
+    // Créer les paramètres par défaut si pas encore existants
+    const result = await db.insert(settings).values(defaultSettings).returning();
+    return {
+      companyName: result[0].companyName,
+      companyAddress: result[0].companyAddress || '',
+      companyPhone: result[0].companyPhone || '',
+      companyEmail: result[0].companyEmail || '',
+      defaultMinStock: result[0].defaultMinStock,
+      currency: result[0].currency,
+      currencySymbol: result[0].currencySymbol,
+      dateFormat: result[0].dateFormat,
+      invoicePrefix: result[0].invoicePrefix,
+      purchasePrefix: result[0].purchasePrefix,
+      lowStockAlertEnabled: result[0].lowStockAlertEnabled,
+      theme: result[0].theme,
+    };
+  }
+  
+  const s = allSettings[0];
+  return {
+    companyName: s.companyName,
+    companyAddress: s.companyAddress || '',
+    companyPhone: s.companyPhone || '',
+    companyEmail: s.companyEmail || '',
+    defaultMinStock: s.defaultMinStock,
+    currency: s.currency,
+    currencySymbol: s.currencySymbol,
+    dateFormat: s.dateFormat,
+    invoicePrefix: s.invoicePrefix,
+    purchasePrefix: s.purchasePrefix,
+    lowStockAlertEnabled: s.lowStockAlertEnabled,
+    theme: s.theme,
+  };
 }
 
 export async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
-  const currentSettings = await readSettingsFile();
-  const updatedSettings = { ...currentSettings, ...updates };
-  await writeSettingsFile(updatedSettings);
-  return updatedSettings;
+  // --- CODE JSON (commenté) ---
+  // const currentSettings = await readSettingsFile();
+  // const updatedSettings = { ...currentSettings, ...updates };
+  // await writeSettingsFile(updatedSettings);
+  // return updatedSettings;
+
+  // --- CODE SQL ---
+  const current = await db.select().from(settings);
+  if (current.length === 0) {
+    throw new Error('Settings not found');
+  }
+
+  // Filtrer les valeurs undefined
+  const updatesFiltered: Record<string, unknown> = {};
+  if (updates.companyName !== undefined) updatesFiltered.companyName = updates.companyName;
+  if (updates.companyAddress !== undefined) updatesFiltered.companyAddress = updates.companyAddress;
+  if (updates.companyPhone !== undefined) updatesFiltered.companyPhone = updates.companyPhone;
+  if (updates.companyEmail !== undefined) updatesFiltered.companyEmail = updates.companyEmail;
+  if (updates.defaultMinStock !== undefined) updatesFiltered.defaultMinStock = updates.defaultMinStock;
+  if (updates.currency !== undefined) updatesFiltered.currency = updates.currency;
+  if (updates.currencySymbol !== undefined) updatesFiltered.currencySymbol = updates.currencySymbol;
+  if (updates.dateFormat !== undefined) updatesFiltered.dateFormat = updates.dateFormat;
+  if (updates.invoicePrefix !== undefined) updatesFiltered.invoicePrefix = updates.invoicePrefix;
+  if (updates.purchasePrefix !== undefined) updatesFiltered.purchasePrefix = updates.purchasePrefix;
+  if (updates.lowStockAlertEnabled !== undefined) updatesFiltered.lowStockAlertEnabled = updates.lowStockAlertEnabled;
+  if (updates.theme !== undefined) updatesFiltered.theme = updates.theme;
+
+  await db.update(settings).set(updatesFiltered).where(eq(settings.id, current[0].id));
+
+  const updated = await db.select().from(settings).where(eq(settings.id, current[0].id));
+  const s = updated[0];
+  return {
+    companyName: s.companyName,
+    companyAddress: s.companyAddress || '',
+    companyPhone: s.companyPhone || '',
+    companyEmail: s.companyEmail || '',
+    defaultMinStock: s.defaultMinStock,
+    currency: s.currency,
+    currencySymbol: s.currencySymbol,
+    dateFormat: s.dateFormat,
+    invoicePrefix: s.invoicePrefix,
+    purchasePrefix: s.purchasePrefix,
+    lowStockAlertEnabled: s.lowStockAlertEnabled,
+    theme: s.theme,
+  };
 }
