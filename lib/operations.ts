@@ -493,7 +493,7 @@ export async function updatePurchaseInvoice(id: number, input: {
     reference: input.reference ?? existing[0].reference,
     supplier: input.supplier ?? existing[0].supplier,
     date: input.date ?? existing[0].date,
-    notes: input.notes ?? existing[0].notes || "",
+    notes: (input.notes ?? existing[0].notes) || "",
     items: items.map(item => ({
       productId: item.productId,
       productCode: item.productCode,
@@ -669,7 +669,7 @@ export async function updateSalesInvoice(id: number, input: {
     customerName: input.customerName ?? existing[0].customerName,
     date: input.date ?? existing[0].date,
     paymentMethod: input.paymentMethod ?? existing[0].paymentMethod,
-    notes: input.notes ?? existing[0].notes || "",
+    notes: (input.notes ?? existing[0].notes) || "",
     items: items.map(item => ({
       productId: item.productId,
       productCode: item.productCode,
