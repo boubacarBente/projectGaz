@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
+import { toast } from 'react-toastify';
 
 const THEME_KEY = 'app-theme';
 
@@ -65,6 +66,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(newTheme);
     applyTheme(newTheme);
     localStorage.setItem(THEME_KEY, newTheme);
+
+    // Show toast notification
+    const themeName = newTheme === 'dark' ? 'Mode Nuit' : 'Mode Jour';
+    const themeIcon = newTheme === 'dark' ? '🌙' : '☀️';
+    toast.success(`${themeIcon} Thème changé pour ${themeName}`, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: newTheme,
+    });
     
     // Save to database in background
     try {
