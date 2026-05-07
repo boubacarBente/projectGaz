@@ -69,7 +69,7 @@ export default async function NouvelleFacturePage() {
               <label className="grid gap-2 text-sm font-medium text-slate-700">
                 Quantite
                 <input
-                  type="number"
+                  type="number" step="any"
                   name="quantity"
                   min="1"
                   defaultValue="1"
@@ -83,7 +83,7 @@ export default async function NouvelleFacturePage() {
               <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-1">
                 Prix unitaire de vente
                 <input
-                  type="number"
+                  type="number" step="any"
                   name="unitPrice"
                   min="1"
                   defaultValue={defaultProduct?.unitPrice ?? 0}
@@ -95,7 +95,7 @@ export default async function NouvelleFacturePage() {
               <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-1">
                 Montant encaisse
                 <input
-                  type="number"
+                  type="number" step="any"
                   name="amountPaid"
                   min="0"
                   defaultValue={defaultProduct?.unitPrice ?? 0}

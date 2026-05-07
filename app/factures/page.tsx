@@ -181,13 +181,19 @@ export default function FacturesPage() {
 
   const handleAddInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
+    const lines = formData.lines.map(line => ({
+      productId: parseInt(line.productId),
+      quantity: parseInt(line.quantity),
+      amount: parseFloat(line.unitPrice),
+    }));
+    
+    if (lines.some(line => isNaN(line.quantity) || isNaN(line.amount) || line.quantity <= 0 || line.amount <= 0)) {
+      toast.error('Quantité ou prix invalide');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
-      const lines = formData.lines.map(line => ({
-        productId: parseInt(line.productId),
-        quantity: parseInt(line.quantity),
-        amount: parseFloat(line.unitPrice),
-      }));
       const res = await fetch('/api/factures', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -215,13 +221,19 @@ export default function FacturesPage() {
   const handleEditInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInvoice) return;
+    const lines = formData.lines.map(line => ({
+      productId: parseInt(line.productId),
+      quantity: parseInt(line.quantity),
+      amount: parseFloat(line.unitPrice),
+    }));
+    
+    if (lines.some(line => isNaN(line.quantity) || isNaN(line.amount) || line.quantity <= 0 || line.amount <= 0)) {
+      toast.error('Quantité ou prix invalide');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
-      const lines = formData.lines.map(line => ({
-        productId: parseInt(line.productId),
-        quantity: parseInt(line.quantity),
-        amount: parseFloat(line.unitPrice),
-      }));
       const res = await fetch(`/api/factures/${selectedInvoice.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -703,9 +715,9 @@ export default function FacturesPage() {
                 <span className="label-text font-medium">Montant payé</span>
               </label>
               <input
-                type="number"
+                type="number" step="any"
                 min="0"
-                step="0.01"
+                
                 value={formData.amountPaid}
                 onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
                 className="input input-bordered"
@@ -751,7 +763,7 @@ export default function FacturesPage() {
                   <div className="col-span-2">
                     <label className="label text-xs"><span className="label-text">Qté</span></label>
                     <input
-                      type="number"
+                      type="number" step="any"
                       min="1"
                       value={line.quantity}
                       onChange={(e) => updateLine(index, 'quantity', e.target.value)}
@@ -761,9 +773,9 @@ export default function FacturesPage() {
                   <div className="col-span-3">
                     <label className="label text-xs"><span className="label-text">Prix</span></label>
                     <input
-                      type="number"
+                      type="number" step="any"
                       min="0"
-                      step="0.01"
+                      
                       value={line.unitPrice}
                       onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
                       className="input input-bordered input-sm w-full"
@@ -872,9 +884,9 @@ export default function FacturesPage() {
                 <span className="label-text font-medium">Montant payé</span>
               </label>
               <input
-                type="number"
+                type="number" step="any"
                 min="0"
-                step="0.01"
+                
                 value={formData.amountPaid}
                 onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
                 className="input input-bordered"
@@ -918,7 +930,7 @@ export default function FacturesPage() {
                   <div className="col-span-2">
                     <label className="label text-xs"><span className="label-text">Qté</span></label>
                     <input
-                      type="number"
+                      type="number" step="any"
                       min="1"
                       value={line.quantity}
                       onChange={(e) => updateLine(index, 'quantity', e.target.value)}
@@ -928,9 +940,9 @@ export default function FacturesPage() {
                   <div className="col-span-3">
                     <label className="label text-xs"><span className="label-text">Prix</span></label>
                     <input
-                      type="number"
+                      type="number" step="any"
                       min="0"
-                      step="0.01"
+                      
                       value={line.unitPrice}
                       onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
                       className="input input-bordered input-sm w-full"

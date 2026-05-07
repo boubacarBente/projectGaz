@@ -235,7 +235,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               <span className="label-text font-medium text-sm">Seuil de stock minimum par défaut</span>
             </label>
             <input
-              type="number"
+              type="number" step="any"
               min="0"
               value={formData.defaultMinStock}
               onChange={(e) => updateField('defaultMinStock', parseInt(e.target.value) || 0)}

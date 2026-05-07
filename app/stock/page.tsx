@@ -515,7 +515,7 @@ export default function StockPage() {
                 <span className="label-text font-medium">Quantité *</span>
               </label>
               <input
-                type="number"
+                type="number" step="any"
                 required
                 min="1"
                 value={movementForm.quantity}
@@ -581,7 +581,7 @@ export default function StockPage() {
               <span className="label-text font-medium">Seuil minimum *</span>
             </label>
             <input
-              type="number"
+              type="number" step="any"
               required
               min="0"
               value={settingsForm.minStock}

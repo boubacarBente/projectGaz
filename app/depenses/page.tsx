@@ -164,19 +164,26 @@ export default function DepensesPage() {
 
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
+    const lines = formData.lines
+      .filter(line => line.productId && line.quantity && line.unitCost)
+      .map(line => ({
+        productId: parseInt(line.productId),
+        quantity: parseInt(line.quantity),
+        amount: parseFloat(line.unitCost),
+      }));
+    
+    if (lines.length === 0) {
+      toast.error('Veuillez ajouter au moins un produit');
+      return;
+    }
+    
+    if (lines.some(line => isNaN(line.quantity) || isNaN(line.amount) || line.quantity <= 0 || line.amount <= 0)) {
+      toast.error('Quantité ou prix invalide');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
-      const lines = formData.lines
-        .filter(line => line.productId && line.quantity && line.unitCost)
-        .map(line => ({
-          productId: parseInt(line.productId),
-          quantity: parseInt(line.quantity),
-          amount: parseFloat(line.unitCost),
-        }));
-      
-      if (lines.length === 0) {
-        throw new Error('Veuillez ajouter au moins un produit');
-      }
       
       const res = await fetch('/api/depenses', {
         method: 'POST',
@@ -205,15 +212,26 @@ export default function DepensesPage() {
   const handleEditPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInvoice) return;
+    const lines = formData.lines
+      .filter(line => line.productId && line.quantity && line.unitCost)
+      .map(line => ({
+        productId: parseInt(line.productId),
+        quantity: parseInt(line.quantity),
+        amount: parseFloat(line.unitCost),
+      }));
+    
+    if (lines.length === 0) {
+      toast.error('Veuillez ajouter au moins un produit');
+      return;
+    }
+    
+    if (lines.some(line => isNaN(line.quantity) || isNaN(line.amount) || line.quantity <= 0 || line.amount <= 0)) {
+      toast.error('Quantité ou prix invalide');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
-      const lines = formData.lines
-        .filter(line => line.productId && line.quantity && line.unitCost)
-        .map(line => ({
-          productId: parseInt(line.productId),
-          quantity: parseInt(line.quantity),
-          amount: parseFloat(line.unitCost),
-        }));
       
       const res = await fetch(`/api/depenses/${selectedInvoice.id}`, {
         method: 'PUT',
@@ -746,8 +764,8 @@ export default function DepensesPage() {
                       </td>
                       <td>
                         <input
-                          type="number"
-                          min="1"
+                          type="number" step="any"
+
                           value={line.quantity}
                           onChange={(e) => updateLine(index, 'quantity', e.target.value)}
                           className="input input-bordered input-sm w-20 text-center focus:input-focus"
@@ -755,9 +773,9 @@ export default function DepensesPage() {
                       </td>
                       <td>
                         <input
-                          type="number"
-                          min="0"
-                          step="100"
+                          type="number" step="any"
+
+                          
                           value={line.unitCost}
                           onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
                           className="input input-bordered input-sm w-28 text-right focus:input-focus"
@@ -975,8 +993,8 @@ export default function DepensesPage() {
                       </td>
                       <td>
                         <input
-                          type="number"
-                          min="1"
+                          type="number" step="any"
+
                           value={line.quantity}
                           onChange={(e) => updateLine(index, 'quantity', e.target.value)}
                           className="input input-bordered input-sm w-20 text-center focus:input-focus"
@@ -984,9 +1002,9 @@ export default function DepensesPage() {
                       </td>
                       <td>
                         <input
-                          type="number"
-                          min="0"
-                          step="100"
+                          type="number" step="any"
+
+                          
                           value={line.unitCost}
                           onChange={(e) => updateLine(index, 'unitCost', e.target.value)}
                           className="input input-bordered input-sm w-28 text-right focus:input-focus"
