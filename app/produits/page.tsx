@@ -451,7 +451,7 @@ export default function ProduitsPage() {
                 <span className="label-text font-medium">Prix unitaire (GNF) *</span>
               </label>
               <input
-                type="number"
+                type="number" step="any"
                 required
                 value={formData.unitPrice}
                 onChange={(e) =>
@@ -584,7 +584,7 @@ export default function ProduitsPage() {
                 <span className="label-text font-medium">Prix unitaire (GNF) *</span>
               </label>
               <input
-                type="number"
+                type="number" step="any"
                 required
                 value={formData.unitPrice}
                 onChange={(e) =>

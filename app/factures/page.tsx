@@ -703,7 +703,7 @@ export default function FacturesPage() {
                 <span className="label-text font-medium">Montant payé</span>
               </label>
               <input
-                type="number"
+                type="number" step="any"
                 min="0"
                 step="0.01"
                 value={formData.amountPaid}
@@ -751,7 +751,7 @@ export default function FacturesPage() {
                   <div className="col-span-2">
                     <label className="label text-xs"><span className="label-text">Qté</span></label>
                     <input
-                      type="number"
+                      type="number" step="any"
                       min="1"
                       value={line.quantity}
                       onChange={(e) => updateLine(index, 'quantity', e.target.value)}
@@ -761,7 +761,7 @@ export default function FacturesPage() {
                   <div className="col-span-3">
                     <label className="label text-xs"><span className="label-text">Prix</span></label>
                     <input
-                      type="number"
+                      type="number" step="any"
                       min="0"
                       step="0.01"
                       value={line.unitPrice}
@@ -872,7 +872,7 @@ export default function FacturesPage() {
                 <span className="label-text font-medium">Montant payé</span>
               </label>
               <input
-                type="number"
+                type="number" step="any"
                 min="0"
                 step="0.01"
                 value={formData.amountPaid}
@@ -918,7 +918,7 @@ export default function FacturesPage() {
                   <div className="col-span-2">
                     <label className="label text-xs"><span className="label-text">Qté</span></label>
                     <input
-                      type="number"
+                      type="number" step="any"
                       min="1"
                       value={line.quantity}
                       onChange={(e) => updateLine(index, 'quantity', e.target.value)}
@@ -928,7 +928,7 @@ export default function FacturesPage() {
                   <div className="col-span-3">
                     <label className="label text-xs"><span className="label-text">Prix</span></label>
                     <input
-                      type="number"
+                      type="number" step="any"
                       min="0"
                       step="0.01"
                       value={line.unitPrice}

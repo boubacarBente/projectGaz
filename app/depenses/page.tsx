@@ -746,7 +746,7 @@ export default function DepensesPage() {
                       </td>
                       <td>
                         <input
-                          type="number"
+                          type="number" step="any"
                           min="1"
                           value={line.quantity}
                           onChange={(e) => updateLine(index, 'quantity', e.target.value)}
@@ -755,7 +755,7 @@ export default function DepensesPage() {
                       </td>
                       <td>
                         <input
-                          type="number"
+                          type="number" step="any"
                           min="0"
                           step="100"
                           value={line.unitCost}
@@ -975,7 +975,7 @@ export default function DepensesPage() {
                       </td>
                       <td>
                         <input
-                          type="number"
+                          type="number" step="any"
                           min="1"
                           value={line.quantity}
                           onChange={(e) => updateLine(index, 'quantity', e.target.value)}
@@ -984,7 +984,7 @@ export default function DepensesPage() {
                       </td>
                       <td>
                         <input
-                          type="number"
+                          type="number" step="any"
                           min="0"
                           step="100"
                           value={line.unitCost}
