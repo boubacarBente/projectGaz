@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { useTheme } from '@/components/theme-provider';
@@ -32,6 +32,8 @@ ChartJS.register(
   Filler
 );
 
+type Period = 'day' | 'week' | 'month' | 'year' | 'total';
+
 type Operation = {
   id: number;
   type: 'sale' | 'purchase';
@@ -49,75 +51,46 @@ type Snapshot = {
   soldByProduct: { name: string; quantity: number }[];
 };
 
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'day', label: 'Jour' },
+  { key: 'week', label: 'Semaine' },
+  { key: 'month', label: 'Mois' },
+  { key: 'year', label: 'Ann\u00e9e' },
+  { key: 'total', label: 'Total' },
+];
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
+}
+
+function getPeriodFilter(period: Period): (date: Date) => boolean {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfDay);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  switch (period) {
+    case 'day':
+      return (d) => d >= startOfDay;
+    case 'week':
+      return (d) => d >= startOfWeek;
+    case 'month':
+      return (d) => d >= startOfMonth;
+    case 'year':
+      return (d) => d >= startOfYear;
+    case 'total':
+      return () => true;
+  }
 }
 
 export default function DashboardPage() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>('total');
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-
-  // Dynamic colors based on theme
-  const colors = {
-    bg: isDark ? '#1e293b' : '#ffffff',
-    bgSecondary: isDark ? '#0f172a' : '#ffffff',
-    bgMuted: isDark ? '#1e293b' : '#f8fafc',
-    text: isDark ? '#f1f5f9' : '#0f172a',
-    textMuted: isDark ? '#94a3b8' : '#64748b',
-    textSecondary: isDark ? '#64748b' : '#475569',
-    border: isDark ? '#334155' : '#e2e8f0',
-    borderLight: isDark ? '#475569' : '#cbd5e1',
-    chart: {
-      grid: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-      text: isDark ? '#94a3b8' : '#475569',
-    }
-  };
-
-  // Dynamic chart options based on theme
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: {
-          padding: 20,
-          usePointStyle: true,
-          pointStyle: 'circle',
-          color: colors.textSecondary,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { color: colors.textMuted },
-      },
-      y: {
-        grid: { color: colors.chart.grid },
-        ticks: { color: colors.textMuted },
-      },
-    },
-  };
-
-  const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'right' as const,
-        labels: {
-          padding: 15,
-          usePointStyle: true,
-          pointStyle: 'circle',
-          color: colors.textSecondary,
-        },
-      },
-    },
-    cutout: '65%',
-  };
 
   useEffect(() => {
     async function fetchData() {
@@ -134,7 +107,40 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  if (loading || !snapshot) {
+  // Filtrer par période
+  const periodFilter = useMemo(() => getPeriodFilter(period), [period]);
+
+  const filteredData = useMemo(() => {
+    if (!snapshot) return null;
+    const sales = snapshot.sales.filter((s) => periodFilter(new Date(s.date)));
+    const purchases = snapshot.purchases.filter((p) => periodFilter(new Date(p.date)));
+    const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
+    const totalPurchases = purchases.reduce((sum, p) => sum + p.total, 0);
+
+    // Produits vendus filtrés
+    const productMap = new Map<string, { name: string; quantity: number }>();
+    for (const sale of sales) {
+      for (const item of sale.items) {
+        const existing = productMap.get(item.name) || { name: item.name, quantity: 0 };
+        existing.quantity += item.quantity;
+        productMap.set(item.name, existing);
+      }
+    }
+    const soldByProduct = Array.from(productMap.values()).sort((a, b) => b.quantity - a.quantity);
+
+    return {
+      sales,
+      purchases,
+      totalSales,
+      totalPurchases,
+      grossProfit: totalSales - totalPurchases,
+      salesCount: sales.length,
+      purchasesCount: purchases.length,
+      soldByProduct,
+    };
+  }, [snapshot, periodFilter]);
+
+  if (loading || !snapshot || !filteredData) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -142,28 +148,82 @@ export default function DashboardPage() {
     );
   }
 
-  // Process data for charts
-  const salesByMonth = Array(12).fill(0);
-  const purchasesByMonth = Array(12).fill(0);
-  const months = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aout', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const { sales, purchases, totalSales, totalPurchases, grossProfit, salesCount, purchasesCount, soldByProduct } = filteredData;
+  const totalBottlesSold = sales.reduce((sum, s) => sum + s.items.reduce((a, i) => a + i.quantity, 0), 0);
+  const totalBottlesPurchased = purchases.reduce((sum, p) => sum + p.items.reduce((a, i) => a + i.quantity, 0), 0);
 
-  snapshot.sales.forEach((sale: Operation) => {
-    const month = new Date(sale.date).getMonth();
-    salesByMonth[month] += sale.total;
-  });
+  // Données pour graphiques mensuels (toujours sur 12 mois glissants)
+  const months = ['Jan', 'F\u00e9v', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Ao\u00fbt', 'Sep', 'Oct', 'Nov', 'D\u00e9c'];
+  const now = new Date();
+  const monthlyLabels: string[] = [];
+  const monthlySales: number[] = [];
+  const monthlyPurchases: number[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthlyLabels.push(`${months[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`);
+    const monthSales = snapshot.sales.filter((s) => {
+      const sd = new Date(s.date);
+      return sd.getMonth() === d.getMonth() && sd.getFullYear() === d.getFullYear();
+    }).reduce((sum, s) => sum + s.total, 0);
+    const monthPurchases = snapshot.purchases.filter((p) => {
+      const pd = new Date(p.date);
+      return pd.getMonth() === d.getMonth() && pd.getFullYear() === d.getFullYear();
+    }).reduce((sum, p) => sum + p.total, 0);
+    monthlySales.push(monthSales);
+    monthlyPurchases.push(monthPurchases);
+  }
 
-  snapshot.purchases.forEach((purchase: Operation) => {
-    const month = new Date(purchase.date).getMonth();
-    purchasesByMonth[month] += purchase.total;
-  });
+  // Stats cards
+  const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
+  const statsCards = [
+    {
+      label: 'Ventes',
+      value: `${formatCurrency(totalSales)} GNF`,
+      hint: `${salesCount} facture(s)`,
+      icon: '💰',
+      trend: salesCount > 0 ? `${totalBottlesSold} bouteilles` : null,
+      color: 'text-info',
+      bgColor: 'bg-info/10',
+      borderColor: 'border-info/20',
+    },
+    {
+      label: 'Achats usine',
+      value: `${formatCurrency(totalPurchases)} GNF`,
+      hint: `${purchasesCount} facture(s)`,
+      icon: '📦',
+      trend: purchasesCount > 0 ? `${totalBottlesPurchased} bouteilles` : null,
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
+      borderColor: 'border-warning/20',
+    },
+    {
+      label: 'B\u00e9n\u00e9fice brut',
+      value: `${formatCurrency(grossProfit)} GNF`,
+      hint: grossProfit >= 0 ? 'Positif \u2713' : 'N\u00e9gatif',
+      icon: grossProfit >= 0 ? '📈' : '📉',
+      color: grossProfit >= 0 ? 'text-success' : 'text-error',
+      bgColor: grossProfit >= 0 ? 'bg-success/10' : 'bg-error/10',
+      borderColor: grossProfit >= 0 ? 'border-success/20' : 'border-error/20',
+    },
+    {
+      label: 'Bouteilles vendues',
+      value: `${totalBottlesSold}`,
+      hint: `Stock: ${snapshot.soldByProduct.reduce((s, p) => s + p.quantity, 0)} total`,
+      icon: '🫙',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+      borderColor: 'border-primary/20',
+      trend: purchasesCount > 0 ? `${totalBottlesPurchased} achet\u00e9es` : null,
+    },
+  ];
 
-  // Line chart data - Ventes vs Achats
+  // Graphiques
   const lineChartData = {
-    labels: months,
+    labels: monthlyLabels,
     datasets: [
       {
         label: 'Ventes',
-        data: salesByMonth,
+        data: monthlySales,
         borderColor: '#0ea5e9',
         backgroundColor: 'rgba(14, 165, 233, 0.1)',
         fill: true,
@@ -171,7 +231,7 @@ export default function DashboardPage() {
       },
       {
         label: 'Achats',
-        data: purchasesByMonth,
+        data: monthlyPurchases,
         borderColor: '#f59e0b',
         backgroundColor: 'rgba(245, 158, 11, 0.1)',
         fill: true,
@@ -180,70 +240,53 @@ export default function DashboardPage() {
     ],
   };
 
-  // Bar chart data - Bénéfice mensuel
   const barChartData = {
-    labels: months,
+    labels: monthlyLabels,
     datasets: [
       {
-        label: 'Bénéfice',
-        data: salesByMonth.map((s, i) => s - purchasesByMonth[i]),
-        backgroundColor: salesByMonth.map((s, i) => 
-          s - purchasesByMonth[i] >= 0 ? '#22c55e' : '#ef4444'
-        ),
+        label: 'B\u00e9n\u00e9fice',
+        data: monthlySales.map((s, i) => s - monthlyPurchases[i]),
+        backgroundColor: monthlySales.map((s, i) => s - monthlyPurchases[i] >= 0 ? '#22c55e' : '#ef4444'),
         borderRadius: 8,
       },
     ],
   };
 
-  // Doughnut chart - Top produits
-  const productData = snapshot.soldByProduct.slice(0, 5);
-  const doughnutChartData = {
-    labels: productData.map(p => p.name),
+  const topProducts = soldByProduct.slice(0, 5);
+  const doughnutChartData = topProducts.length > 0 ? {
+    labels: topProducts.map((p) => p.name),
     datasets: [
       {
-        data: productData.map(p => p.quantity),
-        backgroundColor: [
-          '#0ea5e9',
-          '#22c55e',
-          '#f59e0b',
-          '#8b5cf6',
-          '#ec4899',
-        ],
+        data: topProducts.map((p) => p.quantity),
+        backgroundColor: ['#0ea5e9', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899'],
         borderWidth: 0,
       },
     ],
+  } : null;
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: { padding: 20, usePointStyle: true, pointStyle: 'circle', color: isDark ? '#94a3b8' : '#475569' },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: isDark ? '#94a3b8' : '#64748b' } },
+      y: { grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }, ticks: { color: isDark ? '#94a3b8' : '#64748b' } },
+    },
   };
 
-  const stats = [
-    {
-      label: 'Achats usine',
-      value: `${formatCurrency(snapshot.totalPurchases)} GNF`,
-      hint: "Total des factures d'approvisionnement",
-      icon: '📦',
-      color: 'warning',
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right' as const, labels: { padding: 15, usePointStyle: true, pointStyle: 'circle', color: isDark ? '#94a3b8' : '#475569' } },
     },
-    {
-      label: 'Ventes clients',
-      value: `${formatCurrency(snapshot.totalSales)} GNF`,
-      hint: 'Total des factures de vente',
-      icon: '💰',
-      color: 'info',
-    },
-    {
-      label: 'Clients',
-      value: snapshot.sales.length > 0 ? 'Actifs' : '0',
-      hint: 'Base clients active',
-      icon: '👥',
-      color: 'primary',
-    },
-    {
-      label: 'Bénéfice brut',
-      value: `${formatCurrency(snapshot.grossProfit)} GNF`,
-      hint: 'Ventes - Achats',
-      icon: '📈',
-      color: snapshot.grossProfit >= 0 ? 'success' : 'error',
-    },
-  ];
+    cutout: '65%',
+  };
 
   const quickLinks = [
     { href: '/depenses', label: 'Saisir une facture usine', icon: '📋' },
@@ -257,7 +300,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Dashboard"
         title="Tableau de bord"
-        description="Vue d'ensemble de votre activité avec graphiques et statistiques en temps réel."
+        description="Vue d'ensemble de votre activité avec des statistiques par période."
         actions={
           <Link
             href="/factures/nouvelle"
@@ -271,58 +314,71 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="stats shadow">
-            <div className="stat">
-              <div className="stat-figure text-2xl">{stat.icon}</div>
-              <div className="stat-title">{stat.label}</div>
-              <div className={`stat-value text-${stat.color}`}>{stat.value}</div>
-              <div className="stat-desc">{stat.hint}</div>
+      {/* Période Selector */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-base-content/60 mr-1">Période :</span>
+        <div className="join">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`join-item btn btn-sm ${
+                period === p.key
+                  ? 'btn-primary'
+                  : 'btn-ghost'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-base-content/40 ml-2">
+          ({periodLabel})
+        </span>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statsCards.map((stat) => (
+          <div
+            key={stat.label}
+            className={`rounded-2xl border ${stat.borderColor} ${stat.bgColor} p-5 shadow-lg shadow-black/5 backdrop-blur transition-all duration-300 hover:scale-[1.02]`}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-2xl">{stat.icon}</span>
+              {stat.trend && (
+                <span className="badge badge-ghost badge-xs">{stat.trend}</span>
+              )}
             </div>
+            <p className="text-sm text-base-content/60 mb-1">{stat.label}</p>
+            <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
+            <p className="text-xs text-base-content/40 mt-1">{stat.hint}</p>
           </div>
         ))}
       </div>
 
-      {/* Charts Row 1 */}
+      {/* Charts Row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div 
-          className="rounded-2xl border p-5 shadow-lg backdrop-blur"
-          style={{ 
-            backgroundColor: colors.bg + 'bf', 
-            borderColor: colors.border + 'cc',
-            boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.3)' : '0 10px 40px rgba(0,0,0,0.08)'
-          }}
-        >
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg" style={{ color: colors.text }}>Ventes vs Achats</h3>
-            <p className="text-sm" style={{ color: colors.textMuted }}>Comparaison mensuelle</p>
+            <h3 className="font-semibold text-lg">Ventes vs Achats</h3>
+            <p className="text-sm text-base-content/60">12 derniers mois</p>
           </div>
           <div className="h-64">
             <Line data={lineChartData} options={chartOptions} />
           </div>
         </div>
 
-        <div 
-          className="rounded-2xl border p-5 shadow-lg backdrop-blur"
-          style={{ 
-            backgroundColor: colors.bg + 'bf', 
-            borderColor: colors.border + 'cc',
-            boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.3)' : '0 10px 40px rgba(0,0,0,0.08)'
-          }}
-        >
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg" style={{ color: colors.text }}>Produits vendus</h3>
-            <p className="text-sm" style={{ color: colors.textMuted }}>Top 5 par quantité</p>
+            <h3 className="font-semibold text-lg">Top produits vendus</h3>
+            <p className="text-sm text-base-content/60">Période actuelle</p>
           </div>
-          <div className="h-64">
-            {productData.length > 0 ? (
+          <div className="h-64 flex items-center justify-center">
+            {doughnutChartData ? (
               <Doughnut data={doughnutChartData} options={doughnutOptions} />
             ) : (
-              <div className="flex items-center justify-center h-full" style={{ color: colors.textMuted }}>
-                Aucune donnée disponible
-              </div>
+              <p className="text-base-content/50">Aucune donnée</p>
             )}
           </div>
         </div>
@@ -330,50 +386,31 @@ export default function DashboardPage() {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div 
-          className="lg:col-span-2 rounded-2xl border p-5 shadow-lg backdrop-blur"
-          style={{ 
-            backgroundColor: colors.bg + 'bf', 
-            borderColor: colors.border + 'cc',
-            boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.3)' : '0 10px 40px rgba(0,0,0,0.08)'
-          }}
-        >
+        <div className="lg:col-span-2 rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg" style={{ color: colors.text }}>Bénéfice mensuel</h3>
-            <p className="text-sm" style={{ color: colors.textMuted }}>Evolution du bénéfice par mois</p>
+            <h3 className="font-semibold text-lg">Bénéfice mensuel</h3>
+            <p className="text-sm text-base-content/60">12 derniers mois</p>
           </div>
           <div className="h-64">
             <Bar data={barChartData} options={chartOptions} />
           </div>
         </div>
 
-        <div 
-          className="rounded-2xl border p-5 shadow-lg backdrop-blur"
-          style={{ 
-            backgroundColor: colors.bg + 'bf', 
-            borderColor: colors.border + 'cc',
-            boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.3)' : '0 10px 40px rgba(0,0,0,0.08)'
-          }}
-        >
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg" style={{ color: colors.text }}>Actions rapides</h3>
-            <p className="text-sm" style={{ color: colors.textMuted }}>Accès direct aux fonctionnalités</p>
+            <h3 className="font-semibold text-lg">Actions rapides</h3>
+            <p className="text-sm text-base-content/60">Accès direct</p>
           </div>
           <div className="space-y-3">
             {quickLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition hover:border-sky-300 hover:bg-primary/10"
-                style={{ 
-                  backgroundColor: colors.bgMuted, 
-                  borderColor: colors.borderLight,
-                  color: colors.text 
-                }}
+                className="flex items-center gap-3 rounded-xl border border-base-200 bg-base-200/50 px-4 py-3 text-sm font-medium transition-all hover:border-primary/30 hover:bg-primary/5"
               >
                 <span className="text-lg">{link.icon}</span>
                 {link.label}
-                <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: colors.textMuted }}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
@@ -382,73 +419,104 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div 
-          className="rounded-2xl border p-5 shadow-lg backdrop-blur"
-          style={{ 
-            backgroundColor: colors.bg + 'bf', 
-            borderColor: colors.border + 'cc',
-            boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.3)' : '0 10px 40px rgba(0,0,0,0.08)'
-          }}
-        >
-          <div className="mb-4">
-            <h3 className="font-semibold text-lg flex items-center gap-2" style={{ color: colors.text }}>
-              <span className="text-sky-500">📊</span>
-              Résumé des ventes
-            </h3>
+      {/* Tableau des ventes récentes */}
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">Ventes récentes</h3>
+            <p className="text-sm text-base-content/60">{periodLabel} &middot; {salesCount} facture(s)</p>
           </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span style={{ color: colors.textSecondary }}>Nombre de factures</span>
-              <span className="font-semibold" style={{ color: colors.text }}>{snapshot.sales.length}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span style={{ color: colors.textSecondary }}>Bouteilles vendues</span>
-              <span className="font-semibold" style={{ color: colors.text }}>{snapshot.soldByProduct.reduce((sum, item) => sum + item.quantity, 0)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span style={{ color: colors.textSecondary }}>Panier moyen</span>
-              <span className="font-semibold" style={{ color: colors.text }}>
-                {snapshot.sales.length > 0 
-                  ? formatCurrency(snapshot.totalSales / snapshot.sales.length) + ' GNF'
-                  : '0 GNF'}
-              </span>
-            </div>
-          </div>
+          <Link href="/factures" className="btn btn-ghost btn-sm">
+            Voir tout
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
+        {sales.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-base-300 bg-base-200 px-4 py-8 text-center text-sm text-base-content/50">
+            Aucune vente pour cette période.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Produits</th>
+                  <th className="text-right">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sales.slice(0, 5).map((sale) => (
+                  <tr key={sale.id}>
+                    <td className="text-sm">{new Date(sale.date).toLocaleDateString('fr-MA')}</td>
+                    <td>
+                      <div className="flex gap-1 flex-wrap">
+                        {sale.items.map((item, i) => (
+                          <span key={i} className="badge badge-outline badge-xs">
+                            {item.name} x{item.quantity}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="text-right font-medium">{formatCurrency(sale.total)} GNF</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-        <div 
-          className="rounded-2xl border p-5 shadow-lg backdrop-blur"
-          style={{ 
-            backgroundColor: colors.bg + 'bf', 
-            borderColor: colors.border + 'cc',
-            boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.3)' : '0 10px 40px rgba(0,0,0,0.08)'
-          }}
-        >
-          <div className="mb-4">
-            <h3 className="font-semibold text-lg flex items-center gap-2" style={{ color: colors.text }}>
-              <span className="text-amber-500">📦</span>
-              Résumé des achats
-            </h3>
+      {/* Derniers approvisionnements */}
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">Approvisionnements récents</h3>
+            <p className="text-sm text-base-content/60">{periodLabel} &middot; {purchasesCount} facture(s)</p>
           </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span style={{ color: colors.textSecondary }}>Nombre de factures</span>
-              <span className="font-semibold" style={{ color: colors.text }}>{snapshot.purchases.length}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span style={{ color: colors.textSecondary }}>Total achats</span>
-              <span className="font-semibold" style={{ color: colors.text }}>{formatCurrency(snapshot.totalPurchases)} GNF</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span style={{ color: colors.textSecondary }}>Marge brute</span>
-              <span className={`font-semibold ${snapshot.grossProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {formatCurrency(snapshot.grossProfit)} GNF
-              </span>
-            </div>
-          </div>
+          <Link href="/depenses" className="btn btn-ghost btn-sm">
+            Voir tout
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
+        {purchases.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-base-300 bg-base-200 px-4 py-8 text-center text-sm text-base-content/50">
+            Aucun approvisionnement pour cette période.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Produits</th>
+                  <th className="text-right">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchases.slice(0, 5).map((purchase) => (
+                  <tr key={purchase.id}>
+                    <td className="text-sm">{new Date(purchase.date).toLocaleDateString('fr-MA')}</td>
+                    <td>
+                      <div className="flex gap-1 flex-wrap">
+                        {purchase.items.map((item, i) => (
+                          <span key={i} className="badge badge-outline badge-xs">
+                            {item.name} x{item.quantity}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="text-right font-medium">{formatCurrency(purchase.total)} GNF</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
