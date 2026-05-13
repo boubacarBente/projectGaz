@@ -1,11 +1,11 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
-import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
+import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
 
 // Dynamic import for PDF generation (client-side only)
@@ -108,8 +108,33 @@ export default function FacturesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
   const [formData, setFormData] = useState<InvoiceFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(invoices, ['invoiceNumber', 'customerName', 'date', 'paymentStatus']);
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
+    invoices,
+    ['invoiceNumber', 'customerName', 'date', 'paymentStatus'],
+    (item, filterValue) => {
+      if (filterValue === 'paid') return item.paymentStatus === 'Paye';
+      if (filterValue === 'partial') return item.paymentStatus === 'Partiel';
+      if (filterValue === 'pending') return item.paymentStatus === 'En attente';
+      return true;
+    }
+  );
   const ITEMS_PER_PAGE = 10;
+
+  // Trier par date de creation (dernier ajout en premier) et paginer
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [filtered]);
+
+  const paginatedInvoices = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sorted.slice(start, start + ITEMS_PER_PAGE);
+  }, [sorted, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / ITEMS_PER_PAGE));
 
   useEffect(() => {
     fetchData();
