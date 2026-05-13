@@ -80,8 +80,11 @@ export default function ClientsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddTypeModal, setShowAddTypeModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerInvoices, setCustomerInvoices] = useState<{ count: number; total: number } | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [formData, setFormData] = useState<ClientFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(customers, ['name', 'phone', 'email', 'city']);
@@ -191,6 +194,29 @@ export default function ClientsPage() {
 
   const openDeleteModal = (customer: Customer) => { setSelectedCustomer(customer); setShowDeleteModal(true); };
 
+  const openDetailModal = async (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowDetailModal(true);
+    setIsDetailLoading(true);
+    setCustomerInvoices(null);
+
+    try {
+      const res = await fetch('/api/factures');
+      const invoices = await res.json();
+      const clientInvoices = invoices.filter(
+        (inv: { customerName: string }) => inv.customerName.toLowerCase() === customer.name.toLowerCase()
+      );
+      setCustomerInvoices({
+        count: clientInvoices.length,
+        total: clientInvoices.reduce((sum: number, inv: { totalAmount: number }) => sum + inv.totalAmount, 0),
+      });
+    } catch {
+      // Silently fail
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-GN', { style: 'currency', currency: 'GNF' }).format(amount);
   const topCustomers = [...customers].sort((a, b) => b.totalPurchases - a.totalPurchases).slice(0, 5);
 
@@ -241,7 +267,7 @@ export default function ClientsPage() {
                       <td>{customer.city || '-'}</td>
                       <td>{customer.type ? <span className="badge badge-outline">{customer.type.name}</span> : <span className="text-base-content/50">-</span>}</td>
                       <td className="text-right font-semibold text-primary">{formatCurrency(customer.totalPurchases)}</td>
-                      <td><div className="flex justify-center gap-2"><button onClick={() => openEditModal(customer)} className="btn btn-ghost btn-sm" title="Modifier"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button><button onClick={() => openDeleteModal(customer)} className="btn btn-ghost btn-sm" title="Supprimer"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></td>
+                      <td><div className="flex justify-center gap-1"><button onClick={() => openDetailModal(customer)} className="btn btn-ghost btn-sm btn-square" title="Détails"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button><button onClick={() => openEditModal(customer)} className="btn btn-ghost btn-sm btn-square" title="Modifier"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button><button onClick={() => openDeleteModal(customer)} className="btn btn-ghost btn-sm btn-square" title="Supprimer"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -365,6 +391,115 @@ export default function ClientsPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal isOpen={showDetailModal} onClose={() => { setShowDetailModal(false); setSelectedCustomer(null); }} title={
+        selectedCustomer ? (
+          <div className="flex items-center gap-3">
+            <div className="avatar placeholder">
+              <div className="bg-primary text-primary-content w-10 rounded-full">
+                <span className="text-lg font-bold">{selectedCustomer.name.charAt(0).toUpperCase()}</span>
+              </div>
+            </div>
+            <div>
+              <div className="text-lg font-bold">{selectedCustomer.name}</div>
+              <div className="text-sm text-base-content/60">
+                {selectedCustomer.isActive ? <span className="badge badge-success badge-xs">Actif</span> : <span className="badge badge-ghost badge-xs">Inactif</span>}
+                {selectedCustomer.type && <> · <span className="badge badge-outline badge-xs">{selectedCustomer.type.name}</span></>}
+              </div>
+            </div>
+          </div>
+        ) : 'Détails du client'
+      } size="lg">
+        {!selectedCustomer ? null : (
+          <div className="space-y-6">
+            {/* Stats cards */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="stats shadow-sm">
+                <div className="stat py-3">
+                  <div className="stat-title text-xs">Achats totaux</div>
+                  <div className="stat-value text-primary text-lg">{formatCurrency(selectedCustomer.totalPurchases)}</div>
+                </div>
+              </div>
+              <div className="stats shadow-sm">
+                <div className="stat py-3">
+                  <div className="stat-title text-xs">Factures</div>
+                  <div className="stat-value text-info text-lg">
+                    {isDetailLoading ? <span className="loading loading-spinner loading-xs"></span> : customerInvoices?.count ?? '—'}
+                  </div>
+                </div>
+              </div>
+              <div className="stats shadow-sm">
+                <div className="stat py-3">
+                  <div className="stat-title text-xs">Total facturé</div>
+                  <div className="stat-value text-success text-lg">
+                    {isDetailLoading ? <span className="loading loading-spinner loading-xs"></span> : customerInvoices ? formatCurrency(customerInvoices.total) : '—'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact info */}
+            <div className="rounded-xl border border-base-200 bg-base-200/30">
+              <div className="border-b border-base-200 px-4 py-3">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  Informations de contact
+                </h4>
+              </div>
+              <div className="p-4">
+                <dl className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+                  <div>
+                    <dt className="text-base-content/50 text-xs uppercase tracking-wider">Téléphone</dt>
+                    <dd className="font-medium mt-0.5">{selectedCustomer.phone || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-base-content/50 text-xs uppercase tracking-wider">Email</dt>
+                    <dd className="font-medium mt-0.5">{selectedCustomer.email || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-base-content/50 text-xs uppercase tracking-wider">Adresse</dt>
+                    <dd className="font-medium mt-0.5">{selectedCustomer.address || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-base-content/50 text-xs uppercase tracking-wider">Ville</dt>
+                    <dd className="font-medium mt-0.5">{selectedCustomer.city || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-base-content/50 text-xs uppercase tracking-wider">Client depuis</dt>
+                    <dd className="font-medium mt-0.5">{selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString('fr-FR') : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-base-content/50 text-xs uppercase tracking-wider">Dernière mise à jour</dt>
+                    <dd className="font-medium mt-0.5">{selectedCustomer.updatedAt ? new Date(selectedCustomer.updatedAt).toLocaleDateString('fr-FR') : '—'}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            {/* Notes */}
+            {selectedCustomer.notes && (
+              <div className="rounded-xl border border-base-200 bg-base-200/30">
+                <div className="border-b border-base-200 px-4 py-3">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                    Notes
+                  </h4>
+                </div>
+                <div className="p-4 text-sm text-base-content/80">{selectedCustomer.notes}</div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-base-200">
+              <button onClick={() => { setShowDetailModal(false); openEditModal(selectedCustomer); }} className="btn btn-info btn-sm gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                Modifier
+              </button>
+              <button onClick={() => { setShowDetailModal(false); setSelectedCustomer(null); }} className="btn btn-ghost btn-sm">Fermer</button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Edit Modal */}
