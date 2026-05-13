@@ -717,7 +717,7 @@ export default function FacturesPage() {
                     <label className="label text-xs"><span className="label-text">Produit</span></label>
                     <select
                       value={line.productId}
-                      onChange={(e) => updateLine(index, 'productId', e.target.value)}
+                      onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.unitPrice.toString()); }}
                       className="select select-bordered select-sm w-full"
                     >
                       {products.map(p => (
@@ -884,7 +884,7 @@ export default function FacturesPage() {
                     <label className="label text-xs"><span className="label-text">Produit</span></label>
                     <select
                       value={line.productId}
-                      onChange={(e) => updateLine(index, 'productId', e.target.value)}
+                      onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.unitPrice.toString()); }}
                       className="select select-bordered select-sm w-full"
                     >
                       {products.map(p => (

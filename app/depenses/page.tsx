@@ -714,7 +714,7 @@ export default function DepensesPage() {
                       <td>
                         <select
                           value={line.productId}
-                          onChange={(e) => updateLine(index, 'productId', e.target.value)}
+                          onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitCost', p.unitPrice.toString()); }}
                           className="select select-bordered select-sm w-full focus:select-focus"
                         >
                           <option value="">Sélectionner...</option>
@@ -951,7 +951,7 @@ export default function DepensesPage() {
                       <td>
                         <select
                           value={line.productId}
-                          onChange={(e) => updateLine(index, 'productId', e.target.value)}
+                          onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitCost', p.unitPrice.toString()); }}
                           className="select select-bordered select-sm w-full focus:select-focus"
                         >
                           <option value="">Sélectionner...</option>
