@@ -483,6 +483,48 @@ export async function updatePurchaseInvoice(id: number, input: {
 
   // Si nouvelles lignes, supprimer les anciennes et insérer les nouvelles
   if (input.lines) {
+    // Récupérer les anciens items pour calculer les différences de stock
+    const oldItems = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
+
+    // Construire un map des nouvelles quantités par productId
+    const newQuantities = new Map<number, number>();
+    for (const item of items) {
+      newQuantities.set(item.productId, (newQuantities.get(item.productId) || 0) + item.quantity);
+    }
+
+    // Ajuster le stock pour chaque ancien item
+    for (const oldItem of oldItems) {
+      const oldQty = oldItem.quantity;
+      const newQty = newQuantities.get(oldItem.productId) ?? 0;
+      const diff = newQty - oldQty;
+
+      if (diff !== 0) {
+        await addStockMovement({
+          productId: oldItem.productId,
+          type: diff > 0 ? 'entry' : 'exit',
+          quantity: Math.abs(diff),
+          reference: `MODIF-ACHAT-${existing[0].reference}`,
+          notes: `Ajustement facture ${existing[0].reference} (${oldQty} → ${newQty})`,
+        });
+      }
+
+      // Retirer du map les items déjà traités
+      newQuantities.delete(oldItem.productId);
+    }
+
+    // Les produits restants dans newQuantities sont des nouveaux produits ajoutés
+    for (const [productId, qty] of newQuantities) {
+      if (qty > 0) {
+        await addStockMovement({
+          productId,
+          type: 'entry',
+          quantity: qty,
+          reference: `MODIF-ACHAT-${existing[0].reference}`,
+          notes: `Ajout produit dans facture ${existing[0].reference}`,
+        });
+      }
+    }
+
     await db.delete(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
     for (const item of items) {
       await db.insert(purchaseInvoiceItems).values({
