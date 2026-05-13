@@ -17,7 +17,7 @@ type SearchFilterProps = {
   itemsPerPage?: number;
 };
 
-export function useSearchFilter<T>(items: T[], searchFields: string[]) {
+export function useSearchFilter<T>(items: T[], searchFields: string[], filterFn?: (item: T, filterValue: string) => boolean) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,15 +28,18 @@ export function useSearchFilter<T>(items: T[], searchFields: string[]) {
     let result = items;
     if (search) {
       const s = search.toLowerCase();
-      result = items.filter(item =>
+      result = result.filter(item =>
         searchFields.some(f => {
           const v = (item as Record<string, unknown>)[f];
           return v != null && String(v).toLowerCase().includes(s);
         })
       );
     }
+    if (filter && filterFn) {
+      result = result.filter(item => filterFn(item, filter));
+    }
     return result;
-  }, [items, search, searchFields]);
+  }, [items, search, searchFields, filter, filterFn]);
 
   return {
     search,

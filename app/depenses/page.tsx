@@ -1,11 +1,11 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
-import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
+import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
 
 // Dynamic import for PDF/image generation
@@ -89,8 +89,32 @@ export default function DepensesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
   const [formData, setFormData] = useState<PurchaseFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(invoices, ['reference', 'supplier', 'date']);
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
+    invoices,
+    ['reference', 'supplier', 'date'],
+    (item, filterValue) => {
+      if (filterValue === 'paid') return item.isPaid === true;
+      if (filterValue === 'unpaid') return item.isPaid === false;
+      return true;
+    }
+  );
   const ITEMS_PER_PAGE = 10;
+
+  // Trier par date de création (dernier ajout en premier) et paginer
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [filtered]);
+
+  const paginatedInvoices = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sorted.slice(start, start + ITEMS_PER_PAGE);
+  }, [sorted, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / ITEMS_PER_PAGE));
 
   useEffect(() => {
     fetchData();
@@ -489,93 +513,113 @@ export default function DepensesPage() {
 
       {/* Invoice List */}
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
-        <div className="mb-4">
-          <h3 className="font-semibold text-lg">Historique des factures</h3>
-          <p className="text-sm text-base-content/60">{invoices.length} facture(s) enregistrée(s)</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">Historique des factures</h3>
+            <p className="text-sm text-base-content/60">{filtered.length} facture(s) sur {invoices.length}</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <FilterSelect
+              value={filter}
+              onChange={setFilter}
+              placeholder="Tous les statuts"
+              options={[
+                { value: 'paid', label: 'Payée' },
+                { value: 'unpaid', label: 'Non payée' },
+              ]}
+            />
+            <div className="min-w-[200px]">
+              <SearchBar
+                value={search}
+                onChange={setSearch}
+                onClear={() => setSearch('')}
+                placeholder="Rechercher par réf., fournisseur, date..."
+              />
+            </div>
+          </div>
         </div>
 
-        {invoices.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="text-base-content/70">Aucune facture d'approvisionnement enregistrée.</p>
-            <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm mt-4">
-              Ajouter une première facture
-            </button>
+            <p className="text-base-content/70">{invoices.length === 0 ? "Aucune facture d'approvisionnement enregistrée." : "Aucune facture ne correspond aux filtres."}</p>
+            {invoices.length === 0 && (
+              <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm mt-4">
+                Ajouter une première facture
+              </button>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table table-zebra">
-              <thead>
-                <tr>
-                  <th>Référence</th>
-                  <th>Fournisseur</th>
-                  <th>Date</th>
-                  <th>Produits</th>
-                  <th>Total</th>
-                  <th>Statut</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((invoice) => (
-                  <tr key={invoice.id}>
-                    <td className="font-medium">{invoice.reference}</td>
-                    <td>{invoice.supplier}</td>
-                    <td>{new Date(invoice.date).toLocaleDateString('fr-MA')}</td>
-                    <td>
-                      <div className="text-sm">
-                        {invoice.items.map((item, idx) => (
-                          <span key={idx} className="badge badge-outline badge-sm mr-1">
-                            {item.productCode} x{item.quantity}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} GNF</td>
-                    <td>
-                      {invoice.isPaid ? (
-                        <span className="badge badge-success">Payée</span>
-                      ) : (
-                        <span className="badge badge-ghost">Non payée</span>
-                      )}
-                    </td>
-                    <td className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Link href={`/depenses/${invoice.id}`} className="btn btn-ghost btn-xs" title="Voir détail">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </Link>
-                        <button onClick={() => handleExportPDF(invoice)} className="btn btn-ghost btn-xs text-info" title="Télécharger PDF">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </button>
-                        <button onClick={() => handleExportImage(invoice)} className="btn btn-ghost btn-xs text-success" title="Télécharger Image">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                        <button onClick={() => openEditModal(invoice)} className="btn btn-ghost btn-xs">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button onClick={() => openDeleteModal(invoice)} className="btn btn-ghost btn-xs text-error">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="table table-zebra">
+                <thead>
+                  <tr>
+                    <th>Référence</th>
+                    <th>Fournisseur</th>
+                    <th>Date</th>
+                    <th>Produits</th>
+                    <th>Total</th>
+                    <th>Statut</th>
+                    <th className="text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedInvoices.map((invoice) => (
+                    <tr key={invoice.id}>
+                      <td className="font-medium">{invoice.reference}</td>
+                      <td>{invoice.supplier}</td>
+                      <td>{new Date(invoice.date).toLocaleDateString('fr-MA')}</td>
+                      <td>
+                        <div className="text-sm">
+                          {invoice.items.map((item, idx) => (
+                            <span key={idx} className="badge badge-outline badge-sm mr-1">
+                              {item.productCode} x{item.quantity}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} GNF</td>
+                      <td>
+                        {invoice.isPaid ? (
+                          <span className="badge badge-success">Payée</span>
+                        ) : (
+                          <span className="badge badge-ghost">Non payée</span>
+                        )}
+                      </td>
+                      <td className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Link href={`/depenses/${invoice.id}`} className="btn btn-ghost btn-xs" title="Voir détail">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </Link>
+                          <button onClick={() => openEditModal(invoice)} className="btn btn-ghost btn-xs" title="Modifier">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button onClick={() => openDeleteModal(invoice)} className="btn btn-ghost btn-xs" title="Supprimer">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </>
         )}
       </div>
 
