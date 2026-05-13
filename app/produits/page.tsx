@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
+import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 
 interface Product {
   id: number;
@@ -77,6 +78,8 @@ const initialFormData: ProductFormData = {
 export default function ProduitsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(products, ['code', 'name', 'capacity']);
+  const ITEMS_PER_PAGE = 10;
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -284,6 +287,9 @@ export default function ProduitsPage() {
         <div className="border-b border-slate-200 p-4">
           <h3 className="font-semibold text-lg">Liste des produits</h3>
         </div>
+        <div className="p-4">
+          <SearchBar value={search} onChange={setSearch} onClear={() => setSearch('')} placeholder="Rechercher par code, nom ou capacité..." />
+        </div>
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="flex items-center justify-center p-8">
@@ -320,7 +326,7 @@ export default function ProduitsPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((product) => (
+                {(search === '' ? products : filtered).slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((product) => (
                   <tr key={product.id} className="hover:bg-slate-50">
                     <td>
                       <div className="font-semibold">{product.code}</div>
@@ -397,6 +403,11 @@ export default function ProduitsPage() {
             </table>
           )}
         </div>
+        <Pagination 
+          currentPage={currentPage} 
+          totalPages={Math.ceil((search === '' ? products.length : filtered.length) / ITEMS_PER_PAGE)} 
+          onPageChange={setCurrentPage} 
+        />
       </div>
 
       {/* Add Modal */}
@@ -462,8 +473,6 @@ export default function ProduitsPage() {
               </label>
               <input
                 type="number" step="any"
-                required
-                required
                 value={formData.unitPrice}
                 onChange={(e) =>
                   setFormData({ ...formData, unitPrice: e.target.value })
@@ -596,7 +605,6 @@ export default function ProduitsPage() {
               </label>
               <input
                 type="number" step="any"
-                required
                 required
                 value={formData.unitPrice}
                 onChange={(e) =>

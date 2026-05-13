@@ -114,8 +114,8 @@ export async function listPurchaseInvoices() {
           unitCost: item.unitCost,
           totalCost: item.totalCost,
         })),
-        totalAmount: inv.totalAmount,
-        isPaid: inv.isPaid,
+        totalAmount: inv.totalAmount ?? 0,
+        isPaid: inv.isPaid ?? false,
         createdAt: inv.createdAt?.toISOString() || "",
       };
     })
@@ -153,10 +153,10 @@ export async function listSalesInvoices() {
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice,
         })),
-        totalAmount: inv.totalAmount,
-        amountPaid: inv.amountPaid,
-        remainingAmount: inv.remainingAmount,
-        paymentStatus: inv.paymentStatus as "Paye" | "Partiel" | "En attente",
+        totalAmount: inv.totalAmount ?? 0,
+        amountPaid: inv.amountPaid ?? 0,
+        remainingAmount: inv.remainingAmount ?? 0,
+        paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
         createdAt: inv.createdAt?.toISOString() || "",
       };
     })
@@ -333,9 +333,9 @@ export async function createSalesInvoice(input: {
         ? "Partiel"
         : "Paye";
 
-  // Générer le numéro de facture
-  const countResult = await db.select({ count: sql<number>`count(*)`.from(salesInvoices) });
-  const invoiceCount = countResult[0].count || 0;
+  // Compter les factures
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(salesInvoices);
+  const invoiceCount = countResult[0]?.count || 0;
   const invoiceNumber = `N ${String(invoiceCount + 1).padStart(6, "0")}`;
 
   const result = await db.insert(salesInvoices).values({
@@ -627,7 +627,7 @@ export async function updateSalesInvoice(id: number, input: {
     ? await buildSalesItems(input.lines)
     : await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
   const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
-  const amountPaid = input.amountPaid ?? existing[0].amountPaid;
+  const amountPaid = input.amountPaid ?? existing[0]?.amountPaid ?? 0;
   const remainingAmount = Math.max(totalAmount - amountPaid, 0);
 
   const paymentStatus: SalesInvoice["paymentStatus"] =
@@ -986,7 +986,7 @@ export async function addStockMovement(input: {
   }
 
   const currentStock = existingStock[0];
-  let newStockAmount = currentStock.currentStock;
+  let newStockAmount = currentStock.currentStock ?? 0;
   let lastEntry = currentStock.lastEntry;
   let lastExit = currentStock.lastExit;
   const now = new Date().toISOString();
@@ -1080,7 +1080,7 @@ export async function getLowStockAlerts() {
   // --- CODE SQL ---
   const allStock = await db.select().from(stock);
   return allStock
-    .filter(s => s.currentStock <= s.minStock)
+    .filter(s => (s.currentStock ?? 0) <= (s.minStock ?? 10))
     .map(s => ({
       productId: s.productId,
       productCode: s.productCode,
@@ -1165,7 +1165,7 @@ export async function getRapportData() {
     sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
   );
   const averageBasket = sales.length > 0 ? totalSales / sales.length : 0;
-  const totalBottlesInStock = stock.reduce((sum, s) => sum + s.currentStock, 0);
+  const totalBottlesInStock = stock.reduce((sum, s) => sum + (s.currentStock ?? 0), 0);
 
   return {
     summary: {
@@ -1247,36 +1247,37 @@ export async function getSettings(): Promise<Settings> {
   if (allSettings.length === 0) {
     // Créer les paramètres par défaut si pas encore existants
     const result = await db.insert(settings).values(defaultSettings).returning();
+    const r = result[0];
     return {
-      companyName: result[0].companyName,
-      companyAddress: result[0].companyAddress || '',
-      companyPhone: result[0].companyPhone || '',
-      companyEmail: result[0].companyEmail || '',
-      defaultMinStock: result[0].defaultMinStock,
-      currency: result[0].currency,
-      currencySymbol: result[0].currencySymbol,
-      dateFormat: result[0].dateFormat,
-      invoicePrefix: result[0].invoicePrefix,
-      purchasePrefix: result[0].purchasePrefix,
-      lowStockAlertEnabled: result[0].lowStockAlertEnabled,
-      theme: result[0].theme,
+      companyName: r.companyName || 'Mini-Centre Distribution',
+      companyAddress: r.companyAddress || '',
+      companyPhone: r.companyPhone || '',
+      companyEmail: r.companyEmail || '',
+      defaultMinStock: r.defaultMinStock ?? 10,
+      currency: r.currency || 'GNF',
+      currencySymbol: r.currencySymbol || 'GNF',
+      dateFormat: r.dateFormat || 'DD/MM/YYYY',
+      invoicePrefix: r.invoicePrefix || 'FAC',
+      purchasePrefix: r.purchasePrefix || 'ACH',
+      lowStockAlertEnabled: r.lowStockAlertEnabled ?? true,
+      theme: (r.theme || 'light') as 'light' | 'dark',
     };
   }
   
   const s = allSettings[0];
   return {
-    companyName: s.companyName,
+    companyName: s.companyName || 'Mini-Centre Distribution',
     companyAddress: s.companyAddress || '',
     companyPhone: s.companyPhone || '',
     companyEmail: s.companyEmail || '',
-    defaultMinStock: s.defaultMinStock,
-    currency: s.currency,
-    currencySymbol: s.currencySymbol,
-    dateFormat: s.dateFormat,
-    invoicePrefix: s.invoicePrefix,
-    purchasePrefix: s.purchasePrefix,
-    lowStockAlertEnabled: s.lowStockAlertEnabled,
-    theme: s.theme,
+    defaultMinStock: s.defaultMinStock ?? 10,
+    currency: s.currency || 'GNF',
+    currencySymbol: s.currencySymbol || 'GNF',
+    dateFormat: s.dateFormat || 'DD/MM/YYYY',
+    invoicePrefix: s.invoicePrefix || 'FAC',
+    purchasePrefix: s.purchasePrefix || 'ACH',
+    lowStockAlertEnabled: s.lowStockAlertEnabled ?? true,
+    theme: (s.theme || 'light') as 'light' | 'dark',
   };
 }
 
@@ -1313,17 +1314,17 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
   const updated = await db.select().from(settings).where(eq(settings.id, current[0].id));
   const s = updated[0];
   return {
-    companyName: s.companyName,
+    companyName: s.companyName || 'Mini-Centre Distribution',
     companyAddress: s.companyAddress || '',
     companyPhone: s.companyPhone || '',
     companyEmail: s.companyEmail || '',
-    defaultMinStock: s.defaultMinStock,
-    currency: s.currency,
-    currencySymbol: s.currencySymbol,
-    dateFormat: s.dateFormat,
-    invoicePrefix: s.invoicePrefix,
-    purchasePrefix: s.purchasePrefix,
-    lowStockAlertEnabled: s.lowStockAlertEnabled,
-    theme: s.theme,
+    defaultMinStock: s.defaultMinStock ?? 10,
+    currency: s.currency || 'GNF',
+    currencySymbol: s.currencySymbol || 'GNF',
+    dateFormat: s.dateFormat || 'DD/MM/YYYY',
+    invoicePrefix: s.invoicePrefix || 'FAC',
+    purchasePrefix: s.purchasePrefix || 'ACH',
+    lowStockAlertEnabled: s.lowStockAlertEnabled ?? true,
+    theme: (s.theme || 'light') as 'light' | 'dark',
   };
 }

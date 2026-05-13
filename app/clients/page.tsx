@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
+import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter'; from '@/components/page-header';
 
 type Customer = {
   id: number;
