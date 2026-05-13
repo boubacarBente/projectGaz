@@ -17,7 +17,7 @@ type SearchFilterProps = {
   itemsPerPage?: number;
 };
 
-export function useSearchFilter<T>(items: T[], searchFields: (keyof T)[]) {
+export function useSearchFilter<T>(items: T[], searchFields: string[]) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,7 +30,7 @@ export function useSearchFilter<T>(items: T[], searchFields: (keyof T)[]) {
       const s = search.toLowerCase();
       result = items.filter(item =>
         searchFields.some(f => {
-          const v = item[f];
+          const v = (item as Record<string, unknown>)[f];
           return v != null && String(v).toLowerCase().includes(s);
         })
       );

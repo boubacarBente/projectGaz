@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
-import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter'; from '@/components/page-header';
+import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 
 type Supplier = {
   id: number;
@@ -86,6 +86,8 @@ export default function FournisseursPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<SupplierData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', address: '', notes: '' });
+  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(suppliers, ['name', 'phone', 'address']);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchSuppliers();

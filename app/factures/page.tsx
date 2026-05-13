@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
-import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter'; from '@/components/page-header';
+import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 
 // Dynamic import for PDF generation (client-side only)
 let html2canvas: any;
@@ -146,6 +146,8 @@ export default function FacturesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
   const [formData, setFormData] = useState<InvoiceFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(invoices, ['invoiceNumber', 'customerName', 'date', 'paymentStatus']);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchData();

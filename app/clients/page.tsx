@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
-import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter'; from '@/components/page-header';
+import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 
 type Customer = {
   id: number;
@@ -76,8 +76,6 @@ const initialFormData: ClientFormData = { name: '', phone: '', email: '', addres
 export default function ClientsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
-  const [search, setSearch] = useState('');
-  const [selectedType, setSelectedType] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddTypeModal, setShowAddTypeModal] = useState(false);
@@ -86,8 +84,11 @@ export default function ClientsPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState<ClientFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(customers, ['name', 'phone', 'email', 'city']);
+  const ITEMS_PER_PAGE = 10;
+  const [selectedType, setSelectedType] = useState('');
 
-  useEffect(() => { fetchCustomers(); }, [search, selectedType]);
+  useEffect(() => { fetchCustomers(); }, [search]);
   useEffect(() => { fetchCustomerTypes(); }, []);
 
   const fetchCustomers = async () => {
@@ -209,12 +210,7 @@ export default function ClientsPage() {
       } />
 
       <div className="rounded-2xl border border-white/80 bg-white/75 p-4 shadow-lg shadow-slate-200/60 backdrop-blur">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input type="text" placeholder="Rechercher un client..." value={search} onChange={(e) => setSearch(e.target.value)} className="input input-bordered w-full pl-10" />
-            <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          </div>
-        </div>
+        <SearchBar value={search} onChange={setSearch} onClear={() => setSearch('')} placeholder="Rechercher un client..." />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -238,7 +234,7 @@ export default function ClientsPage() {
               <table className="table">
                 <thead><tr className="bg-slate-50"><th className="font-semibold">Client</th><th className="font-semibold">Contact</th><th className="font-semibold">Ville</th><th className="font-semibold">Type</th><th className="font-semibold text-right">Achats</th><th className="font-semibold text-center">Actions</th></tr></thead>
                 <tbody>
-                  {customers.map((customer) => (
+                  {(search === '' ? customers : filtered).slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((customer) => (
                     <tr key={customer.id} className="hover:bg-slate-50">
                       <td><div className="flex items-center gap-3"><div className="avatar placeholder"><div className="bg-primary text-primary-content w-10 rounded-full text-center"><span className="text-lg">{customer.name.charAt(0).toUpperCase()}</span></div></div><div><div className="font-semibold">{customer.name}</div><div className="text-xs text-slate-500">{customer.isActive ? <span className="badge badge-success badge-xs">Actif</span> : <span className="badge badge-ghost badge-xs">Inactif</span>}</div></div></div></td>
                       <td><div className="text-sm">{customer.phone && <div className="flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>{customer.phone}</div>}{customer.email && <div className="flex items-center gap-1 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>{customer.email}</div>}</div></td>
@@ -252,6 +248,11 @@ export default function ClientsPage() {
               </table>
             )}
           </div>
+          <Pagination 
+            currentPage={currentPage} 
+            totalPages={Math.ceil((search === '' ? customers.length : filtered.length) / ITEMS_PER_PAGE)} 
+            onPageChange={setCurrentPage} 
+          />
         </div>
 
         <div className="lg:col-span-1 rounded-2xl border border-white/80 bg-white/75 shadow-lg shadow-slate-200/60 backdrop-blur">

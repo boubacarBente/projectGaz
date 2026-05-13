@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
-import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter'; from '@/components/page-header';
+import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 
 type StockItem = {
   productId: number;
@@ -126,6 +126,8 @@ export default function StockPage() {
   const [movementForm, setMovementForm] = useState<MovementFormData>(initialMovementForm);
   const [settingsForm, setSettingsForm] = useState<StockSettingsFormData>(initialSettingsForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(stock, ['productCode', 'productName']);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchData();
