@@ -762,6 +762,17 @@ export default function DepensesPage() {
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr className="font-bold text-base">
+                    <td colSpan={3} className="text-right">Total général</td>
+                    <td className="text-right text-warning">
+                      {formData.lines.reduce((sum, line) =>
+                        sum + (parseFloat(line.quantity || '0') * parseFloat(line.unitCost || '0')), 0
+                      ).toLocaleString('fr-MA')} GNF
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
@@ -991,6 +1002,17 @@ export default function DepensesPage() {
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr className="font-bold text-base">
+                    <td colSpan={3} className="text-right">Total général</td>
+                    <td className="text-right text-warning">
+                      {formData.lines.reduce((sum, line) =>
+                        sum + (parseFloat(line.quantity || '0') * parseFloat(line.unitCost || '0')), 0
+                      ).toLocaleString('fr-MA')} GNF
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
