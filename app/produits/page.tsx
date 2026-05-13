@@ -20,7 +20,7 @@ interface Product {
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: string | React.ReactNode;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
@@ -82,8 +82,12 @@ export default function ProduitsPage() {
   const ITEMS_PER_PAGE = 10;
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productStock, setProductStock] = useState<{ currentStock: number; minStock: number } | null>(null);
+  const [productMovements, setProductMovements] = useState<{ id: number; type: string; quantity: number; reference: string; createdAt: string }[]>([]);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -206,6 +210,37 @@ export default function ProduitsPage() {
   const openDeleteModal = (product: Product) => {
     setSelectedProduct(product);
     setShowDeleteModal(true);
+  };
+
+  const openDetailModal = async (product: Product) => {
+    setSelectedProduct(product);
+    setShowDetailModal(true);
+    setIsDetailLoading(true);
+    setProductStock(null);
+    setProductMovements([]);
+
+    try {
+      const [stockRes, movementsRes] = await Promise.all([
+        fetch('/api/stock'),
+        fetch('/api/stock?type=movements'),
+      ]);
+      const stockData = await stockRes.json();
+      const movementsData = await movementsRes.json();
+
+      const stockItem = stockData.find((s: { productId: number }) => s.productId === product.id);
+      if (stockItem) {
+        setProductStock({ currentStock: stockItem.currentStock, minStock: stockItem.minStock });
+      }
+
+      const productMvmts = movementsData
+        .filter((m: { productId: number }) => m.productId === product.id)
+        .slice(0, 10);
+      setProductMovements(productMvmts);
+    } catch {
+      // Silently fail for detail modal
+    } finally {
+      setIsDetailLoading(false);
+    }
   };
 
   const formatCurrency = (amount: number) =>
@@ -354,45 +389,33 @@ export default function ProduitsPage() {
                       )}
                     </td>
                     <td>
-                      <div className="flex justify-center gap-2">
+                      <div className="flex justify-center gap-1">
+                        <button
+                          onClick={() => openDetailModal(product)}
+                          className="btn btn-ghost btn-sm btn-square"
+                          title="Détails"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
                         <button
                           onClick={() => openEditModal(product)}
-                          className="btn btn-ghost btn-sm"
+                          className="btn btn-ghost btn-sm btn-square"
                           title="Modifier"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 text-info"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
                         <button
                           onClick={() => openDeleteModal(product)}
-                          className="btn btn-ghost btn-sm"
+                          className="btn btn-ghost btn-sm btn-square"
                           title="Supprimer"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 text-error"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </div>
@@ -748,6 +771,173 @@ export default function ProduitsPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedProduct(null);
+          setProductStock(null);
+          setProductMovements([]);
+        }}
+        title={
+          selectedProduct ? (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-linear-to-br from-primary to-info flex items-center justify-center text-white font-bold text-sm">
+                {selectedProduct.code}
+              </div>
+              <div>
+                <p className="text-lg font-bold">{selectedProduct.name}</p>
+                <p className="text-sm font-normal text-base-content/60">{selectedProduct.code} · {selectedProduct.capacity}</p>
+              </div>
+            </div>
+          ) : 'Détails du produit'
+        }
+        size="lg"
+      >
+        {isDetailLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
+          </div>
+        ) : selectedProduct && (
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-base-200/50 rounded-xl p-4 text-center">
+                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Prix unitaire</p>
+                <p className="text-lg font-bold text-primary">{formatCurrency(selectedProduct.unitPrice)}</p>
+              </div>
+              <div className="bg-base-200/50 rounded-xl p-4 text-center">
+                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Capacité</p>
+                <p className="text-lg font-bold">{selectedProduct.capacity}</p>
+              </div>
+              <div className={`rounded-xl p-4 text-center ${productStock && productStock.currentStock <= productStock.minStock ? 'bg-warning/10' : 'bg-base-200/50'}`}>
+                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Stock actuel</p>
+                <p className={`text-lg font-bold ${productStock && productStock.currentStock <= productStock.minStock ? 'text-warning' : ''}`}>
+                  {productStock?.currentStock ?? '—'}
+                </p>
+              </div>
+              <div className="bg-base-200/50 rounded-xl p-4 text-center">
+                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Seuil min</p>
+                <p className="text-lg font-bold">{productStock?.minStock ?? '—'}</p>
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="bg-base-200/30 rounded-xl p-4">
+              <h4 className="font-semibold text-sm text-base-content/70 mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Informations
+              </h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-base-content/50">Code produit</span>
+                  <p className="font-medium">{selectedProduct.code}</p>
+                </div>
+                <div>
+                  <span className="text-base-content/50">Désignation</span>
+                  <p className="font-medium">{selectedProduct.name}</p>
+                </div>
+                <div>
+                  <span className="text-base-content/50">Capacité</span>
+                  <p className="font-medium">{selectedProduct.capacity}</p>
+                </div>
+                <div>
+                  <span className="text-base-content/50">Statut</span>
+                  <p className="font-medium">
+                    {selectedProduct.isActive ? (
+                      <span className="badge badge-success badge-sm">Actif</span>
+                    ) : (
+                      <span className="badge badge-ghost badge-sm">Inactif</span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-base-content/50">Créé le</span>
+                  <p className="font-medium">{new Date(selectedProduct.createdAt).toLocaleDateString('fr-FR')}</p>
+                </div>
+                <div>
+                  <span className="text-base-content/50">Modifié le</span>
+                  <p className="font-medium">{new Date(selectedProduct.updatedAt).toLocaleDateString('fr-FR')}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Stock Movements */}
+            <div className="bg-base-200/30 rounded-xl p-4">
+              <h4 className="font-semibold text-sm text-base-content/70 mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                Mouvements récents
+              </h4>
+              {productMovements.length === 0 ? (
+                <p className="text-sm text-base-content/50 py-4 text-center">Aucun mouvement pour ce produit</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Qté</th>
+                        <th>Référence</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {productMovements.map((m) => (
+                        <tr key={m.id}>
+                          <td>
+                            {m.type === 'entry' && <span className="badge badge-success badge-xs">Entrée</span>}
+                            {m.type === 'exit' && <span className="badge badge-error badge-xs">Sortie</span>}
+                            {m.type === 'return' && <span className="badge badge-warning badge-xs">Retour</span>}
+                            {m.type === 'adjustment' && <span className="badge badge-info badge-xs">Ajust.</span>}
+                          </td>
+                          <td className="font-medium">{m.quantity}</td>
+                          <td className="text-base-content/60">{m.reference}</td>
+                          <td className="text-base-content/60">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2 border-t border-base-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setSelectedProduct(null);
+                  setProductStock(null);
+                  setProductMovements([]);
+                }}
+                className="btn btn-ghost"
+              >
+                Fermer
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDetailModal(false);
+                  if (selectedProduct) openEditModal(selectedProduct);
+                }}
+                className="btn btn-info gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Modifier
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
