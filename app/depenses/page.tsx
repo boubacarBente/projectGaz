@@ -77,9 +77,9 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
             transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
             className={`modal-box ${sizeClasses[size]} w-full relative z-10 shadow-2xl`}
           >
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+            <div className="flex items-center justify-between border-b border-base-200 pb-4">
               <h3 className="text-lg font-bold">{title}</h3>
-              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-slate-100">✕</button>
+              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-base-300">✕</button>
             </div>
             <div className="py-4">{children}</div>
           </motion.div>
@@ -528,18 +528,18 @@ export default function DepensesPage() {
       </div>
 
       {/* Invoice List */}
-      <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
         <div className="mb-4">
           <h3 className="font-semibold text-lg">Historique des factures</h3>
-          <p className="text-sm text-slate-500">{invoices.length} facture(s) enregistrée(s)</p>
+          <p className="text-sm text-base-content/60">{invoices.length} facture(s) enregistrée(s)</p>
         </div>
 
         {invoices.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="text-slate-600">Aucune facture d'approvisionnement enregistrée.</p>
+            <p className="text-base-content/70">Aucune facture d'approvisionnement enregistrée.</p>
             <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm mt-4">
               Ajouter une première facture
             </button>
@@ -1092,23 +1092,23 @@ export default function DepensesPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-slate-500">Référence</p>
+                <p className="text-xs text-base-content/60">Référence</p>
                 <p className="font-medium">{selectedInvoice.reference}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Date</p>
+                <p className="text-xs text-base-content/60">Date</p>
                 <p className="font-medium">{new Date(selectedInvoice.date).toLocaleDateString('fr-FR')}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Fournisseur</p>
+                <p className="text-xs text-base-content/60">Fournisseur</p>
                 <p className="font-medium">{selectedInvoice.supplier}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Montant total</p>
+                <p className="text-xs text-base-content/60">Montant total</p>
                 <p className="font-medium text-warning">{formatCurrency(selectedInvoice.totalAmount)} GNF</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Statut</p>
+                <p className="text-xs text-base-content/60">Statut</p>
                 {selectedInvoice.isPaid ? (
                   <span className="badge badge-success">Payée</span>
                 ) : (
@@ -1119,7 +1119,7 @@ export default function DepensesPage() {
 
             <div className="border rounded-lg overflow-hidden">
               <table className="table table-xs">
-                <thead className="bg-slate-100">
+                <thead className="bg-base-200">
                   <tr>
                     <th>Code</th>
                     <th className="text-center">Qté</th>
@@ -1142,7 +1142,7 @@ export default function DepensesPage() {
 
             {selectedInvoice.notes && (
               <div>
-                <p className="text-xs text-slate-500">Notes</p>
+                <p className="text-xs text-base-content/60">Notes</p>
                 <p className="text-sm">{selectedInvoice.notes}</p>
               </div>
             )}
@@ -1188,13 +1188,13 @@ export default function DepensesPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <p className="text-slate-600">
+            <p className="text-base-content/70">
               Êtes-vous sûr de vouloir supprimer la facture <strong>{selectedInvoice?.reference}</strong> ?
               <br />
               <span className="text-sm">Cette action est irréversible.</span>
             </p>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button
               type="button"
               onClick={() => {

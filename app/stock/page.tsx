@@ -67,9 +67,9 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
             transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
             className={`modal-box ${sizeClasses[size]} w-full relative z-10 shadow-2xl`}
           >
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+            <div className="flex items-center justify-between border-b border-base-200 pb-4">
               <h3 className="text-lg font-bold">{title}</h3>
-              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-slate-100">✕</button>
+              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-base-300">✕</button>
             </div>
             <div className="py-4">{children}</div>
           </motion.div>
@@ -313,15 +313,15 @@ export default function StockPage() {
 
       {/* Stock Table */}
       {activeTab === 'stock' && (
-        <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Stock par produit</h3>
-            <p className="text-sm text-slate-500">{stock.length} produit(s) enregistré(s)</p>
+            <p className="text-sm text-base-content/60">{stock.length} produit(s) enregistré(s)</p>
           </div>
           
           {stock.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center">
-              <p className="text-slate-600">Aucun produit en stock.</p>
+            <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
+              <p className="text-base-content/70">Aucun produit en stock.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -380,15 +380,15 @@ export default function StockPage() {
 
       {/* Movements Table */}
       {activeTab === 'movements' && (
-        <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Historique des mouvements</h3>
-            <p className="text-sm text-slate-500">{movements.length} mouvement(s)</p>
+            <p className="text-sm text-base-content/60">{movements.length} mouvement(s)</p>
           </div>
           
           {movements.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center">
-              <p className="text-slate-600">Aucun mouvement de stock.</p>
+            <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
+              <p className="text-base-content/70">Aucun mouvement de stock.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -419,7 +419,7 @@ export default function StockPage() {
                           {movement.type === 'exit' ? '-' : '+'}{movement.quantity}
                         </td>
                         <td className="text-sm">{movement.reference}</td>
-                        <td className="text-sm text-slate-500">{movement.notes || '-'}</td>
+                        <td className="text-sm text-base-content/60">{movement.notes || '-'}</td>
                       </tr>
                     );
                   })}
@@ -432,10 +432,10 @@ export default function StockPage() {
 
       {/* Alerts */}
       {activeTab === 'alerts' && (
-        <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Alertes de stock</h3>
-            <p className="text-sm text-slate-500">Produits nécessitant une attention</p>
+            <p className="text-sm text-base-content/60">Produits nécessitant une attention</p>
           </div>
           
           {lowStockItems.length === 0 ? (
@@ -453,21 +453,21 @@ export default function StockPage() {
                 return (
                   <div key={item.productId} className={`flex items-center justify-between p-4 rounded-xl ${isOut ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full ${isOut ? 'bg-red-100' : 'bg-amber-100'}`}>
+                      <div className={`p-2 rounded-full ${isOut ? 'bg-error/20' : 'bg-warning/20'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isOut ? 'text-red-600' : 'text-amber-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
                       <div>
                         <p className="font-medium">{item.productName} ({item.productCode})</p>
-                        <p className="text-sm text-slate-500">Capacité: {item.capacity}</p>
+                        <p className="text-sm text-base-content/60">Capacité: {item.capacity}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className={`text-lg font-bold ${isOut ? 'text-red-600' : 'text-amber-600'}`}>
                         {item.currentStock} / {item.minStock}
                       </p>
-                      <p className="text-xs text-slate-500">Stock actuel / Seuil min</p>
+                      <p className="text-xs text-base-content/60">Stock actuel / Seuil min</p>
                     </div>
                   </div>
                 );
@@ -556,7 +556,7 @@ export default function StockPage() {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button type="button" onClick={() => setShowMovementModal(false)} className="btn btn-ghost">
               Annuler
             </button>
@@ -597,7 +597,7 @@ export default function StockPage() {
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button type="button" onClick={() => setShowSettingsModal(false)} className="btn btn-ghost">
               Annuler
             </button>

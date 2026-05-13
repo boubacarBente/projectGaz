@@ -47,9 +47,9 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
             transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
             className={`modal-box ${sizeClasses[size]} w-full relative z-10 shadow-2xl`}
           >
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+            <div className="flex items-center justify-between border-b border-base-200 pb-4">
               <h3 className="text-lg font-bold">{title}</h3>
-              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-slate-100">✕</button>
+              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-base-300">✕</button>
             </div>
             <div className="py-4">{children}</div>
           </motion.div>
@@ -318,8 +318,8 @@ export default function ProduitsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/80 bg-white/75 shadow-lg shadow-slate-200/60 backdrop-blur">
-        <div className="border-b border-slate-200 p-4">
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur">
+        <div className="border-b border-base-200 p-4">
           <h3 className="font-semibold text-lg">Liste des produits</h3>
         </div>
         <div className="p-4">
@@ -331,7 +331,7 @@ export default function ProduitsPage() {
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
           ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-slate-500">
+            <div className="flex flex-col items-center justify-center p-8 text-base-content/60">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-16 w-16 mb-4 opacity-50"
@@ -351,7 +351,7 @@ export default function ProduitsPage() {
           ) : (
             <table className="table">
               <thead>
-                <tr className="bg-slate-50">
+                <tr className="bg-base-200">
                   <th className="font-semibold">Code</th>
                   <th className="font-semibold">Désignation</th>
                   <th className="font-semibold">Capacité</th>
@@ -362,7 +362,7 @@ export default function ProduitsPage() {
               </thead>
               <tbody>
                 {(search === '' ? products : filtered).slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((product) => (
-                  <tr key={product.id} className="hover:bg-slate-50">
+                  <tr key={product.id} className="hover:bg-base-200">
                     <td>
                       <div className="font-semibold">{product.code}</div>
                     </td>
@@ -518,7 +518,7 @@ export default function ProduitsPage() {
               </label>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button
               type="button"
               onClick={() => {
@@ -651,7 +651,7 @@ export default function ProduitsPage() {
               </label>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button
               type="button"
               onClick={() => {
@@ -722,7 +722,7 @@ export default function ProduitsPage() {
                 />
               </svg>
             </div>
-            <p className="text-slate-600">
+            <p className="text-base-content/70">
               Êtes-vous sûr de vouloir supprimer le produit{' '}
               <strong>{selectedProduct?.code}</strong> ?
               <br />
@@ -731,7 +731,7 @@ export default function ProduitsPage() {
               </span>
             </p>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button
               type="button"
               onClick={() => {

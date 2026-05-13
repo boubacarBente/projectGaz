@@ -43,11 +43,11 @@ export function ModulePage({
           title="Elements prevus dans le cahier des charges"
           description="Base d'ecran creee pour accueillir le futur module complet."
         >
-          <ul className="space-y-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
+          <ul className="space-y-3 text-sm leading-7 text-base-content/80">
             {highlights.map((item) => (
               <li
                 key={item}
-                className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"
+                className="rounded-2xl border border-base-200 bg-base-200/50 px-4 py-3"
               >
                 {item}
               </li>
@@ -59,16 +59,16 @@ export function ModulePage({
           title="Prochaines etapes"
           description="Suggestions de construction pour brancher les donnees et les formulaires."
         >
-          <ol className="space-y-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
+          <ol className="space-y-3 text-sm leading-7 text-base-content/80">
             {nextSteps.map((item, index) => (
               <li
                 key={item}
-                className="flex gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800"
+                className="flex gap-3 rounded-2xl border border-base-200 bg-base-100 px-4 py-3"
               >
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-800">
                   {index + 1}
                 </span>
-                <span className="dark:text-slate-200">{item}</span>
+                <span>{item}</span>
               </li>
             ))}
           </ol>

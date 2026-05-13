@@ -12,7 +12,7 @@ export function PageHeader({
   actions,
 }: PageHeaderProps) {
   return (
-    <section className="rounded-4xl border border-white/80 bg-white/75 p-6 shadow-lg shadow-slate-200/60 backdrop-blur md:p-8 dark:border-slate-700/80 dark:bg-slate-900/75 dark:shadow-slate-800/60">
+    <section className="rounded-4xl border border-base-200/80 bg-base-100/80 p-6 shadow-lg shadow-black/5 backdrop-blur md:p-8 dark:border-slate-700/80 dark:bg-slate-900/75 dark:shadow-slate-800/60">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-sky-400 dark:text-sky-300">

@@ -21,7 +21,7 @@ export default async function FactureDetailPage({
         actions={
           <Link
             href="/factures"
-            className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-sky-300 hover:bg-sky-50"
+            className="rounded-full border border-base-300 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-sky-300 hover:bg-primary/10"
           >
             Retour aux factures
           </Link>
@@ -33,7 +33,7 @@ export default async function FactureDetailPage({
           title="Contenu de la facture"
           description="Le cahier des charges demande les informations du client, les produits, les quantites, les prix unitaires et le total."
         >
-          <ul className="space-y-3 text-sm leading-7 text-slate-700">
+          <ul className="space-y-3 text-sm leading-7 text-base-content/80">
             <li>Bloc client avec nom, adresse et date/heure de transaction.</li>
             <li>Tableau des lignes de vente avec calcul automatique du total.</li>
             <li>
@@ -46,7 +46,7 @@ export default async function FactureDetailPage({
           title="Paiement et impression"
           description="La route detail doit aussi couvrir l'avance payee, le reste a payer et l'impression PDF."
         >
-          <ul className="space-y-3 text-sm leading-7 text-slate-700">
+          <ul className="space-y-3 text-sm leading-7 text-base-content/80">
             <li>Statut de paiement: paye, partiel ou en attente.</li>
             <li>Mode de paiement: especes, mobile money ou virement.</li>
             <li>Actions futures: exporter en PDF, envoyer et reimprimer.</li>

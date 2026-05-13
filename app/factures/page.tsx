@@ -85,9 +85,9 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
             transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
             className={`modal-box ${sizeClasses[size]} w-full relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto`}
           >
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4 sticky top-0 bg-white z-10">
+            <div className="flex items-center justify-between border-b border-base-200 pb-4 sticky top-0 bg-base-100 z-10">
               <h3 className="text-lg font-bold">{title}</h3>
-              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-slate-100">✕</button>
+              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-base-300">✕</button>
             </div>
             <div className="py-4">{children}</div>
           </motion.div>
@@ -577,18 +577,18 @@ export default function FacturesPage() {
       </div>
 
       {/* Invoice List */}
-      <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
         <div className="mb-4">
           <h3 className="font-semibold text-lg">Historique des ventes</h3>
-          <p className="text-sm text-slate-500">{invoices.length} facture(s) enregistrée(s)</p>
+          <p className="text-sm text-base-content/60">{invoices.length} facture(s) enregistrée(s)</p>
         </div>
         
         {invoices.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="text-slate-600">Aucune vente enregistrée.</p>
+            <p className="text-base-content/70">Aucune vente enregistrée.</p>
             <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm mt-4">
               Créer une première facture
             </button>
@@ -741,7 +741,7 @@ export default function FacturesPage() {
             </div>
           </div>
 
-          <div className="border-t border-slate-200 pt-4">
+          <div className="border-t border-base-200 pt-4">
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium">Produits</h4>
               <button type="button" onClick={addLine} className="btn btn-ghost btn-sm">
@@ -801,7 +801,7 @@ export default function FacturesPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">
               Annuler
             </button>
@@ -908,7 +908,7 @@ export default function FacturesPage() {
             </div>
           </div>
 
-          <div className="border-t border-slate-200 pt-4">
+          <div className="border-t border-base-200 pt-4">
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium">Produits</h4>
               <button type="button" onClick={addLine} className="btn btn-ghost btn-sm">
@@ -968,7 +968,7 @@ export default function FacturesPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button
               type="button"
               onClick={() => {
@@ -1010,26 +1010,26 @@ export default function FacturesPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-slate-500">Client:</span>
+                <span className="text-base-content/60">Client:</span>
                 <p className="font-medium">{selectedInvoice.customerName}</p>
               </div>
               <div>
-                <span className="text-slate-500">Date:</span>
+                <span className="text-base-content/60">Date:</span>
                 <p className="font-medium">{new Date(selectedInvoice.date).toLocaleDateString('fr-MA')}</p>
               </div>
               <div>
-                <span className="text-slate-500">Mode paiement:</span>
+                <span className="text-base-content/60">Mode paiement:</span>
                 <p className="font-medium">{selectedInvoice.paymentMethod}</p>
               </div>
               <div>
-                <span className="text-slate-500">Statut:</span>
+                <span className="text-base-content/60">Statut:</span>
                 <span className={`badge ${getStatusColor(selectedInvoice.paymentStatus)} badge-sm ml-1`}>
                   {selectedInvoice.paymentStatus}
                 </span>
               </div>
             </div>
 
-            <div className="border-t border-b border-slate-200 py-4">
+            <div className="border-t border-b border-base-200 py-4">
               <h4 className="font-medium mb-3">Articles</h4>
               <table className="table table-xs">
                 <thead>
@@ -1054,22 +1054,22 @@ export default function FacturesPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <div className="text-slate-500 text-xs">Total</div>
+              <div className="text-center p-3 bg-base-200 rounded-lg">
+                <div className="text-base-content/60 text-xs">Total</div>
                 <div className="font-semibold text-lg">{formatCurrency(selectedInvoice.totalAmount)}</div>
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-slate-500 text-xs">Encaisse</div>
+                <div className="text-base-content/60 text-xs">Encaisse</div>
                 <div className="font-semibold text-lg text-success">{formatCurrency(selectedInvoice.amountPaid)}</div>
               </div>
               <div className="text-center p-3 bg-amber-50 rounded-lg">
-                <div className="text-slate-500 text-xs">Reste</div>
+                <div className="text-base-content/60 text-xs">Reste</div>
                 <div className="font-semibold text-lg text-warning">{formatCurrency(selectedInvoice.remainingAmount)}</div>
               </div>
             </div>
 
             {selectedInvoice.notes && (
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-base-content/60">
                 <span className="font-medium">Notes:</span> {selectedInvoice.notes}
               </div>
             )}
@@ -1094,13 +1094,13 @@ export default function FacturesPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <p className="text-slate-600">
+            <p className="text-base-content/70">
               Êtes-vous sûr de vouloir supprimer la facture <strong>{selectedInvoice?.invoiceNumber}</strong> ?
               <br />
               <span className="text-sm">Cette action est irréversible.</span>
             </p>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button
               type="button"
               onClick={() => {

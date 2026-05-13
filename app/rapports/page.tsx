@@ -247,20 +247,20 @@ export default function RapportsPage() {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Ventes vs Achats (12 mois)</h3>
-            <p className="text-sm text-slate-500">Évolution mensuelle</p>
+            <p className="text-sm text-base-content/60">Évolution mensuelle</p>
           </div>
           <div className="h-64">
             <Line data={lineChartData} options={chartOptions} />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Bénéfice mensuel</h3>
-            <p className="text-sm text-slate-500">Par mois</p>
+            <p className="text-sm text-base-content/60">Par mois</p>
           </div>
           <div className="h-64">
             <Bar data={barChartData} options={chartOptions} />
@@ -270,35 +270,35 @@ export default function RapportsPage() {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Top produits vendus</h3>
-            <p className="text-sm text-slate-500">Par quantité</p>
+            <p className="text-sm text-base-content/60">Par quantité</p>
           </div>
           <div className="h-64">
             {soldByProduct.length > 0 ? (
               <Doughnut data={productChartData} options={doughnutOptions} />
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-400">
+              <div className="flex items-center justify-center h-full text-base-content/50">
                 Aucune donnée
               </div>
             )}
           </div>
         </div>
 
-        <div className="lg:col-span-2 rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+        <div className="lg:col-span-2 rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Top clients</h3>
-            <p className="text-sm text-slate-500">Par chiffre d'affaires</p>
+            <p className="text-sm text-base-content/60">Par chiffre d'affaires</p>
           </div>
           {topCustomers.length === 0 ? (
-            <div className="flex items-center justify-center h-48 text-slate-400">
+            <div className="flex items-center justify-center h-48 text-base-content/50">
               Aucun client
             </div>
           ) : (
             <div className="space-y-3">
               {topCustomers.map((customer, index) => (
-                <div key={customer.name} className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                <div key={customer.name} className="flex items-center justify-between p-3 rounded-xl bg-base-200">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
                       index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-amber-600' : 'bg-slate-300'
@@ -307,12 +307,12 @@ export default function RapportsPage() {
                     </div>
                     <div>
                       <p className="font-medium">{customer.name}</p>
-                      <p className="text-xs text-slate-500">{customer.invoiceCount} facture(s)</p>
+                      <p className="text-xs text-base-content/60">{customer.invoiceCount} facture(s)</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-success">{formatCurrency(customer.totalSpent)}</p>
-                    <p className="text-xs text-slate-500">GNF</p>
+                    <p className="text-xs text-base-content/60">GNF</p>
                   </div>
                 </div>
               ))}
@@ -322,14 +322,14 @@ export default function RapportsPage() {
       </div>
 
       {/* Products Table */}
-      <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-lg shadow-slate-200/60 backdrop-blur">
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
         <div className="mb-4">
           <h3 className="font-semibold text-lg">Détail des ventes par produit</h3>
-          <p className="text-sm text-slate-500">{soldByProduct.length} produit(s) vendu(s)</p>
+          <p className="text-sm text-base-content/60">{soldByProduct.length} produit(s) vendu(s)</p>
         </div>
         {soldByProduct.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center">
-            <p className="text-slate-600">Aucune vente enregistrée.</p>
+          <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
+            <p className="text-base-content/70">Aucune vente enregistrée.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -357,7 +357,7 @@ export default function RapportsPage() {
                       <td className="text-right font-semibold text-success">{formatCurrency(product.revenue)}</td>
                       <td className="text-right">
                         <div className="flex items-center gap-2 justify-end">
-                          <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="w-16 h-2 bg-base-200 rounded-full overflow-hidden">
                             <div className="h-full bg-info rounded-full" style={{ width: `${percentage}%` }}></div>
                           </div>
                           <span className="text-sm">{percentage.toFixed(1)}%</span>

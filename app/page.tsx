@@ -364,7 +364,7 @@ export default function DashboardPage() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition hover:border-sky-300 hover:bg-sky-50"
+                className="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition hover:border-sky-300 hover:bg-primary/10"
                 style={{ 
                   backgroundColor: colors.bgMuted, 
                   borderColor: colors.borderLight,

@@ -62,168 +62,26 @@ a {
   background: rgba(46, 117, 182, 0.18);
 }
 
-/* Dark mode overrides - applied when .dark class is on html */
+/* Dark mode variables - DaisyUI handles the rest via theme */
 html.dark {
   --background: #0f172a;
   --foreground: #f1f5f9;
-  --primary: #60a5fa;
-  --primary-dark: #3b82f6;
-  --secondary: #34d399;
-  --secondary-dark: #10b981;
-  --accent: #fbbf24;
-  --accent-dark: #f59e0b;
-  --danger: #f87171;
-  --danger-dark: #ef4444;
-  --warning: #fbbf24;
-  --warning-dark: #f59e0b;
-  --success: #34d399;
-  --success-dark: #10b981;
-  --info: #0891b2;
-  --info-dark: #06b6d4;
 }
 
-html.dark body,
-html.dark html {
-  background: var(--background);
-  color: var(--foreground);
+/* Override component-level styles that DaisyUI doesn't automatically theme */
+/* Stats component background in dark mode */
+html.dark .stats {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--b2));
 }
 
-html.dark .bg-white {
-  background-color: #1e293b !important;
+/* Ensure table thead has proper dark bg */
+html.dark .table :where(thead, tfoot) :where(th, td) {
+  background-color: hsl(var(--b2));
 }
 
-html.dark .bg-slate-50,
-html.dark .bg-slate-100,
-html.dark .bg-gray-50 {
-  background-color: #1e293b !important;
-}
-
-html.dark .text-slate-600,
-html.dark .text-slate-700,
-html.dark .text-gray-600 {
-  color: #94a3b8 !important;
-}
-
-html.dark .text-slate-500,
-html.dark .text-gray-500 {
-  color: #64748b !important;
-}
-
-html.dark .text-slate-900 {
-  color: #f1f5f9 !important;
-}
-
-html.dark .border-slate-200,
-html.dark .border-gray-200 {
-  border-color: #334155 !important;
-}
-
-html.dark .border-slate-300 {
-  border-color: #475569 !important;
-}
-
-/* Improved button styles for dark mode */
-html.dark .btn-primary {
-  background-color: var(--primary-dark) !important;
-  border-color: var(--primary-dark) !important;
-  color: white !important;
-}
-
-html.dark .btn-primary:hover {
-  background-color: var(--primary) !important;
-  border-color: var(--primary) !important;
-}
-
-html.dark .btn-secondary {
-  background-color: var(--secondary-dark) !important;
-  border-color: var(--secondary-dark) !important;
-  color: white !important;
-}
-
-html.dark .btn-secondary:hover {
-  background-color: var(--secondary) !important;
-  border-color: var(--secondary) !important;
-}
-
-html.dark .btn-success {
-  background-color: var(--success-dark) !important;
-  border-color: var(--success-dark) !important;
-  color: white !important;
-}
-
-html.dark .btn-success:hover {
-  background-color: var(--success) !important;
-  border-color: var(--success) !important;
-}
-
-html.dark .btn-danger {
-  background-color: var(--danger-dark) !important;
-  border-color: var(--danger-dark) !important;
-  color: white !important;
-}
-
-html.dark .btn-danger:hover {
-  background-color: var(--danger) !important;
-  border-color: var(--danger) !important;
-}
-
-html.dark .input,
-html.dark .select,
-html.dark .textarea {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #f1f5f9 !important;
-}
-
-html.dark .table th {
-  background-color: #1e293b !important;
-  color: #f1f5f9 !important;
-}
-
-html.dark .table td {
-  color: #e2e8f0 !important;
-}
-
-html.dark .modal-box {
-  background-color: #1e293b !important;
-  color: #f1f5f9 !important;
-}
-
-html.dark .surface-card {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
-}
-
-/* Improved card styles for dark mode */
-html.dark .card {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
-}
-
-html.dark .card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
-}
-
-/* Improved metric card styles for dark mode */
-html.dark .metric-card {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
-  border-color: #334155 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
-}
-
-html.dark .metric-card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
-  transform: translateY(-1px) !important;
-}
-
-/* Theme-aware base backgrounds */
-.bg-base-100 {
-  background-color: var(--background, #ffffff);
-}
-
-/* Base content area needs theme background */
-html.dark .bg-base-100 {
-  background-color: #0f172a;
+/* Chart container backgrounds */
+html.dark [style*="background-color"],
+.chart-container {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }

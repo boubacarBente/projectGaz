@@ -68,33 +68,33 @@ export default function ClientTypesPage() {
 
       <SurfaceCard title="" description="">
         {isLoading ? (
-          <div className="py-8 text-center text-slate-500">Chargement...</div>
+          <div className="py-8 text-center text-base-content/60">Chargement...</div>
         ) : types.length === 0 ? (
-          <div className="py-8 text-center text-slate-500">Aucun type de client trouvé</div>
+          <div className="py-8 text-center text-base-content/60">Aucun type de client trouvé</div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {types.map((type) => (
               <div
                 key={type.id}
-                className="rounded-lg border border-slate-200 p-4 hover:border-sky-300"
+                className="rounded-lg border border-base-200 p-4 hover:border-sky-300"
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-medium text-slate-900">{type.name}</h3>
+                    <h3 className="font-medium text-base-content">{type.name}</h3>
                     {type.description && (
-                      <p className="mt-1 text-sm text-slate-500">{type.description}</p>
+                      <p className="mt-1 text-sm text-base-content/60">{type.description}</p>
                     )}
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingType(type)}
-                      className="text-slate-400 hover:text-sky-600"
+                      className="text-base-content/50 hover:text-sky-600"
                     >
                       ✏️
                     </button>
                     <button
                       onClick={() => handleDelete(type.id)}
-                      className="text-slate-400 hover:text-red-600"
+                      className="text-base-content/50 hover:text-red-600"
                     >
                       🗑️
                     </button>
@@ -178,14 +178,14 @@ function TypeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-xl bg-base-100 p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             {type ? 'Modifier le type' : 'Nouveau type de client'}
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-base-content/50 hover:text-base-content/70"
           >
             ✕
           </button>
@@ -193,7 +193,7 @@ function TypeModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
+            <label className="mb-1 block text-sm font-medium text-base-content/80">
               Nom *
             </label>
             <input
@@ -201,19 +201,19 @@ function TypeModal({
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+              className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               placeholder="Ex: Particulier, Entreprise"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
+            <label className="mb-1 block text-sm font-medium text-base-content/80">
               Description
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+              className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               rows={2}
               placeholder="Description optionnelle..."
             />
@@ -225,7 +225,7 @@ function TypeModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="flex-1 rounded-lg border border-base-200 px-4 py-2 text-sm font-medium text-base-content/80 hover:bg-base-200"
             >
               Annuler
             </button>

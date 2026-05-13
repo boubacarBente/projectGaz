@@ -137,7 +137,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-slate-500">Chargement...</div>
+        <div className="text-base-content/60">Chargement...</div>
       </div>
     );
   }
@@ -152,7 +152,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           actions={
             <Link
               href="/clients"
-              className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-sky-300 hover:bg-sky-50"
+              className="rounded-full border border-base-300 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-sky-300 hover:bg-primary/10"
             >
               Retour aux clients
             </Link>
@@ -172,7 +172,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           <div className="flex gap-3">
             <Link
               href="/clients"
-              className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-sky-300 hover:bg-sky-50"
+              className="rounded-full border border-base-300 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-sky-300 hover:bg-primary/10"
             >
               Retour
             </Link>
@@ -206,53 +206,53 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           {isEditing ? (
             <form action={handleUpdate} className="space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Nom *</label>
+                <label className="mb-1 block text-sm font-medium text-base-content/80">Nom *</label>
                 <input
                   name="name"
                   defaultValue={customer.name}
                   required
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                  className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Téléphone</label>
+                <label className="mb-1 block text-sm font-medium text-base-content/80">Téléphone</label>
                 <input
                   name="phone"
                   defaultValue={customer.phone || ''}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                  className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+                <label className="mb-1 block text-sm font-medium text-base-content/80">Email</label>
                 <input
                   name="email"
                   type="email"
                   defaultValue={customer.email || ''}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                  className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Adresse</label>
+                <label className="mb-1 block text-sm font-medium text-base-content/80">Adresse</label>
                 <input
                   name="address"
                   defaultValue={customer.address || ''}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                  className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Ville</label>
+                <label className="mb-1 block text-sm font-medium text-base-content/80">Ville</label>
                 <input
                   name="city"
                   defaultValue={customer.city || ''}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                  className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
+                <label className="mb-1 block text-sm font-medium text-base-content/80">Type</label>
                 <select
                   name="typeId"
                   defaultValue={customer.typeId || ''}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                  className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
                 >
                   <option value="">Sélectionner un type</option>
                   {customerTypes.map((type) => (
@@ -261,19 +261,19 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Notes</label>
+                <label className="mb-1 block text-sm font-medium text-base-content/80">Notes</label>
                 <textarea
                   name="notes"
                   defaultValue={customer.notes || ''}
                   rows={2}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                  className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
                 />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="flex-1 rounded-lg border border-base-200 px-4 py-2 text-sm font-medium text-base-content/80 hover:bg-base-200"
                 >
                   Annuler
                 </button>
@@ -287,38 +287,38 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             </form>
           ) : (
             <dl className="space-y-3 text-sm">
-              <div className="flex justify-between border-b border-slate-100 pb-2">
-                <dt className="text-slate-500">Téléphone</dt>
+              <div className="flex justify-between border-b border-base-200 pb-2">
+                <dt className="text-base-content/60">Téléphone</dt>
                 <dd className="font-medium">{customer.phone || '-'}</dd>
               </div>
-              <div className="flex justify-between border-b border-slate-100 pb-2">
-                <dt className="text-slate-500">Email</dt>
+              <div className="flex justify-between border-b border-base-200 pb-2">
+                <dt className="text-base-content/60">Email</dt>
                 <dd className="font-medium">{customer.email || '-'}</dd>
               </div>
-              <div className="flex justify-between border-b border-slate-100 pb-2">
-                <dt className="text-slate-500">Adresse</dt>
+              <div className="flex justify-between border-b border-base-200 pb-2">
+                <dt className="text-base-content/60">Adresse</dt>
                 <dd className="font-medium">{customer.address || '-'}</dd>
               </div>
-              <div className="flex justify-between border-b border-slate-100 pb-2">
-                <dt className="text-slate-500">Ville</dt>
+              <div className="flex justify-between border-b border-base-200 pb-2">
+                <dt className="text-base-content/60">Ville</dt>
                 <dd className="font-medium">{customer.city || '-'}</dd>
               </div>
-              <div className="flex justify-between border-b border-slate-100 pb-2">
-                <dt className="text-slate-500">Type</dt>
+              <div className="flex justify-between border-b border-base-200 pb-2">
+                <dt className="text-base-content/60">Type</dt>
                 <dd className="font-medium">{customer.type?.name || '-'}</dd>
               </div>
-              <div className="flex justify-between border-b border-slate-100 pb-2">
-                <dt className="text-slate-500">Statut</dt>
+              <div className="flex justify-between border-b border-base-200 pb-2">
+                <dt className="text-base-content/60">Statut</dt>
                 <dd>
-                  <span className={`inline-block rounded-full px-2 py-1 text-xs ${customer.isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`inline-block rounded-full px-2 py-1 text-xs ${customer.isActive ? 'bg-success/20 text-success' : 'bg-base-200 text-base-content/70'}`}>
                     {customer.isActive ? 'Actif' : 'Inactif'}
                   </span>
                 </dd>
               </div>
               {customer.notes && (
                 <div className="pt-2">
-                  <dt className="text-slate-500">Notes</dt>
-                  <dd className="mt-1 text-slate-700">{customer.notes}</dd>
+                  <dt className="text-base-content/60">Notes</dt>
+                  <dd className="mt-1 text-base-content/80">{customer.notes}</dd>
                 </div>
               )}
             </dl>
@@ -343,16 +343,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg bg-slate-50 p-3 text-center">
-                <p className="text-xs text-slate-500">Client depuis</p>
+              <div className="rounded-lg bg-base-200 p-3 text-center">
+                <p className="text-xs text-base-content/60">Client depuis</p>
                 <p className="text-sm font-medium">
                   {customer.createdAt 
                     ? new Date(customer.createdAt).toLocaleDateString('fr-MA')
                     : '-'}
                 </p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3 text-center">
-                <p className="text-xs text-slate-500">Dernière mise à jour</p>
+              <div className="rounded-lg bg-base-200 p-3 text-center">
+                <p className="text-xs text-base-content/60">Dernière mise à jour</p>
                 <p className="text-sm font-medium">
                   {customer.updatedAt 
                     ? new Date(customer.updatedAt).toLocaleDateString('fr-MA')
