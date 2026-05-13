@@ -1,5 +1,7 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+  themes: light --default, dark;
+}
 @import "react-toastify/dist/ReactToastify.css";
 
 :root {
@@ -65,7 +67,32 @@ a {
 /* Dark mode variables - DaisyUI handles the rest via theme */
 html.dark {
   --background: #0f172a;
-  --foreground: #f1f5f9;
+  --foreground: #e2e8f0;
+}
+
+/* Better contrast for muted text in dark mode */
+html.dark .text-base-content\/60 {
+  color: hsl(var(--bc) / 0.75) !important;
+}
+
+html.dark .text-base-content\/50 {
+  color: hsl(var(--bc) / 0.65) !important;
+}
+
+html.dark .text-base-content\/40 {
+  color: hsl(var(--bc) / 0.55) !important;
+}
+
+/* Input & select styling for dark mode - ensure proper text contrast */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  color-scheme: dark;
+}
+
+/* Special handling for the progress ring in stats */
+html.dark .countdown {
+  --tw-bg-opacity: 1;
 }
 
 /* Override component-level styles that DaisyUI doesn't automatically theme */
