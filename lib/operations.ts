@@ -256,7 +256,7 @@ export async function createPurchaseInvoice(input: {
 
   const invoiceId = result[0].id;
 
-  // Insérer les items
+  // Insérer les items et mettre à jour le stock
   for (const item of items) {
     await db.insert(purchaseInvoiceItems).values({
       invoiceId,
@@ -266,6 +266,15 @@ export async function createPurchaseInvoice(input: {
       quantity: item.quantity,
       unitCost: item.unitCost,
       totalCost: item.totalCost,
+    });
+
+    // Ajouter un mouvement d'entrée en stock
+    await addStockMovement({
+      productId: item.productId,
+      type: 'entry',
+      quantity: item.quantity,
+      reference: `ACHAT-${input.reference}`,
+      notes: `Approvisionnement via facture ${input.reference}`,
     });
   }
 
@@ -524,6 +533,20 @@ export async function deletePurchaseInvoice(id: number) {
   const existing = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
   if (existing.length === 0) {
     throw new Error('Invoice not found');
+  }
+
+  // Récupérer les items avant suppression pour annuler les mouvements de stock
+  const items = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
+
+  // Annuler les mouvements de stock (sortie)
+  for (const item of items) {
+    await addStockMovement({
+      productId: item.productId,
+      type: 'exit',
+      quantity: item.quantity,
+      reference: `ANNUL-ACHAT-${existing[0].reference}`,
+      notes: `Annulation facture ${existing[0].reference}`,
+    });
   }
 
   // Supprimer les items
