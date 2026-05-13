@@ -34,21 +34,58 @@ ChartJS.register(
 
 type Period = 'day' | 'week' | 'month' | 'year' | 'total';
 
-type Operation = {
+type SaleItem = {
+  productId: number;
+  productCode: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+};
+
+type PurchaseItem = {
+  productId: number;
+  productCode: string;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+};
+
+type SaleInvoice = {
   id: number;
-  type: 'sale' | 'purchase';
+  invoiceNumber: string;
+  customerName: string;
   date: string;
-  total: number;
-  items: { name: string; quantity: number; price: number }[];
+  totalAmount: number;
+  amountPaid: number;
+  remainingAmount: number;
+  paymentStatus: string;
+  items: SaleItem[];
+};
+
+type PurchaseInvoice = {
+  id: number;
+  reference: string;
+  supplier: string;
+  date: string;
+  totalAmount: number;
+  isPaid: boolean;
+  items: PurchaseItem[];
 };
 
 type Snapshot = {
   totalPurchases: number;
   totalSales: number;
   grossProfit: number;
-  sales: Operation[];
-  purchases: Operation[];
-  soldByProduct: { name: string; quantity: number }[];
+  sales: SaleInvoice[];
+  purchases: PurchaseInvoice[];
+  soldByProduct: {
+    productCode: string;
+    productName: string;
+    quantity: number;
+    revenue: number;
+  }[];
 };
 
 const PERIODS: { key: Period; label: string }[] = [
@@ -59,8 +96,13 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: 'total', label: 'Total' },
 ];
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('fr-MA').format(value);
+function formatCurrency(value: number | undefined | null) {
+  if (value == null || isNaN(value)) return '0';
+  try {
+    return new Intl.NumberFormat('fr-MA').format(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function getPeriodFilter(period: Period): (date: Date) => boolean {
@@ -114,16 +156,16 @@ export default function DashboardPage() {
     if (!snapshot) return null;
     const sales = snapshot.sales.filter((s) => periodFilter(new Date(s.date)));
     const purchases = snapshot.purchases.filter((p) => periodFilter(new Date(p.date)));
-    const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
-    const totalPurchases = purchases.reduce((sum, p) => sum + p.total, 0);
+    const totalSales = sales.reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalPurchases = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
 
     // Produits vendus filtrés
     const productMap = new Map<string, { name: string; quantity: number }>();
     for (const sale of sales) {
       for (const item of sale.items) {
-        const existing = productMap.get(item.name) || { name: item.name, quantity: 0 };
+        const existing = productMap.get(item.productName) || { name: item.productName, quantity: 0 };
         existing.quantity += item.quantity;
-        productMap.set(item.name, existing);
+        productMap.set(item.productName, existing);
       }
     }
     const soldByProduct = Array.from(productMap.values()).sort((a, b) => b.quantity - a.quantity);
@@ -151,6 +193,7 @@ export default function DashboardPage() {
   const { sales, purchases, totalSales, totalPurchases, grossProfit, salesCount, purchasesCount, soldByProduct } = filteredData;
   const totalBottlesSold = sales.reduce((sum, s) => sum + s.items.reduce((a, i) => a + i.quantity, 0), 0);
   const totalBottlesPurchased = purchases.reduce((sum, p) => sum + p.items.reduce((a, i) => a + i.quantity, 0), 0);
+  const stockTotal = snapshot.soldByProduct.reduce((s, p) => s + p.quantity, 0);
 
   // Données pour graphiques mensuels (toujours sur 12 mois glissants)
   const months = ['Jan', 'F\u00e9v', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Ao\u00fbt', 'Sep', 'Oct', 'Nov', 'D\u00e9c'];
@@ -164,11 +207,11 @@ export default function DashboardPage() {
     const monthSales = snapshot.sales.filter((s) => {
       const sd = new Date(s.date);
       return sd.getMonth() === d.getMonth() && sd.getFullYear() === d.getFullYear();
-    }).reduce((sum, s) => sum + s.total, 0);
+    }).reduce((sum, s) => sum + s.totalAmount, 0);
     const monthPurchases = snapshot.purchases.filter((p) => {
       const pd = new Date(p.date);
       return pd.getMonth() === d.getMonth() && pd.getFullYear() === d.getFullYear();
-    }).reduce((sum, p) => sum + p.total, 0);
+    }).reduce((sum, p) => sum + p.totalAmount, 0);
     monthlySales.push(monthSales);
     monthlyPurchases.push(monthPurchases);
   }
@@ -206,14 +249,14 @@ export default function DashboardPage() {
       borderColor: grossProfit >= 0 ? 'border-success/20' : 'border-error/20',
     },
     {
-      label: 'Bouteilles vendues',
-      value: `${totalBottlesSold}`,
-      hint: `Stock: ${snapshot.soldByProduct.reduce((s, p) => s + p.quantity, 0)} total`,
+      label: 'Stock total',
+      value: `${stockTotal}`,
+      hint: `Vendues: ${totalBottlesSold} sur la p\u00e9riode`,
       icon: '🫙',
       color: 'text-primary',
       bgColor: 'bg-primary/10',
       borderColor: 'border-primary/20',
-      trend: purchasesCount > 0 ? `${totalBottlesPurchased} achet\u00e9es` : null,
+      trend: purchasesCount > 0 && period !== 'total' ? `${totalBottlesPurchased} achet\u00e9es` : null,
     },
   ];
 
@@ -254,7 +297,7 @@ export default function DashboardPage() {
 
   const topProducts = soldByProduct.slice(0, 5);
   const doughnutChartData = topProducts.length > 0 ? {
-    labels: topProducts.map((p) => p.name),
+    labels: topProducts.map((p) => p.name.length > 20 ? p.name.slice(0, 18) + '...' : p.name),
     datasets: [
       {
         data: topProducts.map((p) => p.quantity),
@@ -455,12 +498,12 @@ export default function DashboardPage() {
                       <div className="flex gap-1 flex-wrap">
                         {sale.items.map((item, i) => (
                           <span key={i} className="badge badge-outline badge-xs">
-                            {item.name} x{item.quantity}
+                            {item.productName} x{item.quantity}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="text-right font-medium">{formatCurrency(sale.total)} GNF</td>
+                    <td className="text-right font-medium">{formatCurrency(sale.totalAmount)} GNF</td>
                   </tr>
                 ))}
               </tbody>
@@ -505,12 +548,12 @@ export default function DashboardPage() {
                       <div className="flex gap-1 flex-wrap">
                         {purchase.items.map((item, i) => (
                           <span key={i} className="badge badge-outline badge-xs">
-                            {item.name} x{item.quantity}
+                            {item.productName} x{item.quantity}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="text-right font-medium">{formatCurrency(purchase.total)} GNF</td>
+                    <td className="text-right font-medium">{formatCurrency(purchase.totalAmount)} GNF</td>
                   </tr>
                 ))}
               </tbody>
