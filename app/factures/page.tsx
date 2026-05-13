@@ -1,10 +1,12 @@
 ﻿'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
+import { Modal } from '@/components/modal';
 
 // Dynamic import for PDF generation (client-side only)
 let html2canvas: any;
@@ -55,47 +57,7 @@ type Customer = {
   name: string;
 };
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string | React.ReactNode;
-  children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-}
 
-function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
-  const sizeClasses = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -80, scale: 0.95 }}
-            transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
-            className={`modal-box ${sizeClasses[size]} w-full relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto`}
-          >
-            <div className="flex items-center justify-between border-b border-base-200 pb-4 sticky top-0 bg-base-100 z-10">
-              <h3 className="text-lg font-bold">{title}</h3>
-              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-base-300">✕</button>
-            </div>
-            <div className="py-4">{children}</div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-}
 
 interface InvoiceLine {
   productId: string;
@@ -626,12 +588,12 @@ export default function FacturesPage() {
                     </td>
                     <td className="text-right">
                       <div className="flex gap-1 justify-end">
-                        <button onClick={() => openDetailModal(invoice)} className="btn btn-ghost btn-xs">
+                        <Link href={`/factures/${invoice.id}`} className="btn btn-ghost btn-xs" title="Voir détail">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
-                        </button>
+                        </Link>
                         <button onClick={() => handleExportPDF(invoice)} className="btn btn-ghost btn-xs text-info" title="Télécharger PDF">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

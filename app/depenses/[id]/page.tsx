@@ -2,14 +2,13 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { SurfaceCard } from "@/components/surface-card";
-import { PrintButton } from "./print-button";
 
-type FactureDetailPageProps = {
+type DepenseDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
 async function getInvoice(id: number) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/factures/${id}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/depenses/${id}`, {
     cache: 'no-store',
   });
   if (!res.ok) return null;
@@ -20,9 +19,9 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
 }
 
-export default async function FactureDetailPage({
+export default async function DepenseDetailPage({
   params,
-}: FactureDetailPageProps) {
+}: DepenseDetailPageProps) {
   const { id } = await params;
   const invoice = await getInvoice(parseInt(id));
 
@@ -30,12 +29,12 @@ export default async function FactureDetailPage({
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Facture"
-          title="Facture introuvable"
-          description={`Aucune facture trouvée avec l'ID ${id}.`}
+          eyebrow="Dépense"
+          title="Facture d'achat introuvable"
+          description={`Aucune dépense trouvée avec l'ID ${id}.`}
           actions={
-            <Link href="/factures" className="btn btn-outline">
-              Retour aux factures
+            <Link href="/depenses" className="btn btn-outline">
+              Retour aux dépenses
             </Link>
           }
         />
@@ -43,47 +42,37 @@ export default async function FactureDetailPage({
     );
   }
 
-  const statusBadge = (status: string) => {
-    const colors: Record<string, string> = {
-      'Paye': 'badge-success',
-      'Partiel': 'badge-warning',
-      'En attente': 'badge-error',
-    };
-    return <span className={`badge ${colors[status] || 'badge-ghost'} text-xs`}>{status}</span>;
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={`Facture ${invoice.invoiceNumber}`}
-        title={invoice.customerName}
+        eyebrow={`Réf. ${invoice.reference}`}
+        title={invoice.supplier}
         description={`Créée le ${new Date(invoice.date).toLocaleDateString('fr-FR')}`}
         actions={
           <div className="flex gap-2">
-            <Link href="/factures" className="btn btn-outline">
+            <Link href="/depenses" className="btn btn-outline">
               Retour
             </Link>
-            <PrintButton />
+            <span className={`badge ${invoice.isPaid ? 'badge-success' : 'badge-warning'} text-xs p-3`}>
+              {invoice.isPaid ? 'Payée' : 'Impayée'}
+            </span>
           </div>
         }
       />
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <SurfaceCard title="Total">{formatCurrency(invoice.totalAmount)} F</SurfaceCard>
-        <SurfaceCard title="Payé">{formatCurrency(invoice.amountPaid)} F</SurfaceCard>
-        <SurfaceCard title="Reste">{formatCurrency(invoice.remainingAmount)} F</SurfaceCard>
-        <SurfaceCard title="Statut">{statusBadge(invoice.paymentStatus)}</SurfaceCard>
+        <SurfaceCard title="Fournisseur">{invoice.supplier}</SurfaceCard>
+        <SurfaceCard title="Statut">{invoice.isPaid ? 'Payée' : 'Impayée'}</SurfaceCard>
       </div>
 
-      {/* Infos */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <SurfaceCard title="Client">
+        <SurfaceCard title="Fournisseur">
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between"><dt className="text-base-content/60">Nom</dt><dd>{invoice.customerName}</dd></div>
+            <div className="flex justify-between"><dt className="text-base-content/60">Nom</dt><dd>{invoice.supplier}</dd></div>
             <div className="flex justify-between"><dt className="text-base-content/60">Date</dt><dd>{new Date(invoice.date).toLocaleDateString('fr-FR')}</dd></div>
-            <div className="flex justify-between"><dt className="text-base-content/60">Paiement</dt><dd>{invoice.paymentMethod}</dd></div>
-            <div className="flex justify-between"><dt className="text-base-content/60">Statut</dt><dd>{statusBadge(invoice.paymentStatus)}</dd></div>
+            <div className="flex justify-between"><dt className="text-base-content/60">Référence</dt><dd>{invoice.reference}</dd></div>
+            <div className="flex justify-between"><dt className="text-base-content/60">Payée</dt><dd>{invoice.isPaid ? 'Oui' : 'Non'}</dd></div>
           </dl>
         </SurfaceCard>
         <SurfaceCard title="Notes">
@@ -91,15 +80,14 @@ export default async function FactureDetailPage({
         </SurfaceCard>
       </div>
 
-      {/* Produits */}
-      <SurfaceCard title="Articles">
+      <SurfaceCard title="Articles achetés">
         <div className="overflow-x-auto">
           <table className="table table-zebra text-sm">
             <thead>
               <tr>
                 <th>Produit</th>
                 <th>Qté</th>
-                <th>Prix unit.</th>
+                <th>Coût unit.</th>
                 <th className="text-right">Total</th>
               </tr>
             </thead>
@@ -108,8 +96,8 @@ export default async function FactureDetailPage({
                 <tr key={i}>
                   <td>{item.productName} <span className="text-base-content/40">({item.productCode})</span></td>
                   <td>{item.quantity}</td>
-                  <td>{formatCurrency(item.unitPrice)} F</td>
-                  <td className="text-right">{formatCurrency(item.totalPrice)} F</td>
+                  <td>{formatCurrency(item.unitCost)} F</td>
+                  <td className="text-right">{formatCurrency(item.totalCost)} F</td>
                 </tr>
               ))}
             </tbody>

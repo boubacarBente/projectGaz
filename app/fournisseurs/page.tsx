@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
+import { Modal } from '@/components/modal';
 
 type Supplier = {
   id: number;
@@ -37,42 +38,7 @@ type SupplierData = {
   invoices: PurchaseInvoice[];
 };
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string | React.ReactNode;
-  children: React.ReactNode;
-}
 
-function Modal({ isOpen, onClose, title, children }: ModalProps) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -80, scale: 0.95 }}
-            className="modal-box max-w-4xl w-full relative z-10 shadow-2xl"
-          >
-            <div className="flex items-center justify-between border-b border-base-200 pb-4">
-              <h3 className="text-lg font-bold">{title}</h3>
-              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-base-300">✕</button>
-            </div>
-            <div className="py-4 max-h-[70vh] overflow-y-auto">{children}</div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-FR').format(value);

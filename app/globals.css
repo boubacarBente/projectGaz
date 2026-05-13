@@ -112,3 +112,10 @@ html.dark [style*="background-color"],
 .chart-container {
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
+
+/* Print styles */
+@media print {
+  body { background: white !important; color: black !important; }
+  nav, header, .btn, .btn *, a { display: none !important; }
+  .print-area { display: block !important; }
+}
