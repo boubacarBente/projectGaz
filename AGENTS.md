@@ -85,6 +85,8 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
 - `GET /api/parametres` - Liste les paramètres
 - `PUT /api/parametres` - Mettre à jour les paramètres
 
+**Champs de la table settings :** `primary_color` (couleur principale des boutons/accents, hex), `sidebar_color` (couleur du fond du sidebar, hex). Appliqués dynamiquement via CSS variables DaisyUI. Voir `lib/colors.ts`.
+
 ### Dashboard
 - `GET /api/operations/snapshot` - Statistiques pour le dashboard
 

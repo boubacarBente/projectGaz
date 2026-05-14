@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
+import { applyThemeColors } from '@/lib/colors';
 
 type Settings = {
   companyName: string;
@@ -18,6 +19,8 @@ type Settings = {
   purchasePrefix: string;
   lowStockAlertEnabled: boolean;
   theme: 'light' | 'dark';
+  primaryColor: string;
+  sidebarColor: string;
 };
 
 const defaultSettings: Settings = {
@@ -33,6 +36,8 @@ const defaultSettings: Settings = {
   purchasePrefix: 'ACH',
   lowStockAlertEnabled: true,
   theme: 'light',
+  primaryColor: '#1e40af',
+  sidebarColor: '#1e293b',
 };
 
 // Context for global settings
@@ -62,6 +67,8 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
         const res = await fetch('/api/parametres');
         const data = await res.json();
         setSettings(data);
+        // Appliquer les couleurs dès le chargement
+        applyThemeColors(data.primaryColor, data.sidebarColor, data.theme === 'dark');
       } catch (error) {
         console.error('Error loading settings:', error);
       } finally {
@@ -70,6 +77,13 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     }
     loadSettings();
   }, []);
+
+  // Appliquer les couleurs à chaque changement de settings
+  useEffect(() => {
+    if (!isLoading) {
+      applyThemeColors(settings.primaryColor, settings.sidebarColor, settings.theme === 'dark');
+    }
+  }, [settings.primaryColor, settings.sidebarColor, settings.theme, isLoading]);
 
   const updateSettingsHandler = async (updates: Partial<Settings>) => {
     try {
@@ -136,6 +150,7 @@ interface SettingsFormProps {
 
 function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }: SettingsFormProps) {
   const [formData, setFormData] = useState<Settings>(initialSettings);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     setFormData(initialSettings);
@@ -149,7 +164,20 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
   };
 
   const updateField = (field: keyof Settings, value: string | number | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      // Appliquer instantanément les couleurs dès que l'utilisateur change
+      // primaryColor, sidebarColor ou theme
+      if (field === 'primaryColor' || field === 'sidebarColor' || field === 'theme') {
+        const isDark = field === 'theme' ? value === 'dark' : newData.theme === 'dark';
+        applyThemeColors(
+          field === 'primaryColor' ? value as string : newData.primaryColor,
+          field === 'sidebarColor' ? value as string : newData.sidebarColor,
+          isDark,
+        );
+      }
+      return newData;
+    });
   };
 
   return (
@@ -268,7 +296,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         }
         iconBg="bg-accent/10 text-accent"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-4">
           <div className="form-control">
             <label className="label cursor-pointer justify-start gap-3">
               <input
@@ -282,6 +310,68 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
           </div>
           <div className="text-sm text-base-content/60">
             {formData.theme === 'dark' ? '🌙' : '☀️'}
+          </div>
+        </div>
+
+        <div className="divider divider-ghost my-2">Personnalisation des couleurs</div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Primary Color */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium text-sm">Couleur principale (boutons & accents)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <input
+                  type="color"
+                  value={formData.primaryColor}
+                  onChange={(e) => updateField('primaryColor', e.target.value)}
+                  className="w-12 h-12 rounded-xl cursor-pointer border border-base-300 bg-transparent"
+                  style={{ padding: 2 }}
+                />
+              </div>
+              <input
+                type="text"
+                value={formData.primaryColor}
+                onChange={(e) => updateField('primaryColor', e.target.value)}
+                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors font-mono flex-1"
+                placeholder="#1e40af"
+              />
+              <div
+                className="w-8 h-8 rounded-full border border-base-300 shrink-0"
+                style={{ backgroundColor: formData.primaryColor }}
+              />
+            </div>
+          </div>
+
+          {/* Sidebar Color */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium text-sm">Couleur du sidebar</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <input
+                  type="color"
+                  value={formData.sidebarColor}
+                  onChange={(e) => updateField('sidebarColor', e.target.value)}
+                  className="w-12 h-12 rounded-xl cursor-pointer border border-base-300 bg-transparent"
+                  style={{ padding: 2 }}
+                />
+              </div>
+              <input
+                type="text"
+                value={formData.sidebarColor}
+                onChange={(e) => updateField('sidebarColor', e.target.value)}
+                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors font-mono flex-1"
+                placeholder="#1e293b"
+              />
+              <div
+                className="w-8 h-8 rounded-full border border-base-300 shrink-0"
+                style={{ backgroundColor: formData.sidebarColor }}
+              />
+            </div>
           </div>
         </div>
       </SettingsCard>

@@ -23,6 +23,13 @@
   --info-dark: #0891b2;
   --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Cascadia Code", "Consolas", "Courier New", monospace;
+
+  /* Couleurs personnalisables (seront écrasées par JS) */
+  --p-color: #1e40af;
+  --s-color: #3b82f6;
+  --sidebar-color: #1e293b;
+  --sidebar-text: #ffffff;
+  --sidebar-text-muted: #94a3b8;
 }
 
 @theme inline {

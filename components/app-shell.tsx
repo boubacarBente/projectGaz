@@ -91,48 +91,29 @@ export function AppShell({ children }: { children: ReactNode }) {
   const companyName = isLoading ? "Gestion Gaz" : settings.companyName;
   const isActive = (href: string) => pathname === href;
 
-  // Theme-aware colors for sidebar
-  const sidebarColors = isDark 
-    ? {
-        bg: 'from-slate-900 to-slate-800',
-        border: 'border-slate-700/50',
-        text: 'text-white',
-        textSecondary: 'text-slate-400',
-        textMuted: 'text-slate-500',
-        hover: 'hover:bg-slate-700/60',
-        activeBg: 'from-amber-500/20 to-orange-500/10',
-      }
-    : {
-        bg: 'from-slate-800 to-slate-900',
-        border: 'border-slate-700/50',
-        text: 'text-white',
-        textSecondary: 'text-slate-400',
-        textMuted: 'text-slate-500',
-        hover: 'hover:bg-slate-700/60',
-        activeBg: 'from-amber-500/20 to-orange-500/10',
-      };
-
   // Main content background
   const contentBg = isDark ? 'bg-slate-900' : 'bg-base-100';
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className={`hidden lg:flex flex-col w-72 min-h-screen bg-linear-to-br ${sidebarColors.bg} text-white`}>
+      {/* Sidebar - les couleurs sont gérées via CSS variables (--sidebar-color) */}
+      <aside className="hidden lg:flex flex-col w-72 min-h-screen text-[var(--sidebar-text)]"
+        style={{ backgroundColor: 'var(--sidebar-color)' }}>
         {/* Logo/Header */}
-        <div className={`p-6 border-b ${sidebarColors.border}`}>
+        <div className="p-6 border-b" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
           <Link href="/" className="flex items-center gap-3">
             <Image src={'/logo.jpeg'} alt="" width={100} height={50}></Image>
             <div>
-              <h1 className="text-xl font-bold text-white">{companyName}</h1>
-              <p className={`text-xs ${sidebarColors.textSecondary}`}>Gestion</p>
+              <h1 className="text-xl font-bold" style={{ color: 'var(--sidebar-text)' }}>{companyName}</h1>
+              <p className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Gestion</p>
             </div>
           </Link>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
-          <h2 className={`text-xs font-bold uppercase tracking-wider ${sidebarColors.textSecondary} mb-3 px-3`}>
+          <h2 className="text-xs font-bold uppercase tracking-wider mb-3 px-3"
+            style={{ color: 'var(--sidebar-text-muted)' }}>
             Navigation
           </h2>
           <ul className="space-y-1">
@@ -140,13 +121,31 @@ export function AppShell({ children }: { children: ReactNode }) {
               <li key={item.href}>
                 <Link 
                   href={item.href} 
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 border ${
                     isActive(item.href) 
-                      ? `bg-linear-to-r ${sidebarColors.activeBg} text-white border border-amber-500/30` 
-                      : `text-white ${sidebarColors.hover} hover:text-white border border-transparent`
+                      ? 'text-white border-transparent' 
+                      : 'border-transparent'
                   }`}
+                  style={{
+                    backgroundColor: isActive(item.href)
+                      ? 'color-mix(in srgb, var(--sidebar-text) 20%, transparent)'
+                      : 'transparent',
+                    color: isActive(item.href) ? 'var(--sidebar-text)' : 'var(--sidebar-text-muted)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive(item.href)) {
+                      e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--sidebar-text) 10%, transparent)';
+                      e.currentTarget.style.color = 'var(--sidebar-text)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive(item.href)) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = 'var(--sidebar-text-muted)';
+                    }
+                  }}
                 >
-                  <span className={isActive(item.href) ? "text-white" : sidebarColors.textSecondary}>
+                  <span style={{ color: isActive(item.href) ? 'var(--sidebar-text)' : 'inherit' }}>
                     {item.icon}
                   </span>
                   <span className="font-medium">{item.label}</span>
@@ -157,23 +156,32 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         {/* Settings Card */}
-        <div className={`p-4 border-t ${sidebarColors.border}`}>
-          <div className={`p-4 rounded-2xl bg-linear-to-br from-slate-800 to-slate-700/50 border ${sidebarColors.border}`}>
+        <div className="p-4 border-t" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
+          <div className="p-4 rounded-2xl" style={{
+            backgroundColor: 'color-mix(in srgb, var(--sidebar-text) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--sidebar-text) 15%, transparent)',
+          }}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, var(--p-color), var(--s-color))',
+                }}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ color: 'var(--sidebar-text)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-white text-sm">Paramètres</h3>
-                <p className={`text-xs ${sidebarColors.textSecondary}`}>Configurez</p>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--sidebar-text)' }}>Paramètres</h3>
+                <p className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Configurez</p>
               </div>
             </div>
             <Link 
               href="/parametres" 
-              className="btn btn-sm w-full bg-linear-to-r from-blue-500 to-cyan-500 border-0 text-white hover:from-blue-600 hover:to-cyan-600"
+              className="btn btn-sm w-full border-0 text-white"
+              style={{
+                background: 'linear-gradient(135deg, var(--p-color), var(--s-color))',
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -182,7 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               Ouvrir les paramètres
             </Link>
             <div className="mt-3 flex items-center justify-between">
-              <span className={`text-xs ${sidebarColors.textSecondary}`}>Thème</span>
+              <span className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Thème</span>
               <ThemeToggle />
             </div>
           </div>

@@ -146,6 +146,8 @@ export const settings = sqliteTable('settings', {
   purchasePrefix: text('purchase_prefix').default('ACH'),
   lowStockAlertEnabled: integer('low_stock_alert_enabled', { mode: 'boolean' }).default(true),
   theme: text('theme').default('light'),
+  primaryColor: text('primary_color').default('#1e40af'),
+  sidebarColor: text('sidebar_color').default('#1e293b'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
+import { useEffect, useState, createContext, useContext, ReactNode, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { applyThemeColors } from '@/lib/colors';
 
 const THEME_KEY = 'app-theme';
 
@@ -19,20 +20,32 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useTheme = () => useContext(ThemeContext);
 
+// Fonction pour charger les couleurs depuis les settings et les appliquer
+async function loadAndApplyColors(isDark: boolean) {
+  try {
+    const res = await fetch('/api/parametres');
+    const data = await res.json();
+    applyThemeColors(data.primaryColor || '#1e40af', data.sidebarColor || '#1e293b', isDark);
+  } catch {
+    // Si erreur, appliquer les couleurs par défaut
+    applyThemeColors('#1e40af', '#1e293b', isDark);
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Apply theme instantly to the document
-  const applyTheme = (newTheme: 'light' | 'dark') => {
-    // Apply both data-theme attribute (for DaisyUI) and class (for our CSS)
+  const applyTheme = useCallback((newTheme: 'light' | 'dark') => {
     document.documentElement.setAttribute('data-theme', newTheme);
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  };
+    // Appliquer aussi les couleurs sauvegardées
+    loadAndApplyColors(newTheme === 'dark');
+  }, []);
 
   useEffect(() => {
     async function loadTheme() {
@@ -59,15 +72,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
     }
     loadTheme();
-  }, []);
+  }, [applyTheme]);
 
   const handleSetTheme = async (newTheme: 'light' | 'dark') => {
-    // Apply instantly for immediate feedback
     setTheme(newTheme);
     applyTheme(newTheme);
     localStorage.setItem(THEME_KEY, newTheme);
 
-    // Show toast notification
     const themeName = newTheme === 'dark' ? 'Mode Nuit' : 'Mode Jour';
     const themeIcon = newTheme === 'dark' ? '🌙' : '☀️';
     toast.success(`${themeIcon} Thème changé pour ${themeName}`, {
@@ -81,7 +92,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       theme: newTheme,
     });
     
-    // Save to database in background
     try {
       await fetch('/api/parametres', {
         method: 'PUT',

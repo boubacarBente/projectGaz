@@ -1267,6 +1267,8 @@ export type Settings = {
   purchasePrefix: string;
   lowStockAlertEnabled: boolean;
   theme: 'light' | 'dark';
+  primaryColor: string;
+  sidebarColor: string;
 };
 
 const defaultSettings: Settings = {
@@ -1282,6 +1284,8 @@ const defaultSettings: Settings = {
   purchasePrefix: 'ACH',
   lowStockAlertEnabled: true,
   theme: 'light',
+  primaryColor: '#1e40af',
+  sidebarColor: '#1e293b',
 };
 
 // --- CODE JSON (commenté - utilisation SQLite) ---
@@ -1304,9 +1308,6 @@ const defaultSettings: Settings = {
 // }
 
 export async function getSettings(): Promise<Settings> {
-  // --- CODE JSON (commenté) ---
-  // return readSettingsFile();
-
   // --- CODE SQL ---
   const allSettings = await db.select().from(settings);
   if (allSettings.length === 0) {
@@ -1326,6 +1327,8 @@ export async function getSettings(): Promise<Settings> {
       purchasePrefix: r.purchasePrefix || 'ACH',
       lowStockAlertEnabled: r.lowStockAlertEnabled ?? true,
       theme: (r.theme || 'light') as 'light' | 'dark',
+      primaryColor: r.primaryColor || '#1e40af',
+      sidebarColor: r.sidebarColor || '#1e293b',
     };
   }
   
@@ -1343,17 +1346,12 @@ export async function getSettings(): Promise<Settings> {
     purchasePrefix: s.purchasePrefix || 'ACH',
     lowStockAlertEnabled: s.lowStockAlertEnabled ?? true,
     theme: (s.theme || 'light') as 'light' | 'dark',
+    primaryColor: s.primaryColor || '#1e40af',
+    sidebarColor: s.sidebarColor || '#1e293b',
   };
 }
 
 export async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
-  // --- CODE JSON (commenté) ---
-  // const currentSettings = await readSettingsFile();
-  // const updatedSettings = { ...currentSettings, ...updates };
-  // await writeSettingsFile(updatedSettings);
-  // return updatedSettings;
-
-  // --- CODE SQL ---
   const current = await db.select().from(settings);
   if (current.length === 0) {
     throw new Error('Settings not found');
@@ -1373,6 +1371,8 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
   if (updates.purchasePrefix !== undefined) updatesFiltered.purchasePrefix = updates.purchasePrefix;
   if (updates.lowStockAlertEnabled !== undefined) updatesFiltered.lowStockAlertEnabled = updates.lowStockAlertEnabled;
   if (updates.theme !== undefined) updatesFiltered.theme = updates.theme;
+  if (updates.primaryColor !== undefined) updatesFiltered.primaryColor = updates.primaryColor;
+  if (updates.sidebarColor !== undefined) updatesFiltered.sidebarColor = updates.sidebarColor;
 
   await db.update(settings).set(updatesFiltered).where(eq(settings.id, current[0].id));
 
@@ -1391,5 +1391,7 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
     purchasePrefix: s.purchasePrefix || 'ACH',
     lowStockAlertEnabled: s.lowStockAlertEnabled ?? true,
     theme: (s.theme || 'light') as 'light' | 'dark',
+    primaryColor: s.primaryColor || '#1e40af',
+    sidebarColor: s.sidebarColor || '#1e293b',
   };
 }
