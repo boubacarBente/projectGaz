@@ -114,7 +114,7 @@ export default function FournisseursPage() {
   if (isLoading && suppliers.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <span className="loading loading-spinner loading-lg text-warning"></span>
+        <span className="loading loading-spinner loading-lg text-primary"></span>
       </div>
     );
   }
@@ -132,19 +132,19 @@ export default function FournisseursPage() {
         <div className="stats shadow">
           <div className="stat">
             <div className="stat-title">Total fournisseurs</div>
-            <div className="stat-value text-warning">{suppliers.length}</div>
+            <div className="stat-value text-primary">{suppliers.length}</div>
           </div>
         </div>
         <div className="stats shadow">
           <div className="stat">
             <div className="stat-title">Total achats</div>
-            <div className="stat-value text-warning">{formatCurrency(totalAmount)} GNF</div>
+            <div className="stat-value text-primary">{formatCurrency(totalAmount)} GNF</div>
           </div>
         </div>
       </div>
 
       {/* Add Button */}
-      <button onClick={() => setShowAddModal(true)} className="btn btn-warning">
+      <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
@@ -172,7 +172,7 @@ export default function FournisseursPage() {
                 <tr key={supplier.id}>
                   <td className="font-medium">{supplier.name}</td>
                   <td>{supplier.phone || '-'}</td>
-                  <td className="font-semibold text-warning">{formatCurrency(supplier.totalPurchases)} GNF</td>
+                  <td className="font-semibold text-primary">{formatCurrency(supplier.totalPurchases)} GNF</td>
                   <td>
                     <div className="flex gap-2">
                       <button onClick={() => openDetailModal(supplier)} className="btn btn-ghost btn-sm">
@@ -195,7 +195,7 @@ export default function FournisseursPage() {
         onClose={() => setShowAddModal(false)}
         title={
           <div className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0v2m0-2v-2m0 2H9m2 2v-2m0 2h6m-6 0H7m14 0v2m0-2v-2m0 2H9" />
             </svg>
             Nouveau fournisseur
@@ -247,7 +247,7 @@ export default function FournisseursPage() {
 
           <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">Annuler</button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-warning gap-2">
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary gap-2">
               {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : (
                 <><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Ajouter le fournisseur</>
               )}
@@ -262,7 +262,7 @@ export default function FournisseursPage() {
         onClose={() => { setShowDetailModal(false); setSelectedSupplier(null); }}
         title={
           <div className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0v2m0-2v-2m0 2H9m2 2v-2m0 2h6" />
             </svg>
             {selectedSupplier?.supplier.name}
@@ -277,9 +277,9 @@ export default function FournisseursPage() {
                 <p className="text-xs text-base-content/60 uppercase tracking-wide mb-1">Téléphone</p>
                 <p className="font-medium">{selectedSupplier.supplier.phone || '-'}</p>
               </div>
-              <div className="bg-warning/10 rounded-xl p-4">
-                <p className="text-xs text-warning/70 uppercase tracking-wide mb-1">Total achats</p>
-                <p className="font-bold text-warning text-lg">{formatCurrency(selectedSupplier.supplier.totalPurchases)} GNF</p>
+              <div className="bg-primary/10 rounded-xl p-4">
+                <p className="text-xs text-primary/70 uppercase tracking-wide mb-1">Total achats</p>
+                <p className="font-bold text-primary text-lg">{formatCurrency(selectedSupplier.supplier.totalPurchases)} GNF</p>
               </div>
             </div>
 
@@ -318,7 +318,7 @@ export default function FournisseursPage() {
                         <tr key={inv.id}>
                           <td className="font-medium">{inv.reference}</td>
                           <td>{new Date(inv.date).toLocaleDateString('fr-FR')}</td>
-                          <td className="text-right text-warning font-medium">{formatCurrency(inv.totalAmount)} GNF</td>
+                          <td className="text-right text-primary font-medium">{formatCurrency(inv.totalAmount)} GNF</td>
                         </tr>
                       ))}
                     </tbody>
