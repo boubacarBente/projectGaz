@@ -86,22 +86,37 @@ export function applyThemeColors(primaryColor: string, sidebarColor: string, isD
   const sc = hexToHSL(getContrastColor(secondaryHex));
   doc.style.setProperty('--sc', `${sc.h} ${sc.s}% ${sc.l}%`);
 
-  // Info - teinte basée sur la primaire
+  // Info - teinte dérivée de la primaire (décalage +40°, plus clair)
   const infoHex = shiftHue(primaryColor, 40);
-  const info = hexToHSL(infoHex);
+  const info = hexToHSL(lightenHex(infoHex, 20));
   doc.style.setProperty('--in', `${info.h} ${info.s}% ${info.l}%`);
+  const infoContrast = getContrastColor(infoHex);
+  const infoText = hexToHSL(infoContrast);
+  doc.style.setProperty('--inc', `${infoText.h} ${infoText.s}% ${infoText.l}%`);
 
-  // Success - teinte verte
-  const success = hexToHSL('#10b981');
+  // Success - teinte dérivée de la primaire (décalage -80° → vert)
+  const successHex = shiftHue(primaryColor, 100);
+  const success = hexToHSL(successHex);
   doc.style.setProperty('--su', `${success.h} ${success.s}% ${success.l}%`);
+  const successContrast = getContrastColor(successHex);
+  const successText = hexToHSL(successContrast);
+  doc.style.setProperty('--suc', `${successText.h} ${successText.s}% ${successText.l}%`);
 
-  // Warning - teinte orange
-  const warning = hexToHSL('#f59e0b');
+  // Warning - teinte dérivée de la primaire (décalage +160° → orange/jaune)
+  const warningHex = shiftHue(primaryColor, 160);
+  const warning = hexToHSL(warningHex);
   doc.style.setProperty('--wa', `${warning.h} ${warning.s}% ${warning.l}%`);
+  const warningContrast = getContrastColor(warningHex);
+  const warningText = hexToHSL(warningContrast);
+  doc.style.setProperty('--wac', `${warningText.h} ${warningText.s}% ${warningText.l}%`);
 
-  // Error - teinte rouge
-  const error = hexToHSL('#ef4444');
+  // Error - teinte dérivée de la primaire (décalage +150° → rouge)
+  const errorHex = shiftHue(primaryColor, 150);
+  const error = hexToHSL(errorHex);
   doc.style.setProperty('--er', `${error.h} ${error.s}% ${error.l}%`);
+  const errorContrast = getContrastColor(errorHex);
+  const errorText = hexToHSL(errorContrast);
+  doc.style.setProperty('--erc', `${errorText.h} ${errorText.s}% ${errorText.l}%`);
 
   // Variables hex pour les dégradés et usages inline
   doc.style.setProperty('--p-color', primaryColor);
