@@ -528,7 +528,7 @@ export default function DepensesPage() {
                 { value: 'unpaid', label: 'Non payée' },
               ]}
             />
-            <div className="min-w-[200px]">
+            <div className="min-w-50">
               <SearchBar
                 value={search}
                 onChange={setSearch}

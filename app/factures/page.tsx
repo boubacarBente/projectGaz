@@ -581,7 +581,7 @@ export default function FacturesPage() {
                 { value: 'pending', label: 'En attente' },
               ]}
             />
-            <div className="min-w-[200px]">
+            <div className="min-w-50">
               <SearchBar
                 value={search}
                 onChange={setSearch}
