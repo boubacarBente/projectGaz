@@ -25,7 +25,11 @@ async function loadAndApplyColors(isDark: boolean) {
   try {
     const res = await fetch('/api/parametres');
     const data = await res.json();
-    applyThemeColors(data.primaryColor || '#1e40af', data.sidebarColor || '#1e293b', isDark);
+    applyThemeColors(
+      data.primaryColor || '#1e40af',
+      data.sidebarColor || '#1e293b',
+      isDark,
+    );
   } catch {
     // Si erreur, appliquer les couleurs par défaut
     applyThemeColors('#1e40af', '#1e293b', isDark);
