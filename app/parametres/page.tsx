@@ -68,7 +68,11 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
         const data = await res.json();
         setSettings(data);
         // Appliquer les couleurs dès le chargement
-        applyThemeColors(data.primaryColor, data.sidebarColor, data.theme === 'dark');
+        applyThemeColors(
+          data.primaryColor || defaultSettings.primaryColor,
+          data.sidebarColor || defaultSettings.sidebarColor,
+          data.theme === 'dark',
+        );
       } catch (error) {
         console.error('Error loading settings:', error);
       } finally {
@@ -81,7 +85,11 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   // Appliquer les couleurs à chaque changement de settings
   useEffect(() => {
     if (!isLoading) {
-      applyThemeColors(settings.primaryColor, settings.sidebarColor, settings.theme === 'dark');
+      applyThemeColors(
+        settings.primaryColor || defaultSettings.primaryColor,
+        settings.sidebarColor || defaultSettings.sidebarColor,
+        settings.theme === 'dark',
+      );
     }
   }, [settings.primaryColor, settings.sidebarColor, settings.theme, isLoading]);
 
@@ -170,11 +178,11 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
       // primaryColor, sidebarColor ou theme
       if (field === 'primaryColor' || field === 'sidebarColor' || field === 'theme') {
         const isDark = field === 'theme' ? value === 'dark' : newData.theme === 'dark';
-        applyThemeColors(
-          field === 'primaryColor' ? value as string : newData.primaryColor,
-          field === 'sidebarColor' ? value as string : newData.sidebarColor,
-          isDark,
-        );
+        const primary = field === 'primaryColor' ? (value as string) : newData.primaryColor;
+        const sidebar = field === 'sidebarColor' ? (value as string) : newData.sidebarColor;
+        if (primary && sidebar) {
+          applyThemeColors(primary, sidebar, isDark);
+        }
       }
       return newData;
     });

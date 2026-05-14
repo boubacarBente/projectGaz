@@ -3,6 +3,8 @@
  * Retourne { h, s, l } où h est en degrés (0-360), s et l en pourcentage (0-100)
  */
 export function hexToHSL(hex: string): { h: number; s: number; l: number } {
+  if (!hex) return { h: 222, s: 47, l: 40 }; // fallback bleu par défaut (#1e40af)
+
   // Nettoyer le hex
   let h = hex.replace('#', '');
   if (h.length === 3) {
