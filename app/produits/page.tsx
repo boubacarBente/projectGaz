@@ -340,7 +340,7 @@ export default function ProduitsPage() {
                     </td>
                     <td className="text-center">
                       {product.isActive ? (
-                        <span className="badge badge-success badge-xs">
+                        <span className="badge badge-primary badge-xs">
                           Actif
                         </span>
                       ) : (
@@ -627,7 +627,7 @@ export default function ProduitsPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn btn-info"
+              className="btn btn-primary"
             >
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
@@ -706,7 +706,7 @@ export default function ProduitsPage() {
             <button
               onClick={handleDeleteProduct}
               disabled={isSubmitting}
-              className="btn btn-error"
+              className="btn btn-primary"
             >
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
@@ -811,7 +811,7 @@ export default function ProduitsPage() {
                   <span className="text-base-content/50">Statut</span>
                   <p className="font-medium">
                     {selectedProduct.isActive ? (
-                      <span className="badge badge-success badge-sm">Actif</span>
+                      <span className="badge badge-primary badge-sm">Actif</span>
                     ) : (
                       <span className="badge badge-ghost badge-sm">Inactif</span>
                     )}
@@ -853,10 +853,10 @@ export default function ProduitsPage() {
                       {productMovements.map((m) => (
                         <tr key={m.id}>
                           <td>
-                            {m.type === 'entry' && <span className="badge badge-success badge-xs">Entrée</span>}
-                            {m.type === 'exit' && <span className="badge badge-error badge-xs">Sortie</span>}
-                            {m.type === 'return' && <span className="badge badge-warning badge-xs">Retour</span>}
-                            {m.type === 'adjustment' && <span className="badge badge-info badge-xs">Ajust.</span>}
+                            {m.type === 'entry' && <span className="badge badge-primary badge-xs">Entrée</span>}
+                            {m.type === 'exit' && <span className="badge badge-primary badge-xs">Sortie</span>}
+                            {m.type === 'return' && <span className="badge badge-primary badge-xs">Retour</span>}
+                            {m.type === 'adjustment' && <span className="badge badge-primary badge-xs">Ajust.</span>}
                           </td>
                           <td className="font-medium">{m.quantity}</td>
                           <td className="text-base-content/60">{m.reference}</td>
@@ -889,7 +889,7 @@ export default function ProduitsPage() {
                   setShowDetailModal(false);
                   if (selectedProduct) openEditModal(selectedProduct);
                 }}
-                className="btn btn-info gap-2"
+                className="btn btn-primary gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

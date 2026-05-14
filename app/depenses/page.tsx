@@ -584,9 +584,9 @@ export default function DepensesPage() {
                       <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} GNF</td>
                       <td>
                         {invoice.isPaid ? (
-                          <span className="badge badge-success">Payée</span>
+                          <span className="badge badge-primary">Payée</span>
                         ) : (
-                          <span className="badge badge-ghost">Non payée</span>
+                          <span className="badge badge-primary">Non payée</span>
                         )}
                       </td>
                       <td className="text-right">
@@ -1088,7 +1088,7 @@ export default function DepensesPage() {
             >
               Annuler
             </button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-info">
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (
@@ -1136,9 +1136,9 @@ export default function DepensesPage() {
               <div>
                 <p className="text-xs text-base-content/60">Statut</p>
                 {selectedInvoice.isPaid ? (
-                  <span className="badge badge-success">Payée</span>
+                  <span className="badge badge-primary">Payée</span>
                 ) : (
-                  <span className="badge badge-ghost">Non payée</span>
+                  <span className="badge badge-primary">Non payée</span>
                 )}
               </div>
             </div>
@@ -1174,7 +1174,7 @@ export default function DepensesPage() {
             )}
 
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <button onClick={() => { setShowDetailModal(false); setShowEditModal(true); }} className="btn btn-info btn-sm">
+              <button onClick={() => { setShowDetailModal(false); setShowEditModal(true); }} className="btn btn-primary btn-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -1186,7 +1186,7 @@ export default function DepensesPage() {
                 </svg>
                 PDF
               </button>
-              <button onClick={() => handleExportImage(selectedInvoice)} className="btn btn-success btn-sm">
+              <button onClick={() => handleExportImage(selectedInvoice)} className="btn btn-primary btn-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -1231,7 +1231,7 @@ export default function DepensesPage() {
             >
               Annuler
             </button>
-            <button onClick={handleDeletePurchase} disabled={isSubmitting} className="btn btn-error">
+            <button onClick={handleDeletePurchase} disabled={isSubmitting} className="btn btn-primary">
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (

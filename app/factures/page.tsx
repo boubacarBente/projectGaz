@@ -89,10 +89,10 @@ function formatCurrency(value: number) {
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'Paye': return 'badge-success';
-    case 'Partiel': return 'badge-warning';
-    case 'En attente': return 'badge-error';
-    default: return 'badge-ghost';
+    case 'Paye': return 'badge-primary';
+    case 'Partiel': return 'badge-primary';
+    case 'En attente': return 'badge-primary';
+    default: return 'badge-primary';
   }
 }
 
@@ -996,7 +996,7 @@ export default function FacturesPage() {
             >
               Annuler
             </button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-info">
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (
@@ -1127,7 +1127,7 @@ export default function FacturesPage() {
             >
               Annuler
             </button>
-            <button onClick={handleDeleteInvoice} disabled={isSubmitting} className="btn btn-error">
+            <button onClick={handleDeleteInvoice} disabled={isSubmitting} className="btn btn-primary">
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (

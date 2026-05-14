@@ -221,7 +221,7 @@ export default function ClientsPage() {
                 <tbody>
                   {(search === '' ? customers : filtered).slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((customer) => (
                     <tr key={customer.id} className="hover:bg-base-200">
-                      <td><div className="flex items-center gap-3"><div className="avatar placeholder"><div className="bg-primary text-primary-content w-10 rounded-full text-center"><span className="text-lg">{customer.name.charAt(0).toUpperCase()}</span></div></div><div><div className="font-semibold">{customer.name}</div><div className="text-xs text-base-content/60">{customer.isActive ? <span className="badge badge-success badge-xs">Actif</span> : <span className="badge badge-ghost badge-xs">Inactif</span>}</div></div></div></td>
+                      <td><div className="flex items-center gap-3"><div className="avatar placeholder"><div className="bg-primary text-primary-content w-10 rounded-full text-center"><span className="text-lg">{customer.name.charAt(0).toUpperCase()}</span></div></div><div><div className="font-semibold">{customer.name}</div><div className="text-xs text-base-content/60">{customer.isActive ? <span className="badge badge-primary badge-xs">Actif</span> : <span className="badge badge-primary badge-xs">Inactif</span>}</div></div></div></td>
                       <td><div className="text-sm">{customer.phone && <div className="flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>{customer.phone}</div>}{customer.email && <div className="flex items-center gap-1 text-base-content/60"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>{customer.email}</div>}</div></td>
                       <td>{customer.city || '-'}</td>
                       <td>{customer.type ? <span className="badge badge-outline">{customer.type.name}</span> : <span className="text-base-content/50">-</span>}</td>
@@ -364,7 +364,7 @@ export default function ClientsPage() {
             <div>
               <div className="text-lg font-bold">{selectedCustomer.name}</div>
               <div className="text-sm text-base-content/60">
-                {selectedCustomer.isActive ? <span className="badge badge-success badge-xs">Actif</span> : <span className="badge badge-ghost badge-xs">Inactif</span>}
+                {selectedCustomer.isActive ? <span className="badge badge-primary badge-xs">Actif</span> : <span className="badge badge-primary badge-xs">Inactif</span>}
                 {selectedCustomer.type && <> · <span className="badge badge-outline badge-xs">{selectedCustomer.type.name}</span></>}
               </div>
             </div>
@@ -451,7 +451,7 @@ export default function ClientsPage() {
             )}
 
             <div className="flex justify-end gap-3 pt-2 border-t border-base-200">
-              <button onClick={() => { setShowDetailModal(false); openEditModal(selectedCustomer); }} className="btn btn-info btn-sm gap-1">
+              <button onClick={() => { setShowDetailModal(false); openEditModal(selectedCustomer); }} className="btn btn-primary btn-sm gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 Modifier
               </button>
@@ -547,7 +547,7 @@ export default function ClientsPage() {
 
           <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
             <button type="button" onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }} className="btn btn-ghost">Annuler</button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-info">
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
               {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : (
                 <div className="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -568,7 +568,7 @@ export default function ClientsPage() {
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
             <button type="button" onClick={() => { setShowDeleteModal(false); setSelectedCustomer(null); }} className="btn btn-ghost">Annuler</button>
-            <button onClick={handleDeleteClient} disabled={isSubmitting} className="btn btn-error">{isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : <><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>Supprimer</>}</button>
+            <button onClick={handleDeleteClient} disabled={isSubmitting} className="btn btn-primary">{isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : <><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>Supprimer</>}</button>
           </div>
         </div>
       </Modal>
