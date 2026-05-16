@@ -448,25 +448,54 @@ export default function FournisseursPage() {
               {selectedSupplier.invoices.length === 0 ? (
                 <div className="p-4 text-sm text-base-content/60 text-center">Aucune facture d'achat pour ce fournisseur.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="table table-sm">
-                    <thead>
-                      <tr>
-                        <th>Référence</th>
-                        <th>Date</th>
-                        <th className="text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedSupplier.invoices.map((inv) => (
-                        <tr key={inv.id}>
-                          <td className="font-medium">{inv.reference}</td>
-                          <td>{new Date(inv.date).toLocaleDateString('fr-FR')}</td>
-                          <td className="text-right text-primary font-medium">{formatCurrency(inv.totalAmount)} GNF</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="divide-y divide-base-200">
+                  {selectedSupplier.invoices.map((inv) => (
+                    <details key={inv.id} className="group">
+                      <summary className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-base-200/50 transition-colors list-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/30 group-open:rotate-90 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        <div className="flex-1 grid grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <span className="text-base-content/50 text-xs">Réf.</span>
+                            <p className="font-medium">{inv.reference}</p>
+                          </div>
+                          <div>
+                            <span className="text-base-content/50 text-xs">Date</span>
+                            <p>{new Date(inv.date).toLocaleDateString('fr-FR')}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-base-content/50 text-xs">Total</span>
+                            <p className="font-semibold text-primary">{formatCurrency(inv.totalAmount)} GNF</p>
+                          </div>
+                        </div>
+                      </summary>
+                      <div className="px-8 pb-4">
+                        <table className="table table-xs">
+                          <thead>
+                            <tr className="text-xs text-base-content/50">
+                              <th>Code</th>
+                              <th>Produit</th>
+                              <th className="text-center">Qté</th>
+                              <th className="text-right">Prix unit.</th>
+                              <th className="text-right">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {inv.items.map((item, idx) => (
+                              <tr key={idx}>
+                                <td className="font-mono text-xs">{item.productCode}</td>
+                                <td>{item.productName}</td>
+                                <td className="text-center">{item.quantity}</td>
+                                <td className="text-right">{formatCurrency(item.unitCost)} GNF</td>
+                                <td className="text-right font-medium">{formatCurrency(item.totalCost)} GNF</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  ))}
                 </div>
               )}
             </div>

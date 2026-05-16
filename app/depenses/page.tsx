@@ -89,6 +89,8 @@ export default function DepensesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
   const [formData, setFormData] = useState<PurchaseFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [supplierFilter, setSupplierFilter] = useState('');
+
   const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
     invoices,
     ['reference', 'supplier', 'date'],
@@ -98,16 +100,25 @@ export default function DepensesPage() {
       return true;
     }
   );
+
+  // Appliquer aussi le filtre fournisseur
+  const filteredBySupplier = useMemo(() => {
+    if (!supplierFilter) return filtered;
+    return filtered.filter(inv =>
+      inv.supplier.toLowerCase() === supplierFilter.toLowerCase()
+    );
+  }, [filtered, supplierFilter]);
+
   const ITEMS_PER_PAGE = 10;
 
   // Trier par date de création (dernier ajout en premier) et paginer
   const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
+    return [...filteredBySupplier].sort((a, b) => {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return dateB - dateA;
     });
-  }, [filtered]);
+  }, [filteredBySupplier]);
 
   const paginatedInvoices = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -520,6 +531,12 @@ export default function DepensesPage() {
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <FilterSelect
+              value={supplierFilter}
+              onChange={setSupplierFilter}
+              placeholder="Tous les fournisseurs"
+              options={suppliers.map(s => ({ value: s.name, label: s.name }))}
+            />
+            <FilterSelect
               value={filter}
               onChange={setFilter}
               placeholder="Tous les statuts"
@@ -539,7 +556,7 @@ export default function DepensesPage() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {filteredBySupplier.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
