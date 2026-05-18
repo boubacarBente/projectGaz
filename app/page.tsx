@@ -261,7 +261,7 @@ export default function DashboardPage() {
       label: 'Stock total',
       value: `${stockTotal}`,
       hint: `Vendues: ${totalBottlesSold} sur la p\u00e9riode`,
-      icon: '🫙',
+      icon: '🏪',
       color: 'text-primary',
       bgColor: 'bg-primary/10',
       borderColor: 'border-primary/20',

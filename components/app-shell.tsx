@@ -102,7 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar - les couleurs sont gérées via CSS variables (--sidebar-color) */}
-      <aside className="hidden lg:flex flex-col w-72 min-h-screen text-[var(--sidebar-text)]"
+      <aside className="hidden lg:flex flex-col w-72 min-h-screen text-(--sidebar-text)"
         style={{ backgroundColor: 'var(--sidebar-color)' }}>
         {/* Logo/Header */}
         <div className="p-6 border-b" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
