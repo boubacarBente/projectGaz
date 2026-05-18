@@ -69,10 +69,12 @@ export default async function FactureDetailPage({
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <SurfaceCard title="Total">{formatCurrency(invoice.totalAmount)} F</SurfaceCard>
         <SurfaceCard title="Payé">{formatCurrency(invoice.amountPaid)} F</SurfaceCard>
         <SurfaceCard title="Reste">{formatCurrency(invoice.remainingAmount)} F</SurfaceCard>
+        <SurfaceCard title="Coût d'achat">{formatCurrency(invoice.costOfGoodsSold ?? 0)} F</SurfaceCard>
+        <SurfaceCard title="Bénéfice">{formatCurrency(invoice.grossProfit ?? 0)} F</SurfaceCard>
         <SurfaceCard title="Statut">{statusBadge(invoice.paymentStatus)}</SurfaceCard>
       </div>
 
