@@ -3,10 +3,11 @@
 import Link from "next/link";
 import Image from 'next/image';
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useSettings } from "@/app/parametres/page";
 import { useTheme } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { motion, AnimatePresence } from 'framer-motion';
 
 const navigation = [
   { 
@@ -84,6 +85,7 @@ const navigation = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { settings, isLoading } = useSettings();
   const { theme } = useTheme();
@@ -197,8 +199,100 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 border-b border-base-200 bg-base-100 shadow-sm">
+        <Link href="/" className="flex items-center gap-2">
+          <Image src={'/logo.jpeg'} alt="" width={32} height={32} className="rounded" />
+          <span className="font-bold text-sm">{companyName}</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="btn btn-ghost btn-sm btn-square"
+            aria-label="Menu"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {mobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Drawer Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', duration: 0.4, bounce: 0.1 }}
+              className="fixed top-0 right-0 z-50 h-full w-72 shadow-2xl lg:hidden overflow-y-auto"
+              style={{ backgroundColor: 'var(--sidebar-color)' }}
+            >
+              <div className="p-4 border-b flex items-center justify-between"
+                style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
+                <Link href="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                  <Image src={'/logo.jpeg'} alt="" width={32} height={32} className="rounded" />
+                  <span className="font-bold text-sm" style={{ color: 'var(--sidebar-text)' }}>{companyName}</span>
+                </Link>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="btn btn-ghost btn-sm btn-square"
+                  style={{ color: 'var(--sidebar-text)' }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <nav className="p-4">
+                <ul className="space-y-1">
+                  {navigation.map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
+                        style={{
+                          backgroundColor: isActive(item.href)
+                            ? 'color-mix(in srgb, var(--sidebar-text) 20%, transparent)'
+                            : 'transparent',
+                          color: isActive(item.href) ? 'var(--sidebar-text)' : 'var(--sidebar-text-muted)',
+                        }}
+                      >
+                        {item.icon}
+                        <span className="font-medium">{item.label}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="p-4 border-t" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
+                <div className="flex items-center justify-between px-3">
+                  <span className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Thème</span>
+                  <ThemeToggle />
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
-      <main className={`flex-1 ${contentBg} min-h-screen`}>
+      <main className={`flex-1 ${contentBg} min-h-screen lg:pt-0 pt-16`}>
         <div className="max-w-7xl mx-auto p-6">
           {children}
         </div>
