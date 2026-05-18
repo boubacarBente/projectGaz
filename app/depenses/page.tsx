@@ -586,7 +586,7 @@ export default function DepensesPage() {
                         {invoice.isPaid ? (
                           <span className="badge badge-primary">Payée</span>
                         ) : (
-                          <span className="badge badge-primary">Non payée</span>
+                          <span className="badge bg-danger">Non payée</span>
                         )}
                       </td>
                       <td className="text-right">

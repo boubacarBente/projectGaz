@@ -304,7 +304,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         }
         iconBg="bg-accent/10 text-accent"
       >
-        <div className="flex items-center gap-4 mb-4">
+        {/* <div className="flex items-center gap-4 mb-4">
           <div className="form-control">
             <label className="label cursor-pointer justify-start gap-3">
               <input
@@ -319,7 +319,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
           <div className="text-sm text-base-content/60">
             {formData.theme === 'dark' ? '🌙' : '☀️'}
           </div>
-        </div>
+        </div> */}
 
         <div className="divider divider-ghost my-2">Personnalisation des couleurs</div>
 
