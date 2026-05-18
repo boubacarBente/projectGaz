@@ -495,6 +495,21 @@ export async function createSalesInvoice(input: {
     });
   }
 
+  // Mettre à jour le total des achats du client
+  const [existingCustomer] = await db.select()
+    .from(customers)
+    .where(eq(customers.name, input.customerName))
+    .limit(1);
+
+  if (existingCustomer) {
+    await db.update(customers)
+      .set({
+        totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
+        updatedAt: new Date(),
+      })
+      .where(eq(customers.id, existingCustomer.id));
+  }
+
   return {
     id: invoiceId,
     invoiceNumber,
@@ -888,6 +903,23 @@ export async function deleteSalesInvoice(id: number) {
   const existing = await db.select().from(salesInvoices).where(eq(salesInvoices.id, id));
   if (existing.length === 0) {
     throw new Error('Invoice not found');
+  }
+
+  const invoice = existing[0];
+
+  // Soustraire le montant du total des achats du client
+  const [customer] = await db.select()
+    .from(customers)
+    .where(eq(customers.name, invoice.customerName))
+    .limit(1);
+
+  if (customer) {
+    await db.update(customers)
+      .set({
+        totalPurchases: Math.max((customer.totalPurchases ?? 0) - (invoice.totalAmount ?? 0), 0),
+        updatedAt: new Date(),
+      })
+      .where(eq(customers.id, customer.id));
   }
 
   await db.delete(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
