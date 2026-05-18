@@ -55,7 +55,7 @@ export async function GET(
           totalAmount: inv.totalAmount ?? 0,
           amountPaid: inv.amountPaid ?? 0,
           remainingAmount: inv.remainingAmount ?? 0,
-          paymentStatus: inv.paymentStatus || 'En attente',
+          paymentStatus: (inv.paymentStatus || 'En attente') as 'Paye' | 'Partiel' | 'En attente',
           createdAt: inv.createdAt?.toISOString() || '',
         };
       })
