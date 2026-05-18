@@ -86,7 +86,7 @@ export default async function NouvelleFacturePage() {
                   type="number" step="any"
                   name="unitPrice"
                   
-                  defaultValue={defaultProduct?.unitPrice ?? 0}
+                  defaultValue={defaultProduct?.salePrice ?? 0}
                   className="rounded-2xl border border-base-200 bg-base-100 px-4 py-3 text-sm outline-none transition focus:border-sky-500"
                   required
                 />
@@ -98,7 +98,7 @@ export default async function NouvelleFacturePage() {
                   type="number" step="any"
                   name="amountPaid"
                   
-                  defaultValue={defaultProduct?.unitPrice ?? 0}
+                  defaultValue={defaultProduct?.salePrice ?? 0}
                   className="rounded-2xl border border-base-200 bg-base-100 px-4 py-3 text-sm outline-none transition focus:border-sky-500"
                   required
                 />
@@ -152,7 +152,7 @@ export default async function NouvelleFacturePage() {
             <p className="font-semibold">Tarif de reference actuel</p>
             <p className="mt-2">
               {defaultProduct
-                ? `${defaultProduct.code} - ${formatCurrency(defaultProduct.unitPrice)} GNF`
+                ? `${defaultProduct.code} - ${formatCurrency(defaultProduct.salePrice)} GNF`
                 : "Aucun produit disponible"}
             </p>
           </div>

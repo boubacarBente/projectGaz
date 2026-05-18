@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       name: body.name,
       capacity: body.capacity,
       unitPrice: Number(body.unitPrice) || 0,
+      salePrice: Number(body.salePrice) || 0,
       isActive: body.isActive ?? true,
     }).returning();
 

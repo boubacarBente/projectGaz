@@ -46,6 +46,7 @@ export const products = sqliteTable('products', {
   name: text('name').notNull(),
   capacity: text('capacity').notNull(),
   unitPrice: real('unit_price').notNull(),
+  salePrice: real('sale_price').notNull().default(0),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),

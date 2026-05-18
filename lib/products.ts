@@ -10,6 +10,7 @@ export type Product = {
   name: string;
   capacity: string;
   unitPrice: number;
+  salePrice: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -22,6 +23,7 @@ const seedProducts: Product[] = [
     name: "Petite bouteille",
     capacity: "3 kg",
     unitPrice: 28750,
+    salePrice: 28750,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -32,6 +34,7 @@ const seedProducts: Product[] = [
     name: "Moyenne bouteille",
     capacity: "6 kg",
     unitPrice: 51500,
+    salePrice: 51500,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -42,6 +45,7 @@ const seedProducts: Product[] = [
     name: "Grande bouteille",
     capacity: "9 kg",
     unitPrice: 77250,
+    salePrice: 77250,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -52,6 +56,7 @@ const seedProducts: Product[] = [
     name: "Tres grande bouteille",
     capacity: "12 kg",
     unitPrice: 107200,
+    salePrice: 107200,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -62,6 +67,7 @@ const seedProducts: Product[] = [
     name: "Bouteille industrielle",
     capacity: "36 kg",
     unitPrice: 317300,
+    salePrice: 317300,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -72,6 +78,7 @@ const seedProducts: Product[] = [
     name: "Grande bouteille industrielle",
     capacity: "48 kg",
     unitPrice: 508072,
+    salePrice: 508072,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -114,6 +121,7 @@ export async function listProducts() {
     name: p.name,
     capacity: p.capacity,
     unitPrice: p.unitPrice,
+    salePrice: p.salePrice,
     isActive: p.isActive,
     createdAt: p.createdAt?.toISOString() || "",
     updatedAt: p.updatedAt?.toISOString() || "",
@@ -125,6 +133,7 @@ export async function createProduct(input: {
   name: string;
   capacity: string;
   unitPrice: number;
+  salePrice: number;
   isActive: boolean;
 }) {
   // --- CODE JSON (commenté) ---
@@ -163,6 +172,7 @@ export async function createProduct(input: {
     name: input.name,
     capacity: input.capacity,
     unitPrice: Number(input.unitPrice) || 0,
+    salePrice: Number(input.salePrice) || 0,
     isActive: Boolean(input.isActive),
   });
 }
@@ -174,6 +184,7 @@ export async function updateProduct(
     name: string;
     capacity: string;
     unitPrice: number;
+    salePrice: number;
     isActive: boolean;
   },
 ) {
@@ -218,6 +229,7 @@ export async function updateProduct(
     name: input.name,
     capacity: input.capacity,
     unitPrice: Number(input.unitPrice) || 0,
+    salePrice: Number(input.salePrice) || 0,
     isActive: Boolean(input.isActive),
   }).where(eq(products.id, id));
 }

@@ -13,6 +13,7 @@ interface Product {
   name: string;
   capacity: string;
   unitPrice: number;
+  salePrice: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -25,6 +26,7 @@ interface ProductFormData {
   name: string;
   capacity: string;
   unitPrice: string;
+  salePrice: string;
   isActive: boolean;
 }
 
@@ -33,6 +35,7 @@ const initialFormData: ProductFormData = {
   name: '',
   capacity: '',
   unitPrice: '',
+  salePrice: '',
   isActive: true,
 };
 
@@ -74,8 +77,9 @@ export default function ProduitsPage() {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     const unitPriceNum = parseFloat(formData.unitPrice);
-    if (isNaN(unitPriceNum) || unitPriceNum <= 0) {
-      toast.error('Prix invalide');
+    const salePriceNum = parseFloat(formData.salePrice);
+    if (isNaN(unitPriceNum) || unitPriceNum <= 0 || isNaN(salePriceNum) || salePriceNum <= 0) {
+      toast.error('Prix achat ou vente invalide');
       return;
     }
     setIsSubmitting(true);
@@ -88,6 +92,7 @@ export default function ProduitsPage() {
           name: formData.name,
           capacity: formData.capacity,
           unitPrice: parseFloat(formData.unitPrice),
+          salePrice: parseFloat(formData.salePrice),
           isActive: formData.isActive,
         }),
       });
@@ -107,8 +112,9 @@ export default function ProduitsPage() {
     e.preventDefault();
     if (!selectedProduct) return;
     const unitPriceNum = parseFloat(formData.unitPrice);
-    if (isNaN(unitPriceNum) || unitPriceNum <= 0) {
-      toast.error('Prix invalide');
+    const salePriceNum = parseFloat(formData.salePrice);
+    if (isNaN(unitPriceNum) || unitPriceNum <= 0 || isNaN(salePriceNum) || salePriceNum <= 0) {
+      toast.error('Prix achat ou vente invalide');
       return;
     }
     setIsSubmitting(true);
@@ -121,6 +127,7 @@ export default function ProduitsPage() {
           name: formData.name,
           capacity: formData.capacity,
           unitPrice: parseFloat(formData.unitPrice),
+          salePrice: parseFloat(formData.salePrice),
           isActive: formData.isActive,
         }),
       });
@@ -163,6 +170,7 @@ export default function ProduitsPage() {
       name: product.name,
       capacity: product.capacity,
       unitPrice: product.unitPrice.toString(),
+      salePrice: product.salePrice.toString(),
       isActive: product.isActive,
     });
     setShowEditModal(true);
@@ -211,10 +219,10 @@ export default function ProduitsPage() {
     }).format(amount);
 
   const activeProducts = products.filter((p) => p.isActive).length;
-  const averagePrice =
+  const averageSalePrice =
     products.length > 0
       ? Math.round(
-          products.reduce((sum, p) => sum + p.unitPrice, 0) / products.length
+          products.reduce((sum, p) => sum + p.salePrice, 0) / products.length
         )
       : 0;
 
@@ -270,11 +278,11 @@ export default function ProduitsPage() {
         </div>
         <div className="stats shadow">
           <div className="stat">
-            <div className="stat-title">Prix moyen catalogue</div>
+            <div className="stat-title">Prix moyen vente</div>
             <div className="stat-value text-info">
-              {formatCurrency(averagePrice)}
+              {formatCurrency(averageSalePrice)}
             </div>
-            <div className="stat-desc">Prix moyen des produits</div>
+            <div className="stat-desc">Prix moyen de vente</div>
           </div>
         </div>
       </div>
@@ -316,7 +324,8 @@ export default function ProduitsPage() {
                   <th className="font-semibold">Code</th>
                   <th className="font-semibold">Désignation</th>
                   <th className="font-semibold">Capacité</th>
-                  <th className="font-semibold text-right">Prix</th>
+                  <th className="font-semibold text-right">Prix achat</th>
+                  <th className="font-semibold text-right">Prix vente</th>
                   <th className="font-semibold text-center">Statut</th>
                   <th className="font-semibold text-center">Actions</th>
                 </tr>
@@ -337,6 +346,9 @@ export default function ProduitsPage() {
                     </td>
                     <td className="text-right font-semibold text-primary">
                       {formatCurrency(product.unitPrice)}
+                    </td>
+                    <td className="text-right font-semibold text-info">
+                      {formatCurrency(product.salePrice)}
                     </td>
                     <td className="text-center">
                       {product.isActive ? (
@@ -453,7 +465,7 @@ export default function ProduitsPage() {
             </div>
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium">Prix unitaire (GNF) *</span>
+                <span className="label-text font-medium">Prix d'achat (GNF) *</span>
               </label>
               <input
                 type="number" step="any"
@@ -463,6 +475,21 @@ export default function ProduitsPage() {
                 }
                 className="input input-bordered"
                 placeholder="107200"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Prix en vente (GNF) *</span>
+              </label>
+              <input
+                type="number" step="any"
+                required
+                value={formData.salePrice}
+                onChange={(e) =>
+                  setFormData({ ...formData, salePrice: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="120000"
               />
             </div>
             <div className="form-control">
@@ -585,7 +612,7 @@ export default function ProduitsPage() {
             </div>
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium">Prix unitaire (GNF) *</span>
+                <span className="label-text font-medium">Prix d'achat (GNF) *</span>
               </label>
               <input
                 type="number" step="any"
@@ -596,6 +623,21 @@ export default function ProduitsPage() {
                 }
                 className="input input-bordered"
                 placeholder="107200"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Prix en vente (GNF) *</span>
+              </label>
+              <input
+                type="number" step="any"
+                required
+                value={formData.salePrice}
+                onChange={(e) =>
+                  setFormData({ ...formData, salePrice: e.target.value })
+                }
+                className="input input-bordered"
+                placeholder="120000"
               />
             </div>
             <div className="form-control">
@@ -767,12 +809,12 @@ export default function ProduitsPage() {
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-base-200/50 rounded-xl p-4 text-center">
-                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Prix unitaire</p>
+                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Prix achat</p>
                 <p className="text-lg font-bold text-primary">{formatCurrency(selectedProduct.unitPrice)}</p>
               </div>
               <div className="bg-base-200/50 rounded-xl p-4 text-center">
-                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Capacité</p>
-                <p className="text-lg font-bold">{selectedProduct.capacity}</p>
+                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Prix vente</p>
+                <p className="text-lg font-bold text-info">{formatCurrency(selectedProduct.salePrice)}</p>
               </div>
               <div className={`rounded-xl p-4 text-center ${productStock && productStock.currentStock <= productStock.minStock ? 'bg-warning/10' : 'bg-base-200/50'}`}>
                 <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Stock actuel</p>

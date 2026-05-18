@@ -33,7 +33,7 @@ export default async function DepenseDetailPage({
           title="Facture d'achat introuvable"
           description={`Aucune dépense trouvée avec l'ID ${id}.`}
           actions={
-            <Link href="/depenses" className="btn btn-outline">
+            <Link href="/factures-usine" className="btn btn-outline">
               Retour aux dépenses
             </Link>
           }
@@ -50,7 +50,7 @@ export default async function DepenseDetailPage({
         description={`Créée le ${new Date(invoice.date).toLocaleDateString('fr-FR')}`}
         actions={
           <div className="flex gap-2">
-            <Link href="/depenses" className="btn btn-outline">
+            <Link href="/factures-usine" className="btn btn-outline">
               Retour
             </Link>
             <span className={`badge ${invoice.isPaid ? 'badge-success' : 'badge-warning'} text-xs p-3`}>

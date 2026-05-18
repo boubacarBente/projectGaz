@@ -1,10 +1,10 @@
-import { listSalesInvoices, createSalesInvoice } from '@/lib/operations';
+import { getOperationsSnapshot, createSalesInvoice } from '@/lib/operations';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const invoices = await listSalesInvoices();
-    return NextResponse.json(invoices);
+    const snapshot = await getOperationsSnapshot();
+    return NextResponse.json(snapshot.sales);
   } catch (error) {
     console.error('Error fetching sales invoices:', error);
     return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });

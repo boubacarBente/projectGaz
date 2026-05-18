@@ -2,7 +2,10 @@
 import path from "node:path";
 import { db } from "../db/index";
 import { 
+  customerTypes,
+  customers,
   products, 
+  suppliers,
   purchaseInvoices, 
   purchaseInvoiceItems,
   salesInvoices,
@@ -57,7 +60,125 @@ export type SalesInvoice = {
   remainingAmount: number;
   paymentStatus: "Paye" | "Partiel" | "En attente";
   createdAt: string;
+  costOfGoodsSold?: number;
+  grossProfit?: number;
 };
+
+function roundAmount(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function getEventTimestamp(date: string, createdAt: string, fallbackOrder: number) {
+  const createdAtTimestamp = Date.parse(createdAt);
+  if (Number.isFinite(createdAtTimestamp)) {
+    return createdAtTimestamp;
+  }
+
+  const dateTimestamp = Date.parse(`${date}T12:00:00`);
+  if (Number.isFinite(dateTimestamp)) {
+    return dateTimestamp + fallbackOrder;
+  }
+
+  return fallbackOrder;
+}
+
+function calculateSalesProfitMetrics(
+  purchases: PurchaseInvoice[],
+  sales: SalesInvoice[],
+) {
+  const inventory = new Map<number, { quantity: number; totalCost: number }>();
+  const saleSummaries = new Map<number, { costOfGoodsSold: number; grossProfit: number }>();
+  const monthlyProfit = new Map<string, number>();
+
+  const purchaseEvents = purchases.flatMap((invoice, invoiceIndex) =>
+    invoice.items.map((item, itemIndex) => ({
+      type: 'purchase' as const,
+      invoiceId: invoice.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitAmount: item.unitCost,
+      date: invoice.date,
+      timestamp: getEventTimestamp(invoice.date, invoice.createdAt, (invoiceIndex * 100) + itemIndex),
+    })),
+  );
+
+  const saleEvents = sales.flatMap((invoice, invoiceIndex) =>
+    invoice.items.map((item, itemIndex) => ({
+      type: 'sale' as const,
+      invoiceId: invoice.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitAmount: item.unitPrice,
+      date: invoice.date,
+      timestamp: getEventTimestamp(invoice.date, invoice.createdAt, (invoiceIndex * 100) + itemIndex),
+    })),
+  );
+
+  const events = [...purchaseEvents, ...saleEvents].sort((a, b) => {
+    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+    if (a.type !== b.type) return a.type === 'purchase' ? -1 : 1;
+    return a.invoiceId - b.invoiceId;
+  });
+
+  for (const event of events) {
+    const current = inventory.get(event.productId) ?? { quantity: 0, totalCost: 0 };
+
+    if (event.type === 'purchase') {
+      current.quantity += event.quantity;
+      current.totalCost += event.quantity * event.unitAmount;
+      inventory.set(event.productId, current);
+      continue;
+    }
+
+    const averageCost = current.quantity > 0 ? current.totalCost / current.quantity : 0;
+    const costOfGoodsSold = averageCost * event.quantity;
+    const revenue = event.unitAmount * event.quantity;
+    const grossProfit = revenue - costOfGoodsSold;
+
+    current.quantity -= event.quantity;
+    current.totalCost -= costOfGoodsSold;
+
+    if (Math.abs(current.quantity) < 1e-9) {
+      current.quantity = 0;
+    }
+
+    if (Math.abs(current.totalCost) < 1e-9 || current.quantity === 0) {
+      current.totalCost = 0;
+    }
+
+    inventory.set(event.productId, current);
+
+    const existingSummary = saleSummaries.get(event.invoiceId) ?? {
+      costOfGoodsSold: 0,
+      grossProfit: 0,
+    };
+
+    existingSummary.costOfGoodsSold += costOfGoodsSold;
+    existingSummary.grossProfit += grossProfit;
+    saleSummaries.set(event.invoiceId, existingSummary);
+
+    const monthKey = event.date.slice(0, 7);
+    monthlyProfit.set(monthKey, (monthlyProfit.get(monthKey) ?? 0) + grossProfit);
+  }
+
+  const salesWithProfit = sales.map((invoice) => {
+    const summary = saleSummaries.get(invoice.id) ?? { costOfGoodsSold: 0, grossProfit: 0 };
+
+    return {
+      ...invoice,
+      costOfGoodsSold: roundAmount(summary.costOfGoodsSold),
+      grossProfit: roundAmount(summary.grossProfit),
+    };
+  });
+
+  return {
+    salesWithProfit,
+    totalGrossProfit: roundAmount(
+      salesWithProfit.reduce((sum, invoice) => sum + (invoice.grossProfit ?? 0), 0),
+    ),
+    monthlyProfit,
+  };
+}
 
 // --- CODE JSON (commenté - utilisation SQLite) ---
 
@@ -785,10 +906,11 @@ export async function getOperationsSnapshot() {
     (sum, invoice) => sum + invoice.totalAmount,
     0,
   );
-  const totalSales = sales.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
-  const grossProfit = totalSales - totalPurchases;
+  const salesWithProfit = calculateSalesProfitMetrics(purchases, sales).salesWithProfit;
+  const totalSales = salesWithProfit.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
+  const grossProfit = salesWithProfit.reduce((sum, invoice) => sum + (invoice.grossProfit ?? 0), 0);
 
-  const soldByProduct = sales.flatMap((invoice) => invoice.items).reduce<
+  const soldByProduct = salesWithProfit.flatMap((invoice) => invoice.items).reduce<
     Record<
       string,
       {
@@ -813,10 +935,10 @@ export async function getOperationsSnapshot() {
 
   return {
     purchases,
-    sales,
+    sales: salesWithProfit,
     totalPurchases,
     totalSales,
-    grossProfit,
+    grossProfit: roundAmount(grossProfit),
     soldByProduct: Object.values(soldByProduct).sort(
       (a, b) => b.quantity - a.quantity,
     ),
@@ -1165,12 +1287,13 @@ export async function getRapportData() {
     getStock(),
   ]);
 
+  const { salesWithProfit, totalGrossProfit, monthlyProfit } = calculateSalesProfitMetrics(purchases, sales);
   const totalPurchases = purchases.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const totalSales = sales.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const grossProfit = totalSales - totalPurchases;
+  const totalSales = salesWithProfit.reduce((sum, inv) => sum + inv.totalAmount, 0);
+  const grossProfit = totalGrossProfit;
 
   // Sales by product
-  const soldByProduct = sales.flatMap((inv) => inv.items).reduce<
+  const soldByProduct = salesWithProfit.flatMap((inv) => inv.items).reduce<
     Record<string, { productCode: string; productName: string; quantity: number; revenue: number }>
   >((acc, item) => {
     const existing = acc[item.productCode];
@@ -1200,7 +1323,7 @@ export async function getRapportData() {
     }
   });
 
-  sales.forEach((inv) => {
+  salesWithProfit.forEach((inv) => {
     const date = new Date(inv.date);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     if (months[key]) {
@@ -1209,7 +1332,7 @@ export async function getRapportData() {
   });
 
   // Top customers by revenue
-  const customersRevenue = sales.reduce<
+  const customersRevenue = salesWithProfit.reduce<
     Record<string, { name: string; totalSpent: number; invoiceCount: number }>
   >((acc, inv) => {
     const existing = acc[inv.customerName];
@@ -1226,10 +1349,10 @@ export async function getRapportData() {
     .slice(0, 5);
 
   // Summary stats
-  const totalBottlesSold = sales.reduce((sum, inv) => 
+  const totalBottlesSold = salesWithProfit.reduce((sum, inv) => 
     sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
   );
-  const averageBasket = sales.length > 0 ? totalSales / sales.length : 0;
+  const averageBasket = salesWithProfit.length > 0 ? totalSales / salesWithProfit.length : 0;
   const totalBottlesInStock = stock.reduce((sum, s) => sum + (s.currentStock ?? 0), 0);
 
   return {
@@ -1240,13 +1363,13 @@ export async function getRapportData() {
       totalBottlesSold,
       averageBasket,
       totalBottlesInStock,
-      totalInvoices: purchases.length + sales.length,
+      totalInvoices: purchases.length + salesWithProfit.length,
       totalCustomers: Object.keys(customersRevenue).length,
     },
     monthlyData: Object.entries(months).map(([month, data]) => ({
       month,
       ...data,
-      profit: data.sales - data.purchases,
+      profit: roundAmount(monthlyProfit.get(month) ?? 0),
     })),
     soldByProduct: Object.values(soldByProduct).sort((a, b) => b.quantity - a.quantity),
     topCustomers,
@@ -1394,4 +1517,42 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
     primaryColor: s.primaryColor || '#1e40af',
     sidebarColor: s.sidebarColor || '#1e293b',
   };
+}
+
+export async function resetDatabaseExceptProductsAndCustomers() {
+  await db.transaction(async (tx) => {
+    await tx.delete(purchaseInvoiceItems);
+    await tx.delete(salesInvoiceItems);
+    await tx.delete(stockMovements);
+    await tx.delete(purchaseInvoices);
+    await tx.delete(salesInvoices);
+    await tx.delete(stock);
+    await tx.delete(suppliers);
+    await tx.delete(settings);
+
+    await tx.update(customers).set({
+      totalPurchases: 0,
+    });
+
+    const typesInUse = new Set(
+      (await tx.select({ typeId: customers.typeId }).from(customers))
+        .map((row) => row.typeId)
+        .filter((typeId): typeId is number => typeId !== null),
+    );
+
+    if (typesInUse.size > 0) {
+      const existingTypes = await tx.select().from(customerTypes);
+      for (const type of existingTypes) {
+        if (!typesInUse.has(type.id)) {
+          await tx.delete(customerTypes).where(eq(customerTypes.id, type.id));
+        }
+      }
+    } else {
+      await tx.delete(customerTypes);
+    }
+
+    await tx.insert(settings).values(defaultSettings);
+  });
+
+  return { success: true };
 }

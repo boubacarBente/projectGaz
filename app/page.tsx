@@ -62,6 +62,8 @@ type SaleInvoice = {
   remainingAmount: number;
   paymentStatus: string;
   items: SaleItem[];
+  costOfGoodsSold?: number;
+  grossProfit?: number;
 };
 
 type PurchaseInvoice = {
@@ -158,6 +160,7 @@ export default function DashboardPage() {
     const purchases = snapshot.purchases.filter((p) => periodFilter(new Date(p.date)));
     const totalSales = sales.reduce((sum, s) => sum + s.totalAmount, 0);
     const totalPurchases = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
+    const grossProfit = sales.reduce((sum, s) => sum + (s.grossProfit ?? 0), 0);
 
     // Produits vendus filtrés
     const productMap = new Map<string, { name: string; quantity: number }>();
@@ -175,7 +178,7 @@ export default function DashboardPage() {
       purchases,
       totalSales,
       totalPurchases,
-      grossProfit: totalSales - totalPurchases,
+      grossProfit,
       salesCount: sales.length,
       purchasesCount: purchases.length,
       soldByProduct,
@@ -201,6 +204,7 @@ export default function DashboardPage() {
   const monthlyLabels: string[] = [];
   const monthlySales: number[] = [];
   const monthlyPurchases: number[] = [];
+  const monthlyProfit: number[] = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     monthlyLabels.push(`${months[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`);
@@ -212,8 +216,13 @@ export default function DashboardPage() {
       const pd = new Date(p.date);
       return pd.getMonth() === d.getMonth() && pd.getFullYear() === d.getFullYear();
     }).reduce((sum, p) => sum + p.totalAmount, 0);
+    const monthProfit = snapshot.sales.filter((s) => {
+      const sd = new Date(s.date);
+      return sd.getMonth() === d.getMonth() && sd.getFullYear() === d.getFullYear();
+    }).reduce((sum, s) => sum + (s.grossProfit ?? 0), 0);
     monthlySales.push(monthSales);
     monthlyPurchases.push(monthPurchases);
+    monthlyProfit.push(monthProfit);
   }
 
   // Stats cards
@@ -288,8 +297,8 @@ export default function DashboardPage() {
     datasets: [
       {
         label: 'B\u00e9n\u00e9fice',
-        data: monthlySales.map((s, i) => s - monthlyPurchases[i]),
-        backgroundColor: monthlySales.map((s, i) => s - monthlyPurchases[i] >= 0 ? '#22c55e' : '#ef4444'),
+        data: monthlyProfit,
+        backgroundColor: monthlyProfit.map((profit) => profit >= 0 ? '#22c55e' : '#ef4444'),
         borderRadius: 8,
       },
     ],
@@ -332,7 +341,7 @@ export default function DashboardPage() {
   };
 
   const quickLinks = [
-    { href: '/depenses', label: 'Saisir une facture usine', icon: '📋' },
+    { href: '/factures-usine', label: 'Saisir une facture usine', icon: '📋' },
     { href: '/factures/nouvelle', label: 'Enregistrer une vente', icon: '🧾' },
     { href: '/factures', label: 'Voir les factures clients', icon: '📊' },
     { href: '/clients', label: 'Gérer les clients', icon: '👤' },
@@ -519,7 +528,7 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-lg">Approvisionnements récents</h3>
             <p className="text-sm text-base-content/60">{periodLabel} &middot; {purchasesCount} facture(s)</p>
           </div>
-          <Link href="/depenses" className="btn btn-ghost btn-sm">
+          <Link href="/factures-usine" className="btn btn-ghost btn-sm">
             Voir tout
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

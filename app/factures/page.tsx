@@ -40,6 +40,8 @@ type SalesInvoice = {
   totalAmount: number;
   amountPaid: number;
   remainingAmount: number;
+  costOfGoodsSold?: number;
+  grossProfit?: number;
   paymentStatus: 'Paye' | 'Partiel' | 'En attente';
   createdAt: string;
 };
@@ -50,6 +52,7 @@ type Product = {
   name: string;
   capacity: string;
   unitPrice: number;
+  salePrice: number;
 };
 
 type Customer = {
@@ -157,7 +160,7 @@ export default function FacturesPage() {
       if (productsData.length > 0) {
         setFormData(prev => ({
           ...prev,
-          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitPrice: productsData[0].unitPrice.toString() }]
+          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitPrice: productsData[0].salePrice.toString() }]
         }));
       }
     } catch {
@@ -461,7 +464,7 @@ export default function FacturesPage() {
   const addLine = () => {
     setFormData(prev => ({
       ...prev,
-      lines: [...prev.lines, { productId: products[0]?.id.toString() || '', quantity: '1', unitPrice: products[0]?.unitPrice.toString() || '' }],
+      lines: [...prev.lines, { productId: products[0]?.id.toString() || '', quantity: '1', unitPrice: products[0]?.salePrice.toString() || '' }],
     }));
   };
 
@@ -484,7 +487,7 @@ export default function FacturesPage() {
       if (product) {
         setFormData(prev => ({
           ...prev,
-          lines: prev.lines.map((line, i) => i === index ? { ...line, unitPrice: product.unitPrice.toString() } : line),
+          lines: prev.lines.map((line, i) => i === index ? { ...line, unitPrice: product.salePrice.toString() } : line),
         }));
       }
     }
@@ -516,7 +519,7 @@ export default function FacturesPage() {
               if (products.length > 0) {
                 setFormData(prev => ({
                   ...prev,
-                  lines: [{ productId: products[0].id.toString(), quantity: '1', unitPrice: products[0].unitPrice.toString() }]
+                  lines: [{ productId: products[0].id.toString(), quantity: '1', unitPrice: products[0].salePrice.toString() }]
                 }));
               }
               setShowAddModal(true);
@@ -771,7 +774,7 @@ export default function FacturesPage() {
                     <label className="label text-xs"><span className="label-text">Produit</span></label>
                     <select
                       value={line.productId}
-                      onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.unitPrice.toString()); }}
+                      onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.salePrice.toString()); }}
                       className="select select-bordered select-sm w-full"
                     >
                       {products.map(p => (
@@ -938,7 +941,7 @@ export default function FacturesPage() {
                     <label className="label text-xs"><span className="label-text">Produit</span></label>
                     <select
                       value={line.productId}
-                      onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.unitPrice.toString()); }}
+                      onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.salePrice.toString()); }}
                       className="select select-bordered select-sm w-full"
                     >
                       {products.map(p => (
@@ -1069,15 +1072,28 @@ export default function FacturesPage() {
               </table>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="text-center p-3 bg-base-200 rounded-lg">
                 <div className="text-base-content/60 text-xs">Total</div>
                 <div className="font-semibold text-lg">{formatCurrency(selectedInvoice.totalAmount)}</div>
+              </div>
+              <div className="text-center p-3 bg-sky-50 rounded-lg">
+                <div className="text-base-content/60 text-xs">Coût de revient</div>
+                <div className="font-semibold text-lg text-info">{formatCurrency(selectedInvoice.costOfGoodsSold ?? 0)}</div>
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
                 <div className="text-base-content/60 text-xs">Encaisse</div>
                 <div className="font-semibold text-lg text-success">{formatCurrency(selectedInvoice.amountPaid)}</div>
               </div>
+              <div className={`text-center p-3 rounded-lg ${(selectedInvoice.grossProfit ?? 0) >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                <div className="text-base-content/60 text-xs">Bénéfice</div>
+                <div className={`font-semibold text-lg ${(selectedInvoice.grossProfit ?? 0) >= 0 ? 'text-success' : 'text-error'}`}>
+                  {formatCurrency(selectedInvoice.grossProfit ?? 0)}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 text-sm">
               <div className="text-center p-3 bg-amber-50 rounded-lg">
                 <div className="text-base-content/60 text-xs">Reste</div>
                 <div className="font-semibold text-lg text-warning">{formatCurrency(selectedInvoice.remainingAmount)}</div>

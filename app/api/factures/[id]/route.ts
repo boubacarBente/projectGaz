@@ -1,4 +1,4 @@
-import { getSalesInvoice, updateSalesInvoice, deleteSalesInvoice } from '@/lib/operations';
+import { getOperationsSnapshot, updateSalesInvoice, deleteSalesInvoice } from '@/lib/operations';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -13,7 +13,8 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    const invoice = await getSalesInvoice(invoiceId);
+    const snapshot = await getOperationsSnapshot();
+    const invoice = snapshot.sales.find((item) => item.id === invoiceId) ?? null;
     
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });

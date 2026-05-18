@@ -4,6 +4,7 @@ import { useState, useEffect, createContext, useContext, ReactNode, useRef } fro
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
+import { Modal } from '@/components/modal';
 import { applyThemeColors } from '@/lib/colors';
 
 type Settings = {
@@ -158,6 +159,8 @@ interface SettingsFormProps {
 
 function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }: SettingsFormProps) {
   const [formData, setFormData] = useState<Settings>(initialSettings);
+  const [isResettingData, setIsResettingData] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -186,6 +189,27 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
       }
       return newData;
     });
+  };
+
+  const handleResetDatabase = async () => {
+    setIsResettingData(true);
+    try {
+      const res = await fetch('/api/parametres/reset-data', {
+        method: 'POST',
+      });
+
+      if (!res.ok) {
+        throw new Error('Erreur');
+      }
+
+      toast.success('Base réinitialisée avec succès.');
+      setShowResetModal(false);
+      window.location.reload();
+    } catch {
+      toast.error('Erreur lors de la réinitialisation de la base.');
+    } finally {
+      setIsResettingData(false);
+    }
   };
 
   return (
@@ -482,6 +506,42 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         </div>
       </SettingsCard>
 
+      <SettingsCard
+        title="Zone dangereuse"
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-7.938 4h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        }
+        iconBg="bg-error/10 text-error"
+      >
+        <div className="rounded-2xl border border-error/20 bg-error/5 p-5">
+          <h4 className="mb-2 font-semibold text-error">Réinitialiser les données opérationnelles</h4>
+          <p className="text-sm leading-6 text-base-content/70">
+            Cette action supprime les factures de vente, factures d&apos;usine, fournisseurs, mouvements de stock,
+            stock actuel et remet les paramètres par défaut. Les produits, les clients et les types de clients
+            encore utilisés sont conservés.
+          </p>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowResetModal(true)}
+              disabled={isResettingData || isSubmitting}
+              className="btn btn-error gap-2"
+            >
+              {isResettingData ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
+              Réinitialiser la base
+            </button>
+          </div>
+        </div>
+      </SettingsCard>
+
       {/* Submit Button */}
       <div className="flex justify-end pt-4">
         <button
@@ -499,6 +559,61 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
           Enregistrer les paramètres
         </button>
       </div>
+
+      <Modal
+        isOpen={showResetModal}
+        onClose={() => {
+          if (!isResettingData) {
+            setShowResetModal(false);
+          }
+        }}
+        title="Confirmer la réinitialisation"
+        size="sm"
+      >
+        <div className="py-2">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-error/10 p-3 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <p className="text-base-content/70">
+              Voulez-vous vraiment réinitialiser les données opérationnelles ?
+              <br />
+              <span className="text-sm">
+                Les produits et les clients seront conservés, mais les factures, le stock, les mouvements et les fournisseurs seront supprimés.
+              </span>
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
+            <button
+              type="button"
+              onClick={() => setShowResetModal(false)}
+              disabled={isResettingData}
+              className="btn btn-ghost"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleResetDatabase}
+              disabled={isResettingData}
+              className="btn btn-error"
+            >
+              {isResettingData ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Confirmer
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </form>
   );
 }
@@ -577,3 +692,4 @@ export default function ParametresPage() {
     </motion.div>
   );
 }
+

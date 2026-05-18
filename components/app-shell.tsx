@@ -56,8 +56,8 @@ const navigation = [
     )
   },
   { 
-    href: "/depenses", 
-    label: "Dépenses", 
+    href: "/factures-usine", 
+    label: "Usine", 
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -91,7 +91,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const companyName = isLoading ? "Gestion Gaz" : settings.companyName;
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   // Main content background
   const contentBg = isDark ? 'bg-slate-900' : 'bg-base-100';

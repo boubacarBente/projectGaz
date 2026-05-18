@@ -41,6 +41,7 @@ export async function createPurchase(formData: FormData) {
   });
 
   revalidatePath("/depenses");
+  revalidatePath("/factures-usine");
   revalidatePath("/rapports");
   revalidatePath("/");
 }

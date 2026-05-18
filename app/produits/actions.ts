@@ -18,12 +18,12 @@ function getRequiredText(formData: FormData, field: string) {
   return value.trim();
 }
 
-function getPrice(formData: FormData) {
-  const value = getRequiredText(formData, "unitPrice");
+function getPrice(formData: FormData, field: string, label: string) {
+  const value = getRequiredText(formData, field);
   const parsed = Number(value);
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error("Le prix unitaire doit etre un nombre positif.");
+    throw new Error(`${label} doit etre un nombre positif.`);
   }
 
   return parsed;
@@ -49,7 +49,8 @@ export async function createProduct(formData: FormData) {
     code: getRequiredText(formData, "code").toUpperCase(),
     name: getRequiredText(formData, "name"),
     capacity: getRequiredText(formData, "capacity"),
-    unitPrice: getPrice(formData),
+    unitPrice: getPrice(formData, "unitPrice", "Le prix d'achat"),
+    salePrice: getPrice(formData, "salePrice", "Le prix de vente"),
     isActive: getActiveFlag(formData),
   });
 
@@ -63,7 +64,8 @@ export async function updateProduct(formData: FormData) {
     code: getRequiredText(formData, "code").toUpperCase(),
     name: getRequiredText(formData, "name"),
     capacity: getRequiredText(formData, "capacity"),
-    unitPrice: getPrice(formData),
+    unitPrice: getPrice(formData, "unitPrice", "Le prix d'achat"),
+    salePrice: getPrice(formData, "salePrice", "Le prix de vente"),
     isActive: getActiveFlag(formData),
   });
 
