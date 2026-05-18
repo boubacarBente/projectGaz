@@ -82,7 +82,7 @@ function getEventTimestamp(date: string, createdAt: string, fallbackOrder: numbe
   return fallbackOrder;
 }
 
-function calculateSalesProfitMetrics(
+export function calculateSalesProfitMetrics(
   purchases: PurchaseInvoice[],
   sales: SalesInvoice[],
 ) {
