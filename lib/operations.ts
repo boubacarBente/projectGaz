@@ -1,5 +1,6 @@
 ﻿import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import Database from "better-sqlite3";
 import { db } from "../db/index";
 import { 
   customerTypes,
@@ -1574,39 +1575,39 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
 }
 
 export async function resetDatabaseExceptProductsAndCustomers() {
-  await db.transaction(async (tx) => {
-    await tx.delete(purchaseInvoiceItems);
-    await tx.delete(salesInvoiceItems);
-    await tx.delete(stockMovements);
-    await tx.delete(purchaseInvoices);
-    await tx.delete(salesInvoices);
-    await tx.delete(stock);
-    await tx.delete(suppliers);
-    await tx.delete(settings);
+  const client: Database.Database = (db as any).$client;
 
-    await tx.update(customers).set({
-      totalPurchases: 0,
-    });
+  client.transaction(() => {
+    client.prepare('DELETE FROM purchase_invoice_items').run();
+    client.prepare('DELETE FROM sales_invoice_items').run();
+    client.prepare('DELETE FROM stock_movements').run();
+    client.prepare('DELETE FROM purchase_invoices').run();
+    client.prepare('DELETE FROM sales_invoices').run();
+    client.prepare('DELETE FROM stock').run();
+    client.prepare('DELETE FROM suppliers').run();
+    client.prepare('DELETE FROM settings').run();
 
-    const typesInUse = new Set(
-      (await tx.select({ typeId: customers.typeId }).from(customers))
-        .map((row) => row.typeId)
-        .filter((typeId): typeId is number => typeId !== null),
-    );
+    client.prepare('UPDATE customers SET total_purchases = 0').run();
+
+    // Nettoyer les customer_types inutilisés
+    const rows = client.prepare('SELECT type_id FROM customers WHERE type_id IS NOT NULL').all() as { type_id: number }[];
+    const typesInUse = new Set(rows.map(r => r.type_id));
 
     if (typesInUse.size > 0) {
-      const existingTypes = await tx.select().from(customerTypes);
-      for (const type of existingTypes) {
-        if (!typesInUse.has(type.id)) {
-          await tx.delete(customerTypes).where(eq(customerTypes.id, type.id));
+      const existing = client.prepare('SELECT id FROM customer_types').all() as { id: number }[];
+      for (const t of existing) {
+        if (!typesInUse.has(t.id)) {
+          client.prepare('DELETE FROM customer_types WHERE id = ?').run(t.id);
         }
       }
     } else {
-      await tx.delete(customerTypes);
+      client.prepare('DELETE FROM customer_types').run();
     }
 
-    await tx.insert(settings).values(defaultSettings);
-  });
+    // Réinsérer les settings par défaut
+    client.prepare(`INSERT INTO settings (company_name, company_address, company_phone, company_email, default_min_stock, currency, currency_symbol, date_format, invoice_prefix, purchase_prefix, low_stock_alert_enabled, theme, primary_color, sidebar_color)
+      VALUES ('Mini-Centre Distribution', '', '', '', 10, 'GNF', 'GNF', 'DD/MM/YYYY', 'FAC', 'ACH', 1, 'light', '#1e40af', '#1e293b')`).run();
+  })();
 
   return { success: true };
 }
