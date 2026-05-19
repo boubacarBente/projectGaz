@@ -1222,9 +1222,26 @@ export async function addStockMovement(input: {
   }
 
   // Récupérer le stock actuel
-  const existingStock = await db.select().from(stock).where(eq(stock.productId, input.productId));
+  let existingStock = await db.select().from(stock).where(eq(stock.productId, input.productId));
+  
+  // Si le produit n'a pas d'entrée en stock, l'initialiser (pour les entrées)
   if (existingStock.length === 0) {
-    throw new Error('Product not found in stock');
+    if (input.type === 'entry' || input.type === 'adjustment') {
+      await db.insert(stock).values({
+        productId: input.productId,
+        productCode: product.code,
+        productName: product.name,
+        capacity: product.capacity,
+        currentStock: 0,
+        minStock: 10,
+        lastEntry: null,
+        lastExit: null,
+      });
+      existingStock = await db.select().from(stock).where(eq(stock.productId, input.productId));
+    }
+    if (existingStock.length === 0) {
+      throw new Error('Product not found in stock');
+    }
   }
 
   const currentStock = existingStock[0];
