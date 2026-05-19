@@ -1,9 +1,9 @@
-import { resetDatabaseExceptProductsAndCustomers } from '@/lib/operations';
+import { resetDatabase } from '@/lib/operations';
 import { NextResponse } from 'next/server';
 
 export async function POST() {
   try {
-    const result = await resetDatabaseExceptProductsAndCustomers();
+    const result = await resetDatabase();
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error resetting database:', error);
