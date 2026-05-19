@@ -1595,31 +1595,23 @@ export async function resetDatabaseExceptProductsAndCustomers() {
   const client: Database.Database = (db as any).$client;
 
   client.transaction(() => {
+    // Supprimer les items des factures
     client.prepare('DELETE FROM purchase_invoice_items').run();
     client.prepare('DELETE FROM sales_invoice_items').run();
+    // Supprimer les mouvements de stock
     client.prepare('DELETE FROM stock_movements').run();
+    // Supprimer les factures
     client.prepare('DELETE FROM purchase_invoices').run();
     client.prepare('DELETE FROM sales_invoices').run();
+    // Supprimer le stock
     client.prepare('DELETE FROM stock').run();
+    // Supprimer les fournisseurs
     client.prepare('DELETE FROM suppliers').run();
+    // Supprimer les clients et leurs types (clients d'abord à cause de FK)
+    client.prepare('DELETE FROM customers').run();
+    client.prepare('DELETE FROM customer_types').run();
+    // Supprimer les paramètres
     client.prepare('DELETE FROM settings').run();
-
-    client.prepare('UPDATE customers SET total_purchases = 0').run();
-
-    // Nettoyer les customer_types inutilisés
-    const rows = client.prepare('SELECT type_id FROM customers WHERE type_id IS NOT NULL').all() as { type_id: number }[];
-    const typesInUse = new Set(rows.map(r => r.type_id));
-
-    if (typesInUse.size > 0) {
-      const existing = client.prepare('SELECT id FROM customer_types').all() as { id: number }[];
-      for (const t of existing) {
-        if (!typesInUse.has(t.id)) {
-          client.prepare('DELETE FROM customer_types WHERE id = ?').run(t.id);
-        }
-      }
-    } else {
-      client.prepare('DELETE FROM customer_types').run();
-    }
 
     // Réinsérer les settings par défaut
     client.prepare(`INSERT INTO settings (company_name, company_address, company_phone, company_email, default_min_stock, currency, currency_symbol, date_format, invoice_prefix, purchase_prefix, low_stock_alert_enabled, theme, primary_color, sidebar_color)

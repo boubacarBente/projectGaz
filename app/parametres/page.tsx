@@ -544,11 +544,11 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         iconBg="bg-error/10 text-error"
       >
         <div className="rounded-2xl border border-error/20 bg-error/5 p-5">
-          <h4 className="mb-2 font-semibold text-error">Réinitialiser les données opérationnelles</h4>
+          <h4 className="mb-2 font-semibold text-error">Réinitialiser la base de données</h4>
           <p className="text-sm leading-6 text-base-content/70">
-            Cette action supprime les factures de vente, factures d&apos;usine, fournisseurs, mouvements de stock,
-            stock actuel et remet les paramètres par défaut. Les produits, les clients et les types de clients
-            encore utilisés sont conservés.
+            Cette action supprime les clients, les types de clients, les factures de vente, les factures d&apos;usine,
+            les fournisseurs, les mouvements de stock, le stock actuel et remet les paramètres par défaut.
+            <strong> Les produits sont conservés.</strong>
           </p>
           <div className="mt-4 flex justify-end">
             <button
@@ -647,7 +647,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               Voulez-vous vraiment réinitialiser les données opérationnelles ?
               <br />
               <span className="text-sm">
-                Les produits et les clients seront conservés, mais les factures, le stock, les mouvements et les fournisseurs seront supprimés.
+                Les clients, les factures, le stock, les mouvements et les fournisseurs seront supprimés (les produits sont conservés).
               </span>
             </p>
           </div>
