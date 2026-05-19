@@ -18,12 +18,12 @@ export const seedSuppliers = [
 ];
 
 export const seedProducts = [
-  { code: "B3", name: "Petite bouteille", capacity: "3 kg", salePrice: 28750, purchasePrice: 25000 },
-  { code: "B6", name: "Moyenne bouteille", capacity: "6 kg", salePrice: 51500, purchasePrice: 45000 },
-  { code: "B9", name: "Grande bouteille", capacity: "9 kg", salePrice: 77250, purchasePrice: 68000 },
-  { code: "B12", name: "Très grande bouteille", capacity: "12 kg", salePrice: 107200, purchasePrice: 95000 },
-  { code: "B36", name: "Bouteille industrielle", capacity: "36 kg", salePrice: 317300, purchasePrice: 280000 },
-  { code: "B48", name: "Grande bouteille industrielle", capacity: "48 kg", salePrice: 508072, purchasePrice: 450000 },
+  { code: "B3", name: "Petite bouteille", capacity: "3 kg", unitPrice: 28750, salePrice: 28750 },
+  { code: "B6", name: "Moyenne bouteille", capacity: "6 kg", unitPrice: 51500, salePrice: 51500 },
+  { code: "B9", name: "Grande bouteille", capacity: "9 kg", unitPrice: 77250, salePrice: 77250 },
+  { code: "B12", name: "Très grande bouteille", capacity: "12 kg", unitPrice: 107200, salePrice: 107200 },
+  { code: "B36", name: "Bouteille industrielle", capacity: "36 kg", unitPrice: 317300, salePrice: 317300 },
+  { code: "B48", name: "Grande bouteille industrielle", capacity: "48 kg", unitPrice: 508072, salePrice: 508072 },
 ];
 
 export async function seedDatabase() {
@@ -82,10 +82,10 @@ export async function seedDatabase() {
   // Seed products
   if (existingProducts.count === 0) {
     const insertProduct = client.prepare(
-      "INSERT INTO products (code, name, capacity, sale_price, purchase_price) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO products (code, name, capacity, unit_price, sale_price) VALUES (?, ?, ?, ?, ?)"
     );
     for (const p of seedProducts) {
-      insertProduct.run(p.code, p.name, p.capacity, p.salePrice, p.purchasePrice);
+      insertProduct.run(p.code, p.name, p.capacity, p.unitPrice, p.salePrice);
     }
     results.push(`✓ ${seedProducts.length} produits créés`);
 
