@@ -90,12 +90,12 @@ export async function seedDatabase() {
     results.push(`✓ ${seedProducts.length} produits créés`);
 
     // Initialiser le stock pour chaque produit
-    const products = client.prepare("SELECT id FROM products").all() as { id: number }[];
+    const products = client.prepare("SELECT id, code, name, capacity FROM products").all() as { id: number; code: string; name: string; capacity: string }[];
     const insertStock = client.prepare(
-      "INSERT INTO stock (product_id, current_stock, min_stock) VALUES (?, ?, ?)"
+      "INSERT INTO stock (product_id, product_code, product_name, capacity, current_stock, min_stock) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const prod of products) {
-      insertStock.run(prod.id, 50, 10);
+      insertStock.run(prod.id, prod.code, prod.name, prod.capacity, 50, 10);
     }
     results.push(`✓ Stock initialisé (50 unités par produit, seuil min : 10)`);
   } else {
