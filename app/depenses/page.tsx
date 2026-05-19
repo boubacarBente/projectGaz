@@ -32,7 +32,8 @@ type PurchaseInvoiceItem = {
 type PurchaseInvoice = {
   id: number;
   reference: string;
-  supplier: string;
+  supplierName: string;
+  supplierId: number | null;
   date: string;
   notes: string;
   items: PurchaseInvoiceItem[];
@@ -57,7 +58,7 @@ interface PurchaseLine {
 
 interface PurchaseFormData {
   reference: string;
-  supplier: string;
+  supplierId: number;
   date: string;
   notes: string;
   lines: PurchaseLine[];
@@ -66,7 +67,7 @@ interface PurchaseFormData {
 
 const initialFormData: PurchaseFormData = {
   reference: '',
-  supplier: 'Usine',
+  supplierId: 0,
   date: new Date().toISOString().slice(0, 10),
   notes: '',
   lines: [{ productId: '', quantity: '1', unitCost: '' }],
@@ -93,7 +94,7 @@ export default function DepensesPage() {
 
   const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
     invoices,
-    ['reference', 'supplier', 'date'],
+    ['reference', 'supplierName', 'date'],
     (item, filterValue) => {
       if (filterValue === 'paid') return item.isPaid === true;
       if (filterValue === 'unpaid') return item.isPaid === false;
@@ -105,7 +106,7 @@ export default function DepensesPage() {
   const filteredBySupplier = useMemo(() => {
     if (!supplierFilter) return filtered;
     return filtered.filter(inv =>
-      inv.supplier.toLowerCase() === supplierFilter.toLowerCase()
+      inv.supplierName.toLowerCase() === supplierFilter.toLowerCase()
     );
   }, [filtered, supplierFilter]);
 
@@ -188,7 +189,7 @@ export default function DepensesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reference: formData.reference,
-          supplier: formData.supplier,
+          supplierId: formData.supplierId,
           date: formData.date,
           notes: formData.notes,
           lines,
@@ -236,7 +237,7 @@ export default function DepensesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reference: formData.reference,
-          supplier: formData.supplier,
+          supplierId: formData.supplierId,
           date: formData.date,
           notes: formData.notes,
           lines,
@@ -279,7 +280,7 @@ export default function DepensesPage() {
     setSelectedInvoice(invoice);
     setFormData({
       reference: invoice.reference,
-      supplier: invoice.supplier,
+      supplierId: invoice.supplierId ?? 0,
       date: invoice.date,
       notes: invoice.notes,
       lines: invoice.items.map(item => ({
@@ -423,7 +424,7 @@ export default function DepensesPage() {
           <p style="font-size:18px;color:#475569;margin:0;">N° ${invoice.reference}</p>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:30px;">
-          <div><p style="font-size:12px;color:#64748b;margin:0;">Fournisseur</p><p style="font-size:16px;font-weight:bold;margin:5px 0 0 0;">${invoice.supplier}</p></div>
+          <div><p style="font-size:12px;color:#64748b;margin:0;">Fournisseur</p><p style="font-size:16px;font-weight:bold;margin:5px 0 0 0;">${invoice.supplierName}</p></div>
           <div style="text-align:right;">
             <p style="font-size:12px;color:#64748b;margin:0;">Date</p><p style="font-size:14px;margin:5px 0 0 0;">${new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
           </div>
@@ -587,7 +588,7 @@ export default function DepensesPage() {
                   {paginatedInvoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td className="font-medium">{invoice.reference}</td>
-                      <td>{invoice.supplier}</td>
+                      <td>{invoice.supplierName}</td>
                       <td>{new Date(invoice.date).toLocaleDateString('fr-MA')}</td>
                       <td>
                         <div className="text-sm">
@@ -686,13 +687,13 @@ export default function DepensesPage() {
                 </label>
                 <select
                   required
-                  value={formData.supplier}
-                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  value={formData.supplierId}
+                  onChange={(e) => setFormData({ ...formData, supplierId: parseInt(e.target.value) })}
                   className="select select-bordered select-primary focus:select-focus"
                 >
-                  <option value="">Sélectionner un fournisseur...</option>
+                  <option value={0}>Sélectionner un fournisseur...</option>
                   {suppliers.map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>
@@ -923,13 +924,13 @@ export default function DepensesPage() {
                 </label>
                 <select
                   required
-                  value={formData.supplier}
-                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  value={formData.supplierId}
+                  onChange={(e) => setFormData({ ...formData, supplierId: parseInt(e.target.value) })}
                   className="select select-bordered select-primary focus:select-focus"
                 >
-                  <option value="">Sélectionner un fournisseur...</option>
+                  <option value={0}>Sélectionner un fournisseur...</option>
                   {suppliers.map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>
@@ -1144,7 +1145,7 @@ export default function DepensesPage() {
               </div>
               <div>
                 <p className="text-xs text-base-content/60">Fournisseur</p>
-                <p className="font-medium">{selectedInvoice.supplier}</p>
+                <p className="font-medium">{selectedInvoice.supplierName}</p>
               </div>
               <div>
                 <p className="text-xs text-base-content/60">Montant total</p>

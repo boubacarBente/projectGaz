@@ -46,7 +46,7 @@ export default async function DepenseDetailPage({
     <div className="space-y-6">
       <PageHeader
         eyebrow={`Réf. ${invoice.reference}`}
-        title={invoice.supplier}
+        title={invoice.supplierName}
         description={`Créée le ${new Date(invoice.date).toLocaleDateString('fr-FR')}`}
         actions={
           <div className="flex gap-2">
@@ -62,14 +62,14 @@ export default async function DepenseDetailPage({
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <SurfaceCard title="Total">{formatCurrency(invoice.totalAmount)} F</SurfaceCard>
-        <SurfaceCard title="Fournisseur">{invoice.supplier}</SurfaceCard>
+        <SurfaceCard title="Fournisseur">{invoice.supplierName}</SurfaceCard>
         <SurfaceCard title="Statut">{invoice.isPaid ? 'Payée' : 'Impayée'}</SurfaceCard>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SurfaceCard title="Fournisseur">
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between"><dt className="text-base-content/60">Nom</dt><dd>{invoice.supplier}</dd></div>
+            <div className="flex justify-between"><dt className="text-base-content/60">Nom</dt><dd>{invoice.supplierName}</dd></div>
             <div className="flex justify-between"><dt className="text-base-content/60">Date</dt><dd>{new Date(invoice.date).toLocaleDateString('fr-FR')}</dd></div>
             <div className="flex justify-between"><dt className="text-base-content/60">Référence</dt><dd>{invoice.reference}</dd></div>
             <div className="flex justify-between"><dt className="text-base-content/60">Payée</dt><dd>{invoice.isPaid ? 'Oui' : 'Non'}</dd></div>

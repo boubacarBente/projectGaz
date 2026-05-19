@@ -39,11 +39,11 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { reference, supplier, date, notes, lines, isPaid } = body;
+    const { reference, supplierId, date, notes, lines, isPaid } = body;
 
     const invoice = await updatePurchaseInvoice(invoiceId, {
       ...(reference && { reference }),
-      ...(supplier && { supplier }),
+      ...(supplierId !== undefined && { supplierId }),
       ...(date && { date }),
       ...(notes !== undefined && { notes }),
       ...(lines && { lines }),

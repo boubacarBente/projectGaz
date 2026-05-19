@@ -55,13 +55,6 @@ export async function PUT(
       .set({ ...data, updatedAt: new Date() })
       .where(eq(suppliers.id, supplierId))
       .returning();
-    
-    // Si le nom a changé, synchroniser dans les factures d'usine liées
-    if (data.name && result.length > 0) {
-      await db.update(purchaseInvoices)
-        .set({ supplier: data.name })
-        .where(eq(purchaseInvoices.supplierId, supplierId));
-    }
 
     return NextResponse.json(result[0]);
   } catch (error) {

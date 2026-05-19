@@ -14,15 +14,15 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { reference, supplier, date, notes, lines, isPaid } = body;
+    const { reference, supplierId, date, notes, lines, isPaid } = body;
 
-    if (!reference || !supplier || !date || !lines || !Array.isArray(lines) || lines.length === 0) {
+    if (!reference || !supplierId || !date || !lines || !Array.isArray(lines) || lines.length === 0) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     }
 
     const invoice = await createPurchaseInvoice({
       reference,
-      supplier,
+      supplierId,
       date,
       notes: notes || '',
       lines,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, schema } from '@/db';
-import { eq, desc, or } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -24,15 +24,21 @@ export async function GET(
     }
 
     // Fetch all purchase invoices for this supplier
-    // On cherche par supplierId, ou par nom si supplierId n'est pas encore lié
-    const invoices = await db.select()
+    // Jointure avec suppliers pour récupérer le nom à jour
+    const invoices = await db
+      .select({
+        id: schema.purchaseInvoices.id,
+        reference: schema.purchaseInvoices.reference,
+        supplierName: schema.suppliers.name,
+        date: schema.purchaseInvoices.date,
+        notes: schema.purchaseInvoices.notes,
+        totalAmount: schema.purchaseInvoices.totalAmount,
+        isPaid: schema.purchaseInvoices.isPaid,
+        createdAt: schema.purchaseInvoices.createdAt,
+      })
       .from(schema.purchaseInvoices)
-      .where(
-        or(
-          eq(schema.purchaseInvoices.supplierId, supplierId),
-          eq(schema.purchaseInvoices.supplier, supplier.name),
-        )
-      )
+      .leftJoin(schema.suppliers, eq(schema.purchaseInvoices.supplierId, schema.suppliers.id))
+      .where(eq(schema.purchaseInvoices.supplierId, supplierId))
       .orderBy(desc(schema.purchaseInvoices.date));
 
     // Get invoice items for each invoice
@@ -45,7 +51,7 @@ export async function GET(
         return {
           id: inv.id,
           reference: inv.reference,
-          supplier: inv.supplier,
+          supplier: inv.supplierName ?? '',
           date: inv.date,
           notes: inv.notes || '',
           items: items.map(item => ({

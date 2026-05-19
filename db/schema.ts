@@ -57,7 +57,7 @@ export const purchaseInvoices = sqliteTable('purchase_invoices', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   reference: text('reference').notNull(),
   supplierId: integer('supplier_id').references(() => suppliers.id),
-  supplier: text('supplier').notNull(),
+  supplier: text('supplier'),
   date: text('date').notNull(),
   notes: text('notes'),
   totalAmount: real('total_amount').default(0),

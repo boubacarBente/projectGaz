@@ -28,7 +28,7 @@ function getNumber(formData: FormData, field: string, min = 0) {
 export async function createPurchase(formData: FormData) {
   await createPurchaseInvoice({
     reference: getText(formData, "reference"),
-    supplier: getText(formData, "supplier"),
+    supplierId: getNumber(formData, "supplierId", 1),
     date: getText(formData, "date"),
     notes: (formData.get("notes")?.toString() ?? "").trim(),
     lines: [
