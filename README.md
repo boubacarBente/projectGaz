@@ -112,6 +112,12 @@ npm install
 # Initialiser la base de données SQLite
 npm run db:push
 
+# (Optionnel) Insérer les données de démonstration
+# Démarrer le serveur :
+npm run dev
+# Puis dans un autre terminal :
+curl -X POST http://localhost:3000/api/parametres/seed-data
+
 # Démarrer le serveur de développement
 npm run dev
 ```
@@ -127,16 +133,17 @@ projectGaz/
 │   │   ├── clients/              #   CRUD clients + types
 │   │   ├── depenses/             #   CRUD factures d'achat
 │   │   ├── factures/             #   CRUD factures de vente
-│   │   ├── fournisseurs/         #   CRUD fournisseurs
+│   │   ├── fournisseurs/         #   CRUD fournisseurs + paiements
 │   │   ├── operations/           #   Dashboard (snapshot)
-│   │   ├── parametres/           #   GET/PUT paramètres
+│   │   ├── parametres/           #   GET/PUT paramètres + seed/reset
 │   │   ├── produits/             #   CRUD produits
 │   │   ├── rapports/             #   Données analytiques
 │   │   └── stock/                #   Stock + mouvements
-│   ├── clients/                  # Page de gestion des clients
-│   ├── depenses/                 # Page des factures d'achat
+│   ├── clients/                  # Pages clients (liste, détail, types)
+│   ├── depenses/                 # Pages des factures d'achat
 │   ├── factures/                 # Pages des factures de vente
-│   ├── fournisseurs/             # Page de gestion des fournisseurs
+│   ├── factures-usine/           # Page usine (alias dépenses)
+│   ├── fournisseurs/             # Pages fournisseurs
 │   ├── parametres/               # Page des paramètres
 │   ├── produits/                 # Page du catalogue produits
 │   ├── rapports/                 # Page des rapports
@@ -153,12 +160,13 @@ projectGaz/
 │   └── theme-toggle.tsx          #   Bouton de bascule thème
 ├── db/                           # Base de données
 │   ├── schema.ts                 # Définition des tables Drizzle
-│   ├── index.ts                  # Connexion SQLite
-│   └── database.db               # Fichier de la base
-├── lib/                          # Utilitaires
+│   ├── helpers.ts                #   Requêtes avec relations (JOIN auto)
+│   ├── index.ts                  #   Connexion SQLite + schéma
+│   └── database.db               #   Fichier de la base
+├── lib/                          # Utilitaires et fonctions métier
 │   ├── colors.ts                 # Application des couleurs CSS
 │   ├── invoice-export.ts         # Export PDF/Image
-│   ├── operations.ts             # Fonctions métier
+│   ├── operations.ts             # Fonctions métier (CRUD + rapports)
 │   └── products.ts               # Fonctions produits
 └── data/                         # Anciennes données JSON (archivé)
 ```
@@ -181,6 +189,20 @@ projectGaz/
 | `stock_movements` | Historique des mouvements (entrée, sortie, ajustement) |
 | `settings` | Paramètres de l'application (couleurs, devise, etc.) |
 
+### Relations Drizzle
+
+Les relations entre tables sont définies dans `db/schema.ts` et permettent des **JOIN automatiques** via le helper `db/helpers.ts` :
+
+- `purchase_invoices → suppliers` : one-to-one via `supplierId`
+- `purchase_invoices → purchase_invoice_items` : one-to-many
+- `sales_invoices → sales_invoice_items` : one-to-many
+- `customers → customer_types` : one-to-one via `typeId`
+- `purchase_invoice_items → products` : one-to-one
+- `sales_invoice_items → products` : one-to-one
+- `stock → products` : one-to-one
+
+**Principe :** Les helpers utilisent `db.query...with` pour charger automatiquement les relations sans avoir à écrire de `SELECT` avec toutes les colonnes en dur. Si le schéma change, un seul endroit est à modifier : `mapPurchaseInvoiceRow()` dans `lib/operations.ts`.
+
 ### Produits par Défaut
 
 | Code | Désignation | Capacité | Prix (GNF) |
@@ -200,12 +222,16 @@ projectGaz/
 | `/factures` | Liste et gestion des factures de vente |
 | `/factures/nouvelle` | Création d'une nouvelle facture |
 | `/factures/[id]` | Détail et export d'une facture |
+| `/factures-usine` | Liste des factures d'achat (fournisseurs) |
+| `/factures-usine/[id]` | Détail d'une facture d'achat |
 | `/clients` | Gestion des clients (CRUD + modals) |
 | `/clients/types` | Gestion des types de clients |
+| `/clients/[id]/paiements` | Historique des achats d'un client |
 | `/produits` | Catalogue des produits |
 | `/stock` | Gestion du stock et mouvements |
 | `/depenses` | Factures d'achat / approvisionnement |
 | `/fournisseurs` | Gestion des fournisseurs |
+| `/fournisseurs/[id]/paiements` | Paiements d'un fournisseur |
 | `/rapports` | Rapports et analyses détaillées |
 | `/parametres` | Configuration de l'application |
 
@@ -301,4 +327,4 @@ Les couleurs de l'application sont **configurables dynamiquement** depuis la pag
 
 ---
 
-*Dernière mise à jour : 16/05/2026*
+*Dernière mise à jour : 19/05/2026*

@@ -11,7 +11,8 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
 ### Structure de la DB
 
 - **Fichiers**:
-  - `db/schema.ts` - Schéma des tables
+  - `db/schema.ts` - Schéma des tables + relations Drizzle
+  - `db/helpers.ts` - Requêtes avec JOIN automatiques via `db.query...with`
   - `db/index.ts` - Connexion à la base SQLite
   - `db/database.db` - Fichier de la base SQLite
 
@@ -25,6 +26,7 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
 
 - `customers` - Clients
 - `customer_types` - Types de clients
+- `suppliers` - Fournisseurs/usines
 - `products` - Produits (bouteilles de gaz)
 - `purchase_invoices` - Factures d'achat (dépenses)
 - `purchase_invoice_items` - Items des factures d'achat
@@ -33,6 +35,16 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
 - `stock` - Stock actuel par produit
 - `stock_movements` - Historique des mouvements de stock
 - `settings` - Paramètres de l'application
+
+### Relations importantes
+
+Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
+
+- `purchaseInvoiceRelations` : `supplier` (one-to-one via `supplierId`) + `items` (one-to-many)
+- Toute requête sur les factures d'achat doit passer par le helper
+  `findPurchaseInvoices()` / `findPurchaseInvoiceById()` dans `db/helpers.ts`
+- Le mapping vers le type `PurchaseInvoice` est centralisé dans
+  `mapPurchaseInvoiceRow()` dans `lib/operations.ts`
 
 ---
 
@@ -49,6 +61,15 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
 - `GET /api/clients/types/[id]` - Détail d'un type
 - `PUT /api/clients/types/[id]` - Modifier un type
 - `DELETE /api/clients/types/[id]` - Supprimer un type
+- `GET /api/clients/[id]/paiements` - Historique des achats d'un client
+
+### Fournisseurs
+- `GET /api/fournisseurs` - Liste tous les fournisseurs
+- `POST /api/fournisseurs` - Créer un fournisseur
+- `GET /api/fournisseurs/[id]` - Détail d'un fournisseur
+- `PUT /api/fournisseurs/[id]` - Modifier un fournisseur
+- `DELETE /api/fournisseurs/[id]` - Supprimer un fournisseur
+- `GET /api/fournisseurs/[id]/paiements` - Factures d'achat d'un fournisseur
 
 ### Produits
 - `GET /api/produits` - Liste tous les produits
