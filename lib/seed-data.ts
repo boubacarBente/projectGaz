@@ -17,12 +17,22 @@ export const seedSuppliers = [
   { name: "PetroGaz Guinée", phone: "+224 630 555 555", address: "Conakry, Gbessia" },
 ];
 
+export const seedProducts = [
+  { code: "B3", name: "Petite bouteille", capacity: "3 kg", salePrice: 28750, purchasePrice: 25000 },
+  { code: "B6", name: "Moyenne bouteille", capacity: "6 kg", salePrice: 51500, purchasePrice: 45000 },
+  { code: "B9", name: "Grande bouteille", capacity: "9 kg", salePrice: 77250, purchasePrice: 68000 },
+  { code: "B12", name: "Très grande bouteille", capacity: "12 kg", salePrice: 107200, purchasePrice: 95000 },
+  { code: "B36", name: "Bouteille industrielle", capacity: "36 kg", salePrice: 317300, purchasePrice: 280000 },
+  { code: "B48", name: "Grande bouteille industrielle", capacity: "48 kg", salePrice: 508072, purchasePrice: 450000 },
+];
+
 export async function seedDatabase() {
   const client: Database.Database = (db as any).$client;
 
   // Vérifier s'il y a déjà des données
   const existingClients = client.prepare("SELECT COUNT(*) as count FROM customers").get() as { count: number };
   const existingSuppliers = client.prepare("SELECT COUNT(*) as count FROM suppliers").get() as { count: number };
+  const existingProducts = client.prepare("SELECT COUNT(*) as count FROM products").get() as { count: number };
 
   const results: string[] = [];
 
@@ -67,6 +77,29 @@ export async function seedDatabase() {
     results.push(`✓ ${seedSuppliers.length} fournisseurs créés`);
   } else {
     results.push("→ Fournisseurs ignorés (déjà existants)");
+  }
+
+  // Seed products
+  if (existingProducts.count === 0) {
+    const insertProduct = client.prepare(
+      "INSERT INTO products (code, name, capacity, sale_price, purchase_price) VALUES (?, ?, ?, ?, ?)"
+    );
+    for (const p of seedProducts) {
+      insertProduct.run(p.code, p.name, p.capacity, p.salePrice, p.purchasePrice);
+    }
+    results.push(`✓ ${seedProducts.length} produits créés`);
+
+    // Initialiser le stock pour chaque produit
+    const products = client.prepare("SELECT id FROM products").all() as { id: number }[];
+    const insertStock = client.prepare(
+      "INSERT INTO stock (product_id, current_stock, min_stock) VALUES (?, ?, ?)"
+    );
+    for (const prod of products) {
+      insertStock.run(prod.id, 50, 10);
+    }
+    results.push(`✓ Stock initialisé (50 unités par produit, seuil min : 10)`);
+  } else {
+    results.push("→ Produits ignorés (déjà existants)");
   }
 
   return {
