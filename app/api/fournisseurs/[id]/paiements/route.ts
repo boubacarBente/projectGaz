@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, schema } from '@/db';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, or } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -24,9 +24,15 @@ export async function GET(
     }
 
     // Fetch all purchase invoices for this supplier
+    // On cherche par supplierId, ou par nom si supplierId n'est pas encore lié
     const invoices = await db.select()
       .from(schema.purchaseInvoices)
-      .where(eq(schema.purchaseInvoices.supplierId, supplierId))
+      .where(
+        or(
+          eq(schema.purchaseInvoices.supplierId, supplierId),
+          eq(schema.purchaseInvoices.supplier, supplier.name),
+        )
+      )
       .orderBy(desc(schema.purchaseInvoices.date));
 
     // Get invoice items for each invoice
