@@ -1,1 +1,0 @@
-ALTER TABLE `purchase_invoices` ADD `is_paid` integer DEFAULT false;

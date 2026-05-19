@@ -164,7 +164,11 @@ export const customerTypeRelations = relations(customerTypes, ({ many }) => ({
   customers: many(customers),
 }));
 
-export const purchaseInvoiceRelations = relations(purchaseInvoices, ({ many }) => ({
+export const purchaseInvoiceRelations = relations(purchaseInvoices, ({ one, many }) => ({
+  supplier: one(suppliers, {
+    fields: [purchaseInvoices.supplierId],
+    references: [suppliers.id],
+  }),
   items: many(purchaseInvoiceItems),
 }));
 

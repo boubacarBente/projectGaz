@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, schema } from '@/db';
-import { eq, desc } from 'drizzle-orm';
+import { listPurchaseInvoices } from '@/lib/operations';
+import { eq } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -23,51 +24,28 @@ export async function GET(
       return NextResponse.json({ error: 'Supplier not found' }, { status: 404 });
     }
 
-    // Fetch all purchase invoices for this supplier
-    // Jointure avec suppliers pour récupérer le nom à jour
-    const invoices = await db
-      .select({
-        id: schema.purchaseInvoices.id,
-        reference: schema.purchaseInvoices.reference,
-        supplierName: schema.suppliers.name,
-        date: schema.purchaseInvoices.date,
-        notes: schema.purchaseInvoices.notes,
-        totalAmount: schema.purchaseInvoices.totalAmount,
-        isPaid: schema.purchaseInvoices.isPaid,
-        createdAt: schema.purchaseInvoices.createdAt,
-      })
-      .from(schema.purchaseInvoices)
-      .leftJoin(schema.suppliers, eq(schema.purchaseInvoices.supplierId, schema.suppliers.id))
-      .where(eq(schema.purchaseInvoices.supplierId, supplierId))
-      .orderBy(desc(schema.purchaseInvoices.date));
+    // Récupérer toutes les factures d'achat de ce fournisseur
+    const allInvoices = await listPurchaseInvoices();
+    const invoices = allInvoices.filter(inv => inv.supplierId === supplierId);
 
-    // Get invoice items for each invoice
-    const invoicesWithItems = await Promise.all(
-      invoices.map(async (inv) => {
-        const items = await db.select()
-          .from(schema.purchaseInvoiceItems)
-          .where(eq(schema.purchaseInvoiceItems.invoiceId, inv.id));
-
-        return {
-          id: inv.id,
-          reference: inv.reference,
-          supplier: inv.supplierName ?? '',
-          date: inv.date,
-          notes: inv.notes || '',
-          items: items.map(item => ({
-            productId: item.productId,
-            productCode: item.productCode,
-            productName: item.productName,
-            quantity: item.quantity,
-            unitCost: item.unitCost,
-            totalCost: item.totalCost,
-          })),
-          totalAmount: inv.totalAmount ?? 0,
-          isPaid: inv.isPaid ?? false,
-          createdAt: inv.createdAt?.toISOString() || '',
-        };
-      })
-    );
+    const invoicesWithItems = invoices.map(inv => ({
+      id: inv.id,
+      reference: inv.reference,
+      supplier: inv.supplierName,
+      date: inv.date,
+      notes: inv.notes || '',
+      items: inv.items.map(item => ({
+        productId: item.productId,
+        productCode: item.productCode,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitCost: item.unitCost,
+        totalCost: item.totalCost,
+      })),
+      totalAmount: inv.totalAmount ?? 0,
+      isPaid: inv.isPaid ?? false,
+      createdAt: inv.createdAt,
+    }));
 
     // Group by period
     const byDay: Record<string, { count: number; total: number }> = {};

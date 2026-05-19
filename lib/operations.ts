@@ -2,12 +2,13 @@
 import path from "node:path";
 import Database from "better-sqlite3";
 import { db } from "../db/index";
-import { 
+import { findPurchaseInvoices, findPurchaseInvoiceById } from "@/db/helpers";
+import {
   customerTypes,
   customers,
-  products, 
+  products,
   suppliers,
-  purchaseInvoices, 
+  purchaseInvoices,
   purchaseInvoiceItems,
   salesInvoices,
   salesInvoiceItems,
@@ -210,52 +211,31 @@ export function calculateSalesProfitMetrics(
 // }
 
 export async function listPurchaseInvoices() {
-  // --- CODE SQL ---
-  const rows = await db
-    .select({
-      id: purchaseInvoices.id,
-      reference: purchaseInvoices.reference,
-      supplierName: suppliers.name,
-      supplierId: purchaseInvoices.supplierId,
-      date: purchaseInvoices.date,
-      notes: purchaseInvoices.notes,
-      totalAmount: purchaseInvoices.totalAmount,
-      isPaid: purchaseInvoices.isPaid,
-      createdAt: purchaseInvoices.createdAt,
-    })
-    .from(purchaseInvoices)
-    .leftJoin(suppliers, eq(purchaseInvoices.supplierId, suppliers.id))
-    .orderBy(desc(purchaseInvoices.date));
+  const rows = await findPurchaseInvoices();
 
-  const invoicesWithItems: PurchaseInvoice[] = await Promise.all(
-    rows.map(async (row) => {
-      const items = await db.select()
-        .from(purchaseInvoiceItems)
-        .where(eq(purchaseInvoiceItems.invoiceId, row.id));
+  return rows.map(mapPurchaseInvoiceRow);
+}
 
-      return {
-        id: row.id,
-        reference: row.reference,
-        supplierName: row.supplierName ?? '',
-        supplierId: row.supplierId,
-        date: row.date,
-        notes: row.notes || "",
-        items: items.map(item => ({
-          productId: item.productId,
-          productCode: item.productCode,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitCost: item.unitCost,
-          totalCost: item.totalCost,
-        })),
-        totalAmount: row.totalAmount ?? 0,
-        isPaid: row.isPaid ?? false,
-        createdAt: row.createdAt?.toISOString() || "",
-      };
-    })
-  );
-
-  return invoicesWithItems;
+function mapPurchaseInvoiceRow(row: any): PurchaseInvoice {
+  return {
+    id: row.id,
+    reference: row.reference,
+    supplierName: row.supplier?.name ?? '',
+    supplierId: row.supplierId,
+    date: row.date,
+    notes: row.notes || "",
+    items: row.items.map((item: any) => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      totalCost: item.totalCost,
+    })),
+    totalAmount: row.totalAmount ?? 0,
+    isPaid: row.isPaid ?? false,
+    createdAt: row.createdAt?.toISOString() || "",
+  };
 }
 
 export async function listSalesInvoices() {
@@ -521,47 +501,9 @@ export async function createSalesInvoice(input: {
 }
 
 export async function getPurchaseInvoice(id: number) {
-  // --- CODE SQL ---
-  const rows = await db
-    .select({
-      id: purchaseInvoices.id,
-      reference: purchaseInvoices.reference,
-      supplierName: suppliers.name,
-      supplierId: purchaseInvoices.supplierId,
-      date: purchaseInvoices.date,
-      notes: purchaseInvoices.notes,
-      totalAmount: purchaseInvoices.totalAmount,
-      isPaid: purchaseInvoices.isPaid,
-      createdAt: purchaseInvoices.createdAt,
-    })
-    .from(purchaseInvoices)
-    .leftJoin(suppliers, eq(purchaseInvoices.supplierId, suppliers.id))
-    .where(eq(purchaseInvoices.id, id));
-
-  if (rows.length === 0) return null;
-
-  const row = rows[0];
-  const items = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
-
-  return {
-    id: row.id,
-    reference: row.reference,
-    supplierName: row.supplierName ?? '',
-    supplierId: row.supplierId,
-    date: row.date,
-    notes: row.notes || "",
-    items: items.map(item => ({
-      productId: item.productId,
-      productCode: item.productCode,
-      productName: item.productName,
-      quantity: item.quantity,
-      unitCost: item.unitCost,
-      totalCost: item.totalCost,
-    })),
-    totalAmount: row.totalAmount,
-    isPaid: row.isPaid,
-    createdAt: row.createdAt?.toISOString() || "",
-  };
+  const row = await findPurchaseInvoiceById(id);
+  if (!row) return null;
+  return mapPurchaseInvoiceRow(row);
 }
 
 export async function updatePurchaseInvoice(id: number, input: {
