@@ -28,11 +28,19 @@ export async function seedDatabase() {
 
   // Seed clients
   if (existingClients.count === 0) {
-    // Créer un type de client par défaut si nécessaire
+    // Créer les types de client par défaut si nécessaire
+    let typeParticulier = 1;
+    let typeProfessionnel = 2;
     const typeCount = client.prepare("SELECT COUNT(*) as count FROM customer_types").get() as { count: number };
     if (typeCount.count === 0) {
       client.prepare("INSERT INTO customer_types (name) VALUES ('Particulier')").run();
       client.prepare("INSERT INTO customer_types (name) VALUES ('Professionnel')").run();
+      // Récupérer les IDs générés (l'auto-increment peut ne pas repartir de 1 après un reset)
+      const types = client.prepare("SELECT id, name FROM customer_types ORDER BY id").all() as { id: number; name: string }[];
+      for (const t of types) {
+        if (t.name === 'Particulier') typeParticulier = t.id;
+        if (t.name === 'Professionnel') typeProfessionnel = t.id;
+      }
       results.push("✓ Types de clients créés (Particulier, Professionnel)");
     }
 
@@ -40,7 +48,8 @@ export async function seedDatabase() {
       "INSERT INTO customers (name, phone, address, city, type_id, is_active) VALUES (?, ?, ?, ?, ?, 1)"
     );
     for (const c of seedClients) {
-      insertClient.run(c.name, c.phone, c.address, c.city, c.typeId ?? 1);
+      const typeId = c.typeId === 2 ? typeProfessionnel : typeParticulier;
+      insertClient.run(c.name, c.phone, c.address, c.city, typeId);
     }
     results.push(`✓ ${seedClients.length} clients créés`);
   } else {
