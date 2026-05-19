@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, schema } from '@/db';
-import { eq, desc } from 'drizzle-orm';
-import { listPurchaseInvoices, calculateSalesProfitMetrics } from '@/lib/operations';
+import { eq } from 'drizzle-orm';
+import { listSalesInvoices, listPurchaseInvoices, calculateSalesProfitMetrics } from '@/lib/operations';
 
 export async function GET(
   request: NextRequest,
@@ -24,47 +24,13 @@ export async function GET(
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
-    // Fetch all sales invoices for this customer
-    const invoices = await db.select()
-      .from(schema.salesInvoices)
-      .where(eq(schema.salesInvoices.customerId, customerId))
-      .orderBy(desc(schema.salesInvoices.date));
+    // Récupérer toutes les factures via la fonction centralisée (JOIN, profit, etc.)
+    const allSalesInvoices = await listSalesInvoices();
+    const invoices = allSalesInvoices.filter(inv => inv.customerId === customerId);
 
-    // Get invoice items for each invoice
-    const invoicesWithItems = await Promise.all(
-      invoices.map(async (inv) => {
-        const items = await db.select()
-          .from(schema.salesInvoiceItems)
-          .where(eq(schema.salesInvoiceItems.invoiceId, inv.id));
-
-        return {
-          id: inv.id,
-          invoiceNumber: inv.invoiceNumber,
-          customerId: inv.customerId,
-          customerName: inv.customerName,
-          date: inv.date,
-          paymentMethod: inv.paymentMethod || 'Espèces',
-          notes: inv.notes || '',
-          items: items.map(item => ({
-            productId: item.productId,
-            productCode: item.productCode,
-            productName: item.productName,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
-          })),
-          totalAmount: inv.totalAmount ?? 0,
-          amountPaid: inv.amountPaid ?? 0,
-          remainingAmount: inv.remainingAmount ?? 0,
-          paymentStatus: (inv.paymentStatus || 'En attente') as 'Paye' | 'Partiel' | 'En attente',
-          createdAt: inv.createdAt?.toISOString() || '',
-        };
-      })
-    );
-
-    // Calculate profit metrics for these invoices
+    // Calculer les métriques de profit
     const purchases = await listPurchaseInvoices();
-    const { salesWithProfit } = calculateSalesProfitMetrics(purchases, invoicesWithItems);
+    const { salesWithProfit } = calculateSalesProfitMetrics(purchases, invoices);
 
     // Group by period
     const byDay: Record<string, { count: number; total: number; paid: number; profit: number }> = {};
@@ -108,12 +74,12 @@ export async function GET(
     }
 
     const aggregate = {
-      totalInvoices: invoicesWithItems.length,
-      totalAmount: invoicesWithItems.reduce((s, i) => s + i.totalAmount, 0),
-      totalPaid: invoicesWithItems.reduce((s, i) => s + i.amountPaid, 0),
-      totalRemaining: invoicesWithItems.reduce((s, i) => s + i.remainingAmount, 0),
+      totalInvoices: salesWithProfit.length,
+      totalAmount: salesWithProfit.reduce((s, i) => s + i.totalAmount, 0),
+      totalPaid: salesWithProfit.reduce((s, i) => s + i.amountPaid, 0),
+      totalRemaining: salesWithProfit.reduce((s, i) => s + i.remainingAmount, 0),
       totalProfit: salesWithProfit.reduce((s, i) => s + (i.grossProfit ?? 0), 0),
-      totalItems: invoicesWithItems.reduce((s, i) => s + i.items.reduce((si, item) => si + item.quantity, 0), 0),
+      totalItems: salesWithProfit.reduce((s, i) => s + i.items.reduce((si, item) => si + item.quantity, 0), 0),
     };
 
     return NextResponse.json({
