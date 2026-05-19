@@ -2,7 +2,7 @@
 import path from "node:path";
 import Database from "better-sqlite3";
 import { db } from "../db/index";
-import { findPurchaseInvoices, findPurchaseInvoiceById } from "@/db/helpers";
+import { findPurchaseInvoices, findPurchaseInvoiceById, findSalesInvoices, findSalesInvoiceById } from "@/db/helpers";
 import {
   customerTypes,
   customers,
@@ -53,6 +53,7 @@ export type SalesInvoiceItem = {
 export type SalesInvoice = {
   id: number;
   invoiceNumber: string;
+  customerId: number | null;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -239,44 +240,33 @@ function mapPurchaseInvoiceRow(row: any): PurchaseInvoice {
 }
 
 export async function listSalesInvoices() {
-  // --- CODE JSON (commenté) ---
-  // const invoices = await readJsonFile<SalesInvoice[]>(salesFile);
-  // return invoices.sort((a, b) => b.date.localeCompare(a.date));
+  const rows = await findSalesInvoices();
+  return rows.map(mapSalesInvoiceRow);
+}
 
-  // --- CODE SQL ---
-  const invoices = await db.select().from(salesInvoices).orderBy(desc(salesInvoices.date));
-  
-  const invoicesWithItems: SalesInvoice[] = await Promise.all(
-    invoices.map(async (inv) => {
-      const items = await db.select()
-        .from(salesInvoiceItems)
-        .where(eq(salesInvoiceItems.invoiceId, inv.id));
-      
-      return {
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        customerName: inv.customerName,
-        date: inv.date,
-        paymentMethod: inv.paymentMethod || "Espèces",
-        notes: inv.notes || "",
-        items: items.map(item => ({
-          productId: item.productId,
-          productCode: item.productCode,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice,
-        })),
-        totalAmount: inv.totalAmount ?? 0,
-        amountPaid: inv.amountPaid ?? 0,
-        remainingAmount: inv.remainingAmount ?? 0,
-        paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
-        createdAt: inv.createdAt?.toISOString() || "",
-      };
-    })
-  );
-  
-  return invoicesWithItems;
+function mapSalesInvoiceRow(row: any): SalesInvoice {
+  return {
+    id: row.id,
+    invoiceNumber: row.invoiceNumber,
+    customerId: row.customerId,
+    customerName: row.customer?.name ?? row.customerName,
+    date: row.date,
+    paymentMethod: row.paymentMethod || "Espèces",
+    notes: row.notes || "",
+    items: row.items.map((item: any) => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    })),
+    totalAmount: row.totalAmount ?? 0,
+    amountPaid: row.amountPaid ?? 0,
+    remainingAmount: row.remainingAmount ?? 0,
+    paymentStatus: (row.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+    createdAt: row.createdAt?.toISOString() || "",
+  };
 }
 
 type LineInput = {
@@ -387,6 +377,7 @@ export async function createPurchaseInvoice(input: {
 }
 
 export async function createSalesInvoice(input: {
+  customerId?: number;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -444,6 +435,7 @@ export async function createSalesInvoice(input: {
 
   const result = await db.insert(salesInvoices).values({
     invoiceNumber,
+    customerId: input.customerId,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -470,23 +462,41 @@ export async function createSalesInvoice(input: {
   }
 
   // Mettre à jour le total des achats du client
-  const [existingCustomer] = await db.select()
-    .from(customers)
-    .where(eq(customers.name, input.customerName))
-    .limit(1);
+  if (input.customerId) {
+    const [existingCustomer] = await db.select()
+      .from(customers)
+      .where(eq(customers.id, input.customerId))
+      .limit(1);
 
-  if (existingCustomer) {
-    await db.update(customers)
-      .set({
-        totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
-        updatedAt: new Date(),
-      })
-      .where(eq(customers.id, existingCustomer.id));
+    if (existingCustomer) {
+      await db.update(customers)
+        .set({
+          totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, existingCustomer.id));
+    }
+  } else {
+    // Fallback : chercher par nom (rétrocompatibilité)
+    const [existingCustomer] = await db.select()
+      .from(customers)
+      .where(eq(customers.name, input.customerName))
+      .limit(1);
+
+    if (existingCustomer) {
+      await db.update(customers)
+        .set({
+          totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, existingCustomer.id));
+    }
   }
 
   return {
     id: invoiceId,
     invoiceNumber,
+    customerId: input.customerId ?? null,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -656,41 +666,13 @@ export async function deletePurchaseInvoice(id: number) {
 }
 
 export async function getSalesInvoice(id: number) {
-  // --- CODE JSON (commenté) ---
-  // const invoices = await listSalesInvoices();
-  // return invoices.find((invoice) => invoice.id === id) || null;
-
-  // --- CODE SQL ---
-  const invoices = await db.select().from(salesInvoices).where(eq(salesInvoices.id, id));
-  if (invoices.length === 0) return null;
-  
-  const inv = invoices[0];
-  const items = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
-  
-  return {
-    id: inv.id,
-    invoiceNumber: inv.invoiceNumber,
-    customerName: inv.customerName,
-    date: inv.date,
-    paymentMethod: inv.paymentMethod || "Espèces",
-    notes: inv.notes || "",
-    items: items.map(item => ({
-      productId: item.productId,
-      productCode: item.productCode,
-      productName: item.productName,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      totalPrice: item.totalPrice,
-    })),
-    totalAmount: inv.totalAmount,
-    amountPaid: inv.amountPaid,
-    remainingAmount: inv.remainingAmount,
-    paymentStatus: inv.paymentStatus as "Paye" | "Partiel" | "En attente",
-    createdAt: inv.createdAt?.toISOString() || "",
-  };
+  const row = await findSalesInvoiceById(id);
+  if (!row) return null;
+  return mapSalesInvoiceRow(row);
 }
 
 export async function updateSalesInvoice(id: number, input: {
+  customerId?: number;
   customerName?: string;
   date?: string;
   paymentMethod?: string;
@@ -759,6 +741,7 @@ export async function updateSalesInvoice(id: number, input: {
         : "Paye";
 
   await db.update(salesInvoices).set({
+    customerId: input.customerId,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -787,6 +770,7 @@ export async function updateSalesInvoice(id: number, input: {
   return {
     id,
     invoiceNumber: existing[0].invoiceNumber,
+    customerId: input.customerId ?? existing[0].customerId,
     customerName: input.customerName ?? existing[0].customerName,
     date: input.date ?? existing[0].date,
     paymentMethod: input.paymentMethod ?? existing[0].paymentMethod,
@@ -828,18 +812,20 @@ export async function deleteSalesInvoice(id: number) {
   const invoice = existing[0];
 
   // Soustraire le montant du total des achats du client
-  const [customer] = await db.select()
-    .from(customers)
-    .where(eq(customers.name, invoice.customerName))
-    .limit(1);
+  if (invoice.customerId) {
+    const [customer] = await db.select()
+      .from(customers)
+      .where(eq(customers.id, invoice.customerId))
+      .limit(1);
 
-  if (customer) {
-    await db.update(customers)
-      .set({
-        totalPurchases: Math.max((customer.totalPurchases ?? 0) - (invoice.totalAmount ?? 0), 0),
-        updatedAt: new Date(),
-      })
-      .where(eq(customers.id, customer.id));
+    if (customer) {
+      await db.update(customers)
+        .set({
+          totalPurchases: Math.max((customer.totalPurchases ?? 0) - (invoice.totalAmount ?? 0), 0),
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, customer.id));
+    }
   }
 
   await db.delete(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));

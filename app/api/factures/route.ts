@@ -1,10 +1,10 @@
-import { getOperationsSnapshot, createSalesInvoice } from '@/lib/operations';
+import { listSalesInvoices, createSalesInvoice } from '@/lib/operations';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const snapshot = await getOperationsSnapshot();
-    return NextResponse.json(snapshot.sales);
+    const invoices = await listSalesInvoices();
+    return NextResponse.json(invoices);
   } catch (error) {
     console.error('Error fetching sales invoices:', error);
     return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
@@ -14,13 +14,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { customerName, date, paymentMethod, notes, amountPaid, lines } = body;
+    const { customerId, customerName, date, paymentMethod, notes, amountPaid, lines } = body;
 
     if (!customerName || !date || !lines || !Array.isArray(lines) || lines.length === 0) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     }
 
     const invoice = await createSalesInvoice({
+      customerId: customerId || undefined,
       customerName,
       date,
       paymentMethod: paymentMethod || 'Espèces',

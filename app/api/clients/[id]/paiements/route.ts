@@ -27,7 +27,7 @@ export async function GET(
     // Fetch all sales invoices for this customer
     const invoices = await db.select()
       .from(schema.salesInvoices)
-      .where(eq(schema.salesInvoices.customerName, customer.name))
+      .where(eq(schema.salesInvoices.customerId, customerId))
       .orderBy(desc(schema.salesInvoices.date));
 
     // Get invoice items for each invoice
@@ -40,6 +40,7 @@ export async function GET(
         return {
           id: inv.id,
           invoiceNumber: inv.invoiceNumber,
+          customerId: inv.customerId,
           customerName: inv.customerName,
           date: inv.date,
           paymentMethod: inv.paymentMethod || 'Espèces',
