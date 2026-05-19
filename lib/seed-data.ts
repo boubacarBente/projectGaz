@@ -18,12 +18,12 @@ export const seedSuppliers = [
 ];
 
 export const seedProducts = [
-  { code: "B3", name: "Petite bouteille", capacity: "3 kg", unitPrice: 28750, salePrice: 28750 },
-  { code: "B6", name: "Moyenne bouteille", capacity: "6 kg", unitPrice: 51500, salePrice: 51500 },
-  { code: "B9", name: "Grande bouteille", capacity: "9 kg", unitPrice: 77250, salePrice: 77250 },
-  { code: "B12", name: "Très grande bouteille", capacity: "12 kg", unitPrice: 107200, salePrice: 107200 },
-  { code: "B36", name: "Bouteille industrielle", capacity: "36 kg", unitPrice: 317300, salePrice: 317300 },
-  { code: "B48", name: "Grande bouteille industrielle", capacity: "48 kg", unitPrice: 508072, salePrice: 508072 },
+  { code: "B3", name: "Petite bouteille", capacity: "3 kg", unitPrice: 10000, salePrice: 12000 },
+  { code: "B6", name: "Moyenne bouteille", capacity: "6 kg", unitPrice: 20000, salePrice: 22000 },
+  { code: "B9", name: "Grande bouteille", capacity: "9 kg", unitPrice: 30000, salePrice: 32000 },
+  { code: "B12", name: "Très grande bouteille", capacity: "12 kg", unitPrice: 40000, salePrice: 42000 },
+  { code: "B36", name: "Bouteille industrielle", capacity: "36 kg", unitPrice: 50000, salePrice: 52000 },
+  { code: "B48", name: "Grande bouteille industrielle", capacity: "48 kg", unitPrice: 60000, salePrice: 62000 },
 ];
 
 export async function seedDatabase() {
