@@ -366,9 +366,18 @@ export async function createPurchaseInvoice(input: {
   const items = await buildPurchaseItems(input.lines);
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
+  // Chercher le fournisseur par nom pour lier le supplierId
+  const supplierMatch = input.supplier
+    ? await db.select({ id: suppliers.id }).from(suppliers)
+        .where(eq(suppliers.name, input.supplier))
+        .limit(1)
+    : [];
+  const supplierId = supplierMatch.length > 0 ? supplierMatch[0].id : null;
+
   const result = await db.insert(purchaseInvoices).values({
     reference: input.reference,
     supplier: input.supplier,
+    supplierId,
     date: input.date,
     notes: input.notes,
     totalAmount,
@@ -608,9 +617,22 @@ export async function updatePurchaseInvoice(id: number, input: {
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
   // Mettre à jour la facture
+  // Chercher le fournisseur par nom pour lier le supplierId
+  const supplierName = input.supplier;
+  let supplierId: number | null = null;
+  if (supplierName !== undefined) {
+    const supplierMatch = supplierName
+      ? await db.select({ id: suppliers.id }).from(suppliers)
+          .where(eq(suppliers.name, supplierName))
+          .limit(1)
+      : [];
+    supplierId = supplierMatch.length > 0 ? supplierMatch[0].id : null;
+  }
+
   await db.update(purchaseInvoices).set({
     reference: input.reference,
     supplier: input.supplier,
+    supplierId: supplierId !== null ? supplierId : undefined,
     date: input.date,
     notes: input.notes,
     totalAmount,
