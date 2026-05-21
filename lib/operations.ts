@@ -69,6 +69,16 @@ function roundAmount(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+async function recalculateSupplierTotalPurchases(supplierId: number) {
+  const invoices = await db.select({ totalAmount: purchaseInvoices.totalAmount })
+    .from(purchaseInvoices)
+    .where(eq(purchaseInvoices.supplierId, supplierId));
+  const total = invoices.reduce((sum, inv) => sum + (inv.totalAmount ?? 0), 0);
+  await db.update(suppliers)
+    .set({ totalPurchases: total })
+    .where(eq(suppliers.id, supplierId));
+}
+
 function getEventTimestamp(date: string, createdAt: string, fallbackOrder: number) {
   const createdAtTimestamp = Date.parse(createdAt);
   if (Number.isFinite(createdAtTimestamp)) {
@@ -391,6 +401,9 @@ export async function createPurchaseInvoice(input: {
     });
   }
 
+  // Mettre à jour le total des achats du fournisseur
+  await recalculateSupplierTotalPurchases(input.supplierId);
+
   return {
     id: invoiceId,
     reference: input.reference,
@@ -653,6 +666,12 @@ export async function updatePurchaseInvoice(id: number, input: {
     }
   }
 
+  // Mettre à jour le total des achats du fournisseur (ancien et nouveau si changé)
+  const oldSupplierId = existing[0].supplierId;
+  const newSupplierId = input.supplierId ?? oldSupplierId;
+  if (oldSupplierId) await recalculateSupplierTotalPurchases(oldSupplierId);
+  if (newSupplierId && newSupplierId !== oldSupplierId) await recalculateSupplierTotalPurchases(newSupplierId);
+
   return {
     id,
     reference: input.reference ?? existing[0].reference,
@@ -709,6 +728,11 @@ export async function deletePurchaseInvoice(id: number) {
   await db.delete(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
   // Supprimer la facture
   await db.delete(purchaseInvoices).where(eq(purchaseInvoices.id, id));
+
+  // Mettre à jour le total des achats du fournisseur
+  if (existing[0].supplierId) {
+    await recalculateSupplierTotalPurchases(existing[0].supplierId);
+  }
   
   return { success: true };
 }

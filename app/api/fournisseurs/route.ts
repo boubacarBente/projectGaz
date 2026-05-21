@@ -6,7 +6,21 @@ import { desc } from 'drizzle-orm';
 // GET /api/fournisseurs - Liste tous les fournisseurs
 export async function GET() {
   try {
-    const result = await db.select().from(suppliers).orderBy(desc(suppliers.createdAt));
+    const rawDb: import('better-sqlite3').Database = (db as any).$client;
+    const result = rawDb.prepare(`
+      SELECT
+        s.id,
+        s.name,
+        s.phone,
+        s.address,
+        COALESCE((SELECT SUM(pi.total_amount) FROM purchase_invoices pi WHERE pi.supplier_id = s.id), 0) AS totalPurchases,
+        s.notes,
+        s.is_active AS isActive,
+        s.created_at AS createdAt,
+        s.updated_at AS updatedAt
+      FROM suppliers s
+      ORDER BY s.created_at DESC
+    `).all();
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching suppliers:', error);
