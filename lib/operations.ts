@@ -209,23 +209,25 @@ export function calculateSalesProfitMetrics(
 // }
 
 export async function listPurchaseInvoices() {
-  // --- CODE JSON (commenté) ---
-  // const invoices = await readJsonFile<PurchaseInvoice[]>(purchasesFile);
-  // return invoices.sort((a, b) => b.date.localeCompare(a.date));
-
   // --- CODE SQL ---
-  const invoices = await db.select().from(purchaseInvoices).orderBy(desc(purchaseInvoices.date));
-  
-  const invoicesWithItems: PurchaseInvoice[] = await Promise.all(
+  const invoices = await db.query.purchaseInvoices.findMany({
+    orderBy: [desc(purchaseInvoices.date)],
+    with: {
+      supplier: true,
+    },
+  });
+
+  const invoicesWithItems = await Promise.all(
     invoices.map(async (inv) => {
       const items = await db.select()
         .from(purchaseInvoiceItems)
         .where(eq(purchaseInvoiceItems.invoiceId, inv.id));
-      
+
       return {
         id: inv.id,
         reference: inv.reference,
-        supplier: inv.supplier,
+        supplier: inv.supplier?.name || inv.supplier || '',
+        supplierName: inv.supplier?.name || inv.supplier || '',
         date: inv.date,
         notes: inv.notes || "",
         items: items.map(item => ({
@@ -242,7 +244,7 @@ export async function listPurchaseInvoices() {
       };
     })
   );
-  
+
   return invoicesWithItems;
 }
 
@@ -520,23 +522,24 @@ export async function createSalesInvoice(input: {
 }
 
 export async function getPurchaseInvoice(id: number) {
-  // --- CODE JSON (commenté) ---
-  // const invoices = await listPurchaseInvoices();
-  // return invoices.find((invoice) => invoice.id === id) || null;
-
   // --- CODE SQL ---
-  const invoices = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
-  if (invoices.length === 0) return null;
-  
-  const inv = invoices[0];
+  const result = await db.query.purchaseInvoices.findFirst({
+    where: eq(purchaseInvoices.id, id),
+    with: {
+      supplier: true,
+    },
+  });
+  if (!result) return null;
+
   const items = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
-  
+
   return {
-    id: inv.id,
-    reference: inv.reference,
-    supplier: inv.supplier,
-    date: inv.date,
-    notes: inv.notes || "",
+    id: result.id,
+    reference: result.reference,
+    supplier: result.supplier?.name || result.supplier || '',
+    supplierName: result.supplier?.name || result.supplier || '',
+    date: result.date,
+    notes: result.notes || "",
     items: items.map(item => ({
       productId: item.productId,
       productCode: item.productCode,
@@ -545,9 +548,9 @@ export async function getPurchaseInvoice(id: number) {
       unitCost: item.unitCost,
       totalCost: item.totalCost,
     })),
-    totalAmount: inv.totalAmount,
-    isPaid: inv.isPaid,
-    createdAt: inv.createdAt?.toISOString() || "",
+    totalAmount: result.totalAmount,
+    isPaid: result.isPaid,
+    createdAt: result.createdAt?.toISOString() || "",
   };
 }
 
