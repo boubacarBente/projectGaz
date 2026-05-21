@@ -953,7 +953,7 @@ export default function FacturesPage() {
                             onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.salePrice.toString()); }}
                             className="select select-bordered select-sm w-full focus:select-focus"
                           >
-                            <option value="">Sélectionner...</option>
+                            <option defaultChecked value="">Sélectionner...</option>
                             {products.map(p => (
                               <option key={p.id} value={p.id}>{p.code} - {p.name} ({p.capacity})</option>
                             ))}
