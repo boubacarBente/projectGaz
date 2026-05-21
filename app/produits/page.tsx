@@ -62,7 +62,7 @@ export default function ProduitsPage() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/produits');
+      const res = await fetch('/api/produits?all=true');
       const data = await res.json();
       setProducts(data);
     } catch {
