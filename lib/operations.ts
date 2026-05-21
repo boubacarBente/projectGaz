@@ -775,9 +775,10 @@ export async function getSalesInvoice(id: number) {
   const inv = invoices[0];
   const items = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
   
-  return {
+  const invoice = {
     id: inv.id,
     invoiceNumber: inv.invoiceNumber,
+    customerId: inv.customerId,
     customerName: inv.customerName,
     date: inv.date,
     paymentMethod: inv.paymentMethod || "Espèces",
@@ -790,12 +791,17 @@ export async function getSalesInvoice(id: number) {
       unitPrice: item.unitPrice,
       totalPrice: item.totalPrice,
     })),
-    totalAmount: inv.totalAmount,
-    amountPaid: inv.amountPaid,
-    remainingAmount: inv.remainingAmount,
-    paymentStatus: inv.paymentStatus as "Paye" | "Partiel" | "En attente",
+    totalAmount: inv.totalAmount ?? 0,
+    amountPaid: inv.amountPaid ?? 0,
+    remainingAmount: inv.remainingAmount ?? 0,
+    paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
     createdAt: inv.createdAt?.toISOString() || "",
   };
+
+  // Calculer le coût d'achat et le bénéfice via l'inventaire
+  const purchases = await listPurchaseInvoices();
+  const { salesWithProfit } = calculateSalesProfitMetrics(purchases, [invoice]);
+  return salesWithProfit[0] || invoice;
 }
 
 export async function updateSalesInvoice(id: number, input: {
