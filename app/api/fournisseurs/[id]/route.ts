@@ -12,9 +12,24 @@ export async function GET(
   const supplierId = parseInt(id);
   
   try {
-    // Get supplier info
-    const supplier = await db.select().from(suppliers).where(eq(suppliers.id, supplierId));
-    if (!supplier.length) {
+    // Get supplier info with computed totalPurchases
+    const rawDb: import('better-sqlite3').Database = (db as any).$client;
+    const suppliers = rawDb.prepare(`
+      SELECT
+        s.id,
+        s.name,
+        s.phone,
+        s.address,
+        COALESCE((SELECT SUM(pi.total_amount) FROM purchase_invoices pi WHERE pi.supplier_id = s.id), 0) AS totalPurchases,
+        s.notes,
+        s.is_active AS isActive,
+        s.created_at AS createdAt,
+        s.updated_at AS updatedAt
+      FROM suppliers s
+      WHERE s.id = ?
+    `).get(supplierId) as any;
+    
+    if (!suppliers) {
       return NextResponse.json({ error: 'Fournisseur non trouvé' }, { status: 404 });
     }
     
@@ -31,7 +46,7 @@ export async function GET(
     }));
     
     return NextResponse.json({
-      supplier: supplier[0],
+      supplier: suppliers,
       invoices: invoicesWithItems,
     });
   } catch (error) {
