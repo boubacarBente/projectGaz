@@ -1,7 +1,8 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
+import { DatePicker } from '@/components/date-picker';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -93,21 +94,29 @@ const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Se
 export default function RapportsPage() {
   const [data, setData] = useState<RapportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      const query = params.toString();
+      const res = await fetch(`/api/rapports${query ? '?' + query : ''}`);
+      const json = await res.json();
+      setData(json);
+    } catch (error) {
+      console.error('Error fetching rapport data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [from, to]);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await fetch('/api/rapports');
-        const json = await res.json();
-        setData(json);
-      } catch (error) {
-        console.error('Error fetching rapport data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   if (isLoading || !data) {
     return (
@@ -178,6 +187,27 @@ export default function RapportsPage() {
         title="Tableau de bord analytique"
         description="Analyse détaillée des performances commerciales et financières."
       />
+
+      {/* Filtres date */}
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur flex flex-wrap items-center gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-base-content/60">Période</span>
+        <DatePicker value={from} onChange={setFrom} placeholder="Du" className="w-36" />
+        <span className="text-xs text-base-content/40">—</span>
+        <DatePicker value={to} onChange={setTo} placeholder="Au" className="w-36" />
+        {(from || to) && (
+          <button onClick={() => { setFrom(''); setTo(''); }} className="btn btn-ghost btn-xs btn-square text-error">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+        <div className="flex-1" />
+        <button onClick={() => fetchData()} disabled={isLoading} className="btn btn-ghost btn-sm btn-square" title="Actualiser">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

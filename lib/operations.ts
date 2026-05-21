@@ -15,7 +15,7 @@ import {
   stockMovements,
   settings
 } from "../db/schema";
-import { eq, desc, asc, like, sql, and, or } from "drizzle-orm";
+import { eq, desc, asc, like, sql, and, or, gte, lte } from "drizzle-orm";
 import { listProducts } from "@/lib/products";
 
 export type PurchaseInvoiceItem = {
@@ -218,9 +218,14 @@ export function calculateSalesProfitMetrics(
 //   await writeFile(filePath, JSON.stringify(value, null, 2), "utf8");
 // }
 
-export async function listPurchaseInvoices() {
+export async function listPurchaseInvoices(from?: string, to?: string) {
   // --- CODE SQL ---
+  const conditions = [];
+  if (from) conditions.push(gte(purchaseInvoices.date, from));
+  if (to) conditions.push(lte(purchaseInvoices.date, to));
+
   const invoices = await db.query.purchaseInvoices.findMany({
+    where: conditions.length > 0 ? and(...conditions) : undefined,
     orderBy: [desc(purchaseInvoices.date)],
     with: {
       supplier: true,
@@ -259,13 +264,19 @@ export async function listPurchaseInvoices() {
   return invoicesWithItems;
 }
 
-export async function listSalesInvoices() {
+export async function listSalesInvoices(from?: string, to?: string) {
   // --- CODE JSON (commenté) ---
   // const invoices = await readJsonFile<SalesInvoice[]>(salesFile);
   // return invoices.sort((a, b) => b.date.localeCompare(a.date));
 
   // --- CODE SQL ---
-  const invoices = await db.select().from(salesInvoices).orderBy(desc(salesInvoices.date));
+  const conditions = [];
+  if (from) conditions.push(gte(salesInvoices.date, from));
+  if (to) conditions.push(lte(salesInvoices.date, to));
+
+  const invoices = await db.select().from(salesInvoices)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(salesInvoices.date));
   
   const invoicesWithItems: SalesInvoice[] = await Promise.all(
     invoices.map(async (inv) => {
@@ -1337,10 +1348,10 @@ export async function getLowStockAlerts() {
     }));
 }
 
-export async function getRapportData() {
+export async function getRapportData(from?: string, to?: string) {
   const [purchases, sales, stock] = await Promise.all([
-    listPurchaseInvoices(),
-    listSalesInvoices(),
+    listPurchaseInvoices(from, to),
+    listSalesInvoices(from, to),
     getStock(),
   ]);
 
