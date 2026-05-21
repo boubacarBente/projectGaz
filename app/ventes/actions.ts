@@ -54,8 +54,8 @@ export async function createInvoice(formData: FormData) {
     lines,
   });
 
-  revalidatePath("/factures");
-  revalidatePath("/factures/nouvelle");
+  revalidatePath("/ventes");
+  revalidatePath("/ventes/nouvelle");
   revalidatePath("/rapports");
   revalidatePath("/");
 }

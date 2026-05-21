@@ -342,8 +342,8 @@ export default function DashboardPage() {
 
   const quickLinks = [
     { href: '/factures-usine', label: 'Saisir une facture usine', icon: '📋' },
-    { href: '/factures/nouvelle', label: 'Enregistrer une vente', icon: '🧾' },
-    { href: '/factures', label: 'Voir les factures clients', icon: '📊' },
+    { href: '/ventes/nouvelle', label: 'Enregistrer une vente', icon: '🧾' },
+    { href: '/ventes', label: 'Voir les ventes clients', icon: '📊' },
     { href: '/clients', label: 'Gérer les clients', icon: '👤' },
   ];
 

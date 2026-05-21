@@ -41,11 +41,11 @@ export default async function FactureDetailPage({
           </div>
           <h2 className="text-2xl font-bold text-stone-800">Facture introuvable</h2>
           <p className="text-stone-500 text-sm">Aucune facture trouvée avec l&rsquo;ID {id}.</p>
-          <Link href="/factures" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 transition-colors">
+          <Link href="/ventes" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Retour aux factures
+            Retour aux ventes
           </Link>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default async function FactureDetailPage({
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link
-            href="/factures"
+            href="/ventes"
             className="w-9 h-9 rounded-xl border border-stone-200 bg-white flex items-center justify-center text-stone-400 hover:text-stone-600 hover:border-stone-300 transition-all"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
