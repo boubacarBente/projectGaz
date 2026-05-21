@@ -462,35 +462,23 @@ export async function createSalesInvoice(input: {
   }
 
   // Mettre à jour le total des achats du client
-  if (input.customerId) {
-    const [existingCustomer] = await db.select()
-      .from(customers)
-      .where(eq(customers.id, input.customerId))
-      .limit(1);
+  const [existingCustomer] = await db.select()
+    .from(customers)
+    .where(eq(customers.name, input.customerName))
+    .limit(1);
 
-    if (existingCustomer) {
-      await db.update(customers)
-        .set({
-          totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
-          updatedAt: new Date(),
-        })
-        .where(eq(customers.id, existingCustomer.id));
-    }
-  } else {
-    // Fallback : chercher par nom (rétrocompatibilité)
-    const [existingCustomer] = await db.select()
-      .from(customers)
-      .where(eq(customers.name, input.customerName))
-      .limit(1);
+  if (existingCustomer) {
+    await db.update(customers)
+      .set({
+        totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
+        updatedAt: new Date(),
+      })
+      .where(eq(customers.id, existingCustomer.id));
 
-    if (existingCustomer) {
-      await db.update(customers)
-        .set({
-          totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
-          updatedAt: new Date(),
-        })
-        .where(eq(customers.id, existingCustomer.id));
-    }
+    // Lier la facture au client trouvé pour l'historique des paiements
+    await db.update(salesInvoices)
+      .set({ customerId: existingCustomer.id })
+      .where(eq(salesInvoices.id, invoiceId));
   }
 
   return {
