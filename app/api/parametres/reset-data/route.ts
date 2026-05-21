@@ -1,4 +1,4 @@
-import { resetDatabase } from '@/lib/operations';
+import { resetDatabaseExceptProductsAndCustomers as resetDatabase } from '@/lib/operations';
 import { NextResponse } from 'next/server';
 
 export async function POST() {
