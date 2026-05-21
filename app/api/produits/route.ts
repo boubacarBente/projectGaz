@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, schema } from '@/db';
 import { eq } from 'drizzle-orm';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const products = await db.select().from(schema.products).where(eq(schema.products.isActive, true));
+    const { searchParams } = new URL(request.url);
+    const all = searchParams.get('all') === 'true';
+
+    const products = all
+      ? await db.select().from(schema.products)
+      : await db.select().from(schema.products).where(eq(schema.products.isActive, true));
+
     return NextResponse.json(products, {
       headers: {
         'Access-Control-Allow-Origin': '*',
