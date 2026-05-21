@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, schema } from '@/db';
+import { eq } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    const products = await db.select().from(schema.products);
+    const products = await db.select().from(schema.products).where(eq(schema.products.isActive, true));
     return NextResponse.json(products, {
       headers: {
         'Access-Control-Allow-Origin': '*',

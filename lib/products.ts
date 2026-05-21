@@ -105,7 +105,7 @@ const productsFile = path.join(dataDirectory, "products.json");
 //   await writeFile(productsFile, JSON.stringify(products, null, 2), "utf8");
 // }
 
-export async function listProducts() {
+export async function listProducts(includeInactive = false) {
   // --- CODE JSON (commenté) ---
   // await ensureProductsFile();
   // const fileContent = await readFile(productsFile, "utf8");
@@ -114,7 +114,10 @@ export async function listProducts() {
   // return products.toSorted((a, b) => a.id - b.id);
 
   // --- CODE SQL ---
-  const result = await db.select().from(products).orderBy(asc(products.id));
+  const conditions = includeInactive ? undefined : eq(products.isActive, true);
+  const result = conditions
+    ? await db.select().from(products).where(conditions).orderBy(asc(products.id))
+    : await db.select().from(products).orderBy(asc(products.id));
   return result.map(p => ({
     id: p.id,
     code: p.code,
