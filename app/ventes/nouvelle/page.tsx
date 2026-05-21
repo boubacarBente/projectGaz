@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createInvoice } from "@/app/ventes/actions";
 import { PageHeader } from "@/components/page-header";
 import { SurfaceCard } from "@/components/surface-card";
+import { DatePicker } from "@/components/date-picker";
 
 type Product = {
   id: number;
@@ -116,13 +117,10 @@ export default function NouvelleFacturePage() {
 
               <label className="grid gap-2 text-sm font-medium text-base-content/80">
                 Date
-                <input
-                  type="date"
-                  name="date"
-                  className="rounded-2xl border border-base-200 bg-base-100 px-4 py-3 text-sm outline-none transition focus:border-sky-500"
-                  required
+                <DatePicker
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={setDate}
+                  className="w-full input-md rounded-2xl"
                 />
               </label>
             </div>

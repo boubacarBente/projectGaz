@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
+import { DatePicker } from '@/components/date-picker';
 
 type Supplier = {
   id: number;
@@ -303,20 +304,18 @@ export default function FournisseursPage() {
 
               {/* Date range */}
               <div className="flex items-center gap-2">
-                <input
-                  type="date"
+                <DatePicker
                   value={statsFrom}
-                  onChange={(e) => setStatsFrom(e.target.value)}
-                  className="input input-bordered input-sm text-xs w-36"
+                  onChange={setStatsFrom}
                   placeholder="Du"
+                  className="w-36"
                 />
                 <span className="text-xs text-base-content/40">—</span>
-                <input
-                  type="date"
+                <DatePicker
                   value={statsTo}
-                  onChange={(e) => setStatsTo(e.target.value)}
-                  className="input input-bordered input-sm text-xs w-36"
+                  onChange={setStatsTo}
                   placeholder="Au"
+                  className="w-36"
                 />
                 {(statsFrom || statsTo) && (
                   <button

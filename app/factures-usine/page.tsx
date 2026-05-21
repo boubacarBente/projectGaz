@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
+import { DatePicker } from '@/components/date-picker';
 
 // Dynamic import for PDF/image generation
 let html2canvas: any;
@@ -717,12 +718,10 @@ export default function DepensesPage() {
                 <label className="label">
                   <span className="label-text font-medium">Date de la facture</span>
                 </label>
-                <input
-                  type="date"
-                  required
+                <DatePicker
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="input input-bordered input-primary focus:input-focus"
+                  onChange={(val) => setFormData({ ...formData, date: val })}
+                  className="w-full input-md"
                 />
               </div>
             </div>
@@ -954,12 +953,10 @@ export default function DepensesPage() {
                 <label className="label">
                   <span className="label-text font-medium">Date de la facture</span>
                 </label>
-                <input
-                  type="date"
-                  required
+                <DatePicker
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="input input-bordered input-primary focus:input-focus"
+                  onChange={(val) => setFormData({ ...formData, date: val })}
+                  className="w-full input-md"
                 />
               </div>
             </div>

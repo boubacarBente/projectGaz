@@ -102,6 +102,105 @@ html.dark .countdown {
   --tw-bg-opacity: 1;
 }
 
+/* React DatePicker custom styling */
+.custom-calendar {
+  border-radius: 12px !important;
+  border: 1px solid hsl(var(--b3)) !important;
+  background: hsl(var(--b1)) !important;
+  font-family: inherit !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  padding: 8px !important;
+}
+
+.custom-calendar .react-datepicker__header {
+  background: transparent !important;
+  border-bottom: 1px solid hsl(var(--b3)) !important;
+  padding-top: 4px !important;
+}
+
+.custom-calendar .react-datepicker__current-month {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: hsl(var(--bc)) !important;
+}
+
+.custom-calendar .react-datepicker__day-name {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: hsl(var(--bc) / 0.6) !important;
+  text-transform: uppercase !important;
+}
+
+.custom-calendar .react-datepicker__day {
+  font-size: 13px !important;
+  border-radius: 8px !important;
+  color: hsl(var(--bc)) !important;
+  transition: all 0.15s ease !important;
+}
+
+.custom-calendar .react-datepicker__day:hover {
+  background: hsl(var(--p) / 0.12) !important;
+  color: hsl(var(--p)) !important;
+}
+
+.custom-calendar .react-datepicker__day--selected {
+  background: hsl(var(--p)) !important;
+  color: hsl(var(--pc)) !important;
+  font-weight: 600 !important;
+}
+
+.custom-calendar .react-datepicker__day--keyboard-selected {
+  background: hsl(var(--p) / 0.2) !important;
+  color: hsl(var(--p)) !important;
+}
+
+.custom-calendar .react-datepicker__day--today {
+  font-weight: 700 !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: hsl(var(--p) / 0.5);
+}
+
+.custom-calendar .react-datepicker__day--disabled {
+  color: hsl(var(--bc) / 0.25) !important;
+}
+
+.custom-calendar .react-datepicker__day--outside-month {
+  color: hsl(var(--bc) / 0.2) !important;
+}
+
+.custom-calendar .react-datepicker__navigation-icon::before {
+  border-color: hsl(var(--bc) / 0.6) !important;
+  transition: border-color 0.15s ease !important;
+}
+
+.custom-calendar .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+  border-color: hsl(var(--p)) !important;
+}
+
+.custom-popper {
+  z-index: 100 !important;
+}
+
+/* Dark mode calendar adjustments */
+html.dark .custom-calendar {
+  border-color: hsl(var(--b3)) !important;
+  background: hsl(var(--b1)) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark .custom-calendar .react-datepicker__header {
+  border-bottom-color: hsl(var(--b3)) !important;
+}
+
+html.dark .custom-calendar .react-datepicker__day:hover {
+  background: hsl(var(--p) / 0.2) !important;
+}
+
+html.dark .custom-calendar .react-datepicker__day--today {
+  text-decoration-color: hsl(var(--p) / 0.7);
+}
+
 /* Override component-level styles that DaisyUI doesn't automatically theme */
 /* Stats component background in dark mode */
 html.dark .stats {
