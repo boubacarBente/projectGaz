@@ -511,14 +511,19 @@ export async function createSalesInvoice(input: {
     .where(eq(customers.name, input.customerName))
     .limit(1);
 
-  if (existingCustomer) {
-    await db.update(customers)
-      .set({
-        totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
-        updatedAt: new Date(),
-      })
-      .where(eq(customers.id, existingCustomer.id));
-  }
+    if (existingCustomer) {
+      await db.update(customers)
+        .set({
+          totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, existingCustomer.id));
+
+      // Lier la facture au client trouvé pour l'historique des paiements
+      await db.update(salesInvoices)
+        .set({ customerId: existingCustomer.id })
+        .where(eq(salesInvoices.id, invoiceId));
+    }
 
   return {
     id: invoiceId,
