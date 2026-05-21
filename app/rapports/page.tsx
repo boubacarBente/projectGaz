@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { DatePicker } from '@/components/date-picker';
 import {
@@ -91,14 +91,6 @@ function formatCurrency(value: number) {
 
 const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 
-// Évite les erreurs StrictMode + Chart.js (double mount/unmount)
-function SafeChart({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => { setReady(true); return () => setReady(false); }, []);
-  if (!ready) return <div className="h-64" />;
-  return <>{children}</>;
-}
-
 export default function RapportsPage() {
   const [data, setData] = useState<RapportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,7 +109,6 @@ export default function RapportsPage() {
         const res = await fetch(`/api/rapports${query ? '?' + query : ''}`);
         const json = await res.json();
         setData(json);
-        chartKey.current += 1;
       } catch (error) {
         console.error('Error fetching rapport data:', error);
       } finally {
@@ -126,9 +117,6 @@ export default function RapportsPage() {
     }
     fetchData();
   }, [from, to, refreshKey]);
-
-  // Incrémenté à chaque fetch réussi pour forcer le remount des chartes
-  const chartKey = useRef(0);
 
   if (isLoading || !data) {
     return (
@@ -289,37 +277,37 @@ export default function RapportsPage() {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div key={`line-${chartKey.current}`} className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Ventes vs Achats (12 mois)</h3>
             <p className="text-sm text-base-content/60">Évolution mensuelle</p>
           </div>
           <div className="h-64">
-            <SafeChart><Line data={lineChartData} options={chartOptions} /></SafeChart>
+            <Line data={lineChartData} options={chartOptions} />
           </div>
         </div>
 
-        <div key={`bar-${chartKey.current}`} className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Bénéfice mensuel</h3>
             <p className="text-sm text-base-content/60">Par mois</p>
           </div>
           <div className="h-64">
-            <SafeChart><Bar data={barChartData} options={chartOptions} /></SafeChart>
+            <Bar data={barChartData} options={chartOptions} />
           </div>
         </div>
       </div>
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div key={`donut-${chartKey.current}`} className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Top produits vendus</h3>
             <p className="text-sm text-base-content/60">Par quantité</p>
           </div>
           <div className="h-64">
             {soldByProduct.length > 0 ? (
-              <SafeChart><Doughnut data={productChartData} options={doughnutOptions} /></SafeChart>
+              <Doughnut data={productChartData} options={doughnutOptions} />
             ) : (
               <div className="flex items-center justify-center h-full text-base-content/50">
                 Aucune donnée
