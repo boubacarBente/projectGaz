@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
-import { DatePicker } from '@/components/date-picker';
+// DatePicker removed
 
 // Dynamic import for PDF generation (client-side only)
 let html2canvas: any;
@@ -634,19 +634,9 @@ export default function FacturesPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <DatePicker
-                  value={statsFrom}
-                  onChange={setStatsFrom}
-                  placeholder="Du"
-                  className="w-36"
-                />
+                <input type="date" value={statsFrom} onChange={e => setStatsFrom(e.target.value)} className="w-36" />
                 <span className="text-xs text-base-content/40">—</span>
-                <DatePicker
-                  value={statsTo}
-                  onChange={setStatsTo}
-                  placeholder="Au"
-                  className="w-36"
-                />
+                <input type="date" value={statsTo} onChange={e => setStatsTo(e.target.value)} className="w-36" />
                 {(statsFrom || statsTo) && (
                   <button onClick={() => { setStatsFrom(''); setStatsTo(''); }} className="btn btn-ghost btn-xs btn-square text-error">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -993,9 +983,9 @@ export default function FacturesPage() {
               <label className="label block">
                 <span className="label-text font-medium">Date</span>
               </label>
-              <DatePicker
+              <input type="date"
                   value={formData.date}
-                  onChange={(val) => setFormData({ ...formData, date: val })}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="w-full input-md"
                 />
             </div>
@@ -1192,9 +1182,9 @@ export default function FacturesPage() {
               <label className="label block">
                 <span className="label-text font-medium">Date</span>
               </label>
-              <DatePicker
+              <input type="date"
                   value={formData.date}
-                  onChange={(val) => setFormData({ ...formData, date: val })}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="w-full input-md"
                 />
             </div>
