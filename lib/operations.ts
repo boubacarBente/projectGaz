@@ -225,6 +225,7 @@ export async function listPurchaseInvoices() {
 
       return {
         id: inv.id,
+        supplierId: inv.supplierId,
         reference: inv.reference,
         supplier: inv.supplier?.name || inv.supplier || '',
         supplierName: inv.supplier?.name || inv.supplier || '',
@@ -264,6 +265,7 @@ export async function listSalesInvoices() {
       
       return {
         id: inv.id,
+        customerId: inv.customerId,
         invoiceNumber: inv.invoiceNumber,
         customerName: inv.customerName,
         date: inv.date,
