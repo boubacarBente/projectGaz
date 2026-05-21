@@ -342,8 +342,8 @@ export default function DashboardPage() {
 
   const quickLinks = [
     { href: '/factures-usine', label: 'Saisir une facture usine', icon: '📋' },
-    { href: '/factures/nouvelle', label: 'Enregistrer une vente', icon: '🧾' },
-    { href: '/factures', label: 'Voir les factures clients', icon: '📊' },
+    { href: '/ventes/nouvelle', label: 'Enregistrer une vente', icon: '🧾' },
+    { href: '/ventes', label: 'Voir les ventes clients', icon: '📊' },
     { href: '/clients', label: 'Gérer les clients', icon: '👤' },
   ];
 
@@ -355,7 +355,7 @@ export default function DashboardPage() {
         description="Vue d'ensemble de votre activité avec des statistiques par période."
         actions={
           <Link
-            href="/factures"
+            href="/ventes"
             className="btn btn-primary gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -478,7 +478,7 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-lg">Ventes récentes</h3>
             <p className="text-sm text-base-content/60">{periodLabel} &middot; {salesCount} facture(s)</p>
           </div>
-          <Link href="/factures" className="btn btn-ghost btn-sm">
+          <Link href="/ventes" className="btn btn-ghost btn-sm">
             Voir tout
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
