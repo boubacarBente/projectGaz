@@ -26,19 +26,32 @@ function getNumber(formData: FormData, field: string, min = 0) {
 }
 
 export async function createInvoice(formData: FormData) {
+  // Lire les lignes produits depuis le FormData
+  const productIds = formData.getAll('productId');
+  const quantities = formData.getAll('quantity');
+  const unitPrices = formData.getAll('unitPrice');
+
+  const lines = [];
+  for (let i = 0; i < productIds.length; i++) {
+    const pid = Number(productIds[i]);
+    const qty = Number(quantities[i]);
+    const price = Number(unitPrices[i]);
+    if (pid > 0 && qty > 0 && price > 0) {
+      lines.push({ productId: pid, quantity: qty, amount: price });
+    }
+  }
+
+  if (lines.length === 0) {
+    throw new Error('Ajoutez au moins un produit avec une quantité et un prix valides.');
+  }
+
   await createSalesInvoice({
     customerName: getText(formData, "customerName"),
     date: getText(formData, "date"),
     paymentMethod: getText(formData, "paymentMethod"),
     notes: (formData.get("notes")?.toString() ?? "").trim(),
     amountPaid: getNumber(formData, "amountPaid", 0),
-    lines: [
-      {
-        productId: getNumber(formData, "productId", 1),
-        quantity: getNumber(formData, "quantity", 1),
-        amount: getNumber(formData, "unitPrice", 1),
-      },
-    ],
+    lines,
   });
 
   revalidatePath("/factures");
