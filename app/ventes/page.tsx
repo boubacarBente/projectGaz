@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -123,6 +123,28 @@ export default function FacturesPage() {
   );
   const ITEMS_PER_PAGE = 10;
 
+  // Stats state
+  type StatsData = {
+    total: { total: number; paid: number; remaining: number; count: number; paidCount: number };
+    byStatus: Array<{ status: string; count: number; total: number }>;
+    byCustomer: Array<{ name: string; count: number; total: number; paid: number }>;
+    byPeriod: Array<{ label: string; total: number; paid: number; count: number }> | null;
+    recentInvoices: Array<{
+      id: number; invoiceNumber: string; customerName: string; date: string;
+      totalAmount: number; amountPaid: number; remainingAmount: number;
+      paymentStatus: string; totalItems: number;
+    }>;
+    dailyAvg: number;
+  };
+
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
+  const [statsPeriod, setStatsPeriod] = useState('month');
+  const [statsFrom, setStatsFrom] = useState('');
+  const [statsTo, setStatsTo] = useState('');
+  const [statsCustomer, setStatsCustomer] = useState('');
+  const [statsStatus, setStatsStatus] = useState('');
+
   // Trier par date de creation (dernier ajout en premier) et paginer
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -142,6 +164,30 @@ export default function FacturesPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const fetchStats = useCallback(async () => {
+    setIsStatsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('period', statsPeriod);
+      if (statsCustomer) params.set('customerName', statsCustomer);
+      if (statsStatus) params.set('status', statsStatus);
+      if (statsFrom) params.set('from', statsFrom);
+      if (statsTo) params.set('to', statsTo);
+      const res = await fetch(`/api/ventes/stats?${params.toString()}`);
+      if (!res.ok) throw new Error('Erreur');
+      const data = await res.json();
+      setStats(data);
+    } catch {
+      // silently fail
+    } finally {
+      setIsStatsLoading(false);
+    }
+  }, [statsPeriod, statsCustomer, statsStatus, statsFrom, statsTo]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -534,154 +580,395 @@ export default function FacturesPage() {
         }
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Total ventes</div>
-            <div className="stat-value text-info">{formatCurrency(totalAmount)}</div>
-            <div className="stat-desc">GNF</div>
+      {/* Analytics Dashboard */}
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur overflow-hidden">
+        <div className="p-4 lg:p-6 border-b border-base-200/80">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-lg">Analytiques des ventes</h3>
+              <p className="text-sm text-base-content/60">{invoices.length} facture(s) au total</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+              <FilterSelect
+                value={filter}
+                onChange={setFilter}
+                placeholder="Tous les statuts"
+                options={[
+                  { value: 'paid', label: 'Payé' },
+                  { value: 'partial', label: 'Partiel' },
+                  { value: 'pending', label: 'En attente' },
+                ]}
+              />
+              <div className="min-w-50">
+                <SearchBar
+                  value={search}
+                  onChange={setSearch}
+                  onClear={() => setSearch('')}
+                  placeholder="Rechercher par N° facture, client, date..."
+                />
+              </div>
+            </div>
           </div>
         </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Encaisse</div>
-            <div className="stat-value text-success">{formatCurrency(totalPaid)}</div>
-            <div className="stat-desc">GNF</div>
-          </div>
-        </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Reste à payer</div>
-            <div className="stat-value text-warning">{formatCurrency(totalRemaining)}</div>
-            <div className="stat-desc">GNF</div>
-          </div>
-        </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Factures payées</div>
-            <div className="stat-value">{paidInvoices}/{invoices.length}</div>
-            <div className="stat-desc">Payees</div>
+
+        {/* Dashboard content */}
+        <div className="border-t border-base-200/80 bg-base-200/20">
+          <div className="p-4 lg:p-6 space-y-4">
+            {/* Period + Filter Controls */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex rounded-xl border border-base-300 overflow-hidden bg-base-100 shadow-sm">
+                {(['total', 'month', 'week', 'day'] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setStatsPeriod(p)}
+                    className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
+                      statsPeriod === p
+                        ? 'bg-primary text-primary-content shadow-inner'
+                        : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
+                    }`}
+                  >
+                    {p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={statsFrom}
+                  onChange={(e) => setStatsFrom(e.target.value)}
+                  className="input input-bordered input-sm text-xs w-36"
+                  placeholder="Du"
+                />
+                <span className="text-xs text-base-content/40">—</span>
+                <input
+                  type="date"
+                  value={statsTo}
+                  onChange={(e) => setStatsTo(e.target.value)}
+                  className="input input-bordered input-sm text-xs w-36"
+                  placeholder="Au"
+                />
+                {(statsFrom || statsTo) && (
+                  <button onClick={() => { setStatsFrom(''); setStatsTo(''); }} className="btn btn-ghost btn-xs btn-square text-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              <select
+                value={statsStatus}
+                onChange={(e) => setStatsStatus(e.target.value)}
+                className="select select-bordered select-sm text-xs min-w-[140px]"
+              >
+                <option value="">Tous statuts</option>
+                <option value="Paye">Payé</option>
+                <option value="Partiel">Partiel</option>
+                <option value="En attente">En attente</option>
+              </select>
+
+              <input
+                type="text"
+                value={statsCustomer}
+                onChange={(e) => setStatsCustomer(e.target.value)}
+                className="input input-bordered input-sm text-xs w-40"
+                placeholder="Filtrer client..."
+              />
+
+              <button onClick={() => fetchStats()} disabled={isStatsLoading} className="btn btn-ghost btn-sm btn-square" title="Actualiser">
+                {isStatsLoading ? (
+                  <span className="loading loading-spinner loading-sm" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            {/* Key Metrics */}
+            <AnimatePresence mode="wait">
+              {isStatsLoading ? (
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="flex items-center justify-center py-8"
+                >
+                  <span className="loading loading-spinner loading-lg text-primary" />
+                </motion.div>
+              ) : stats ? (
+                <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}
+                  className="space-y-4"
+                >
+                  {/* KPI cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div className="stat bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden relative">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-8 -mt-8" />
+                      <div className="stat-title text-xs font-semibold tracking-wider uppercase flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Chiffre d'affaires
+                      </div>
+                      <div className="stat-value text-2xl lg:text-3xl tracking-tight">
+                        {formatCurrency(stats.total.total)}<span className="text-sm font-medium text-base-content/40 ml-1">GNF</span>
+                      </div>
+                      <div className="stat-desc flex items-center gap-1 mt-1">
+                        {stats.total.count} facture{stats.total.count !== 1 ? 's' : ''} · {stats.total.paidCount} payée{stats.total.paidCount !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <div className="stat bg-base-100 rounded-xl border border-base-300 shadow-sm">
+                      <div className="stat-title text-xs font-semibold tracking-wider uppercase">Encaisse</div>
+                      <div className="stat-value text-2xl lg:text-3xl tracking-tight text-success">
+                        {formatCurrency(stats.total.paid)}<span className="text-sm font-medium text-base-content/40 ml-1">GNF</span>
+                      </div>
+                      <div className="stat-desc">
+                        {stats.total.total > 0 ? Math.round((stats.total.paid / stats.total.total) * 100) : 0}% encaissé
+                      </div>
+                    </div>
+                    <div className="stat bg-base-100 rounded-xl border border-base-300 shadow-sm">
+                      <div className="stat-title text-xs font-semibold tracking-wider uppercase">Reste à payer</div>
+                      <div className="stat-value text-2xl lg:text-3xl tracking-tight text-warning">
+                        {formatCurrency(stats.total.remaining)}<span className="text-sm font-medium text-base-content/40 ml-1">GNF</span>
+                      </div>
+                      <div className="stat-desc">
+                        {stats.dailyAvg > 0 ? `Soit ${Math.round(stats.total.remaining / stats.dailyAvg)} jours de CA` : '—'}
+                      </div>
+                    </div>
+                    <div className="stat bg-base-100 rounded-xl border border-base-300 shadow-sm">
+                      <div className="stat-title text-xs font-semibold tracking-wider uppercase">Moyenne/facture</div>
+                      <div className="stat-value text-2xl lg:text-3xl tracking-tight">
+                        {stats.total.count > 0 ? formatCurrency(Math.round(stats.total.total / stats.total.count)) : '0'}
+                        <span className="text-sm font-medium text-base-content/40 ml-1">GNF</span>
+                      </div>
+                      <div className="stat-desc">{formatCurrency(Math.round(stats.dailyAvg))} GNF / jour</div>
+                    </div>
+                  </div>
+
+                  {/* Charts row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Period chart */}
+                    <div className="bg-base-100 rounded-xl border border-base-300 p-4">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">
+                        {statsPeriod === 'total' ? 'Top clients' : 'Évolution du CA'}
+                      </h4>
+
+                      {stats.byPeriod && stats.byPeriod.length > 0 ? (
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {stats.byPeriod.slice(-12).map((item) => {
+                            const maxVal = Math.max(...stats.byPeriod!.map(p => p.total));
+                            const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
+                            return (
+                              <div key={item.label} className="flex items-center gap-3">
+                                <span className="text-xs font-mono w-20 text-base-content/60 shrink-0">{item.label}</span>
+                                <div className="flex-1 h-5 bg-base-200 rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.max(pct, 2)}%` }}
+                                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                                    className="h-full bg-linear-to-r from-primary/70 to-primary rounded-full"
+                                  />
+                                </div>
+                                <span className="text-xs font-semibold w-24 text-right tabular-nums">{formatCurrency(item.total)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : statsPeriod === 'total' && stats.byCustomer && stats.byCustomer.length > 0 ? (
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {stats.byCustomer.slice(0, 8).map((item) => {
+                            const maxVal = Math.max(...stats.byCustomer.map(c => c.total));
+                            const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
+                            return (
+                              <div key={item.name} className="flex items-center gap-3">
+                                <span className="text-xs font-medium w-28 truncate shrink-0">{item.name || 'Anonyme'}</span>
+                                <div className="flex-1 h-5 bg-base-200 rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.max(pct, 2)}%` }}
+                                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                                    className="h-full bg-linear-to-r from-info/60 to-info rounded-full"
+                                  />
+                                </div>
+                                <span className="text-xs font-semibold w-24 text-right tabular-nums">{formatCurrency(item.total)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center py-8 text-base-content/30 text-sm">
+                          Aucune donnée pour cette période
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recent invoices */}
+                    <div className="bg-base-100 rounded-xl border border-base-300">
+                      <div className="px-4 py-3 border-b border-base-200 flex items-center justify-between">
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">Dernières factures</h4>
+                        <span className="badge badge-ghost badge-xs">{stats.recentInvoices.length}</span>
+                      </div>
+                      {stats.recentInvoices.length > 0 ? (
+                        <div className="divide-y divide-base-200 max-h-[200px] overflow-y-auto">
+                          {stats.recentInvoices.map((inv) => (
+                            <div key={inv.id} className="px-4 py-2.5 flex items-center justify-between hover:bg-base-200/50 transition-colors">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium truncate">{inv.invoiceNumber}</span>
+                                  <span className={`badge badge-xs ${inv.paymentStatus === 'Paye' ? 'badge-success' : inv.paymentStatus === 'Partiel' ? 'badge-warning' : 'badge-ghost'}`}>
+                                    {inv.paymentStatus}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-base-content/50 truncate">{inv.customerName}</div>
+                              </div>
+                              <div className="text-right shrink-0 ml-3">
+                                <div className="text-sm font-semibold tabular-nums">{formatCurrency(inv.totalAmount)}</div>
+                                <div className="text-xs text-base-content/40">{inv.date}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center py-8 text-base-content/30 text-sm">
+                          Aucune facture récente
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status breakdown + payment progress */}
+                  {stats.byStatus && stats.byStatus.length > 0 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Status distribution */}
+                      <div className="bg-base-100 rounded-xl border border-base-300 p-4">
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Répartition par statut</h4>
+                        <div className="space-y-3">
+                          {stats.byStatus.map((item) => {
+                            const maxVal = Math.max(...stats.byStatus.map(s => s.total));
+                            const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
+                            const statusColor = item.status === 'Paye' ? 'bg-success' : item.status === 'Partiel' ? 'bg-warning' : 'bg-base-300';
+                            return (
+                              <div key={item.status} className="flex items-center gap-3">
+                                <span className="text-xs font-medium w-24">{item.status}</span>
+                                <div className="flex-1 h-6 bg-base-200 rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.max(pct, 2)}%` }}
+                                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                                    className={`h-full ${statusColor} rounded-full`}
+                                  />
+                                </div>
+                                <span className="text-xs font-semibold w-20 text-right tabular-nums">{formatCurrency(item.total)}</span>
+                                <span className="text-xs text-base-content/40 w-10 text-right">{item.count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Payment progress donut */}
+                      <div className="bg-base-100 rounded-xl border border-base-300 p-4">
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Progression encaissement</h4>
+                        <div className="flex items-center gap-6">
+                          <div className="relative w-28 h-28">
+                            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                              <circle cx="18" cy="18" r="15.9" fill="none" stroke="oklch(var(--b2))" strokeWidth="3" />
+                              <motion.circle
+                                cx="18" cy="18" r="15.9" fill="none"
+                                stroke="oklch(var(--su))" strokeWidth="3" strokeLinecap="round"
+                                strokeDasharray={`${stats.total.total > 0 ? (stats.total.paid / stats.total.total) * 100 : 0} ${100 - (stats.total.total > 0 ? (stats.total.paid / stats.total.total) * 100 : 0)}`}
+                                initial={{ strokeDasharray: '0 100' }}
+                                animate={{ strokeDasharray: `${stats.total.total > 0 ? (stats.total.paid / stats.total.total) * 100 : 0} ${100 - (stats.total.total > 0 ? (stats.total.paid / stats.total.total) * 100 : 0)}` }}
+                                transition={{ duration: 1, ease: 'easeOut' }}
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-2xl font-bold text-success">
+                                {stats.total.total > 0 ? Math.round((stats.total.paid / stats.total.total) * 100) : 0}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-success" />
+                              <span>Payé: <strong>{formatCurrency(stats.total.paid)}</strong></span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-warning" />
+                              <span>Restant: <strong>{formatCurrency(stats.total.remaining)}</strong></span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-base-300" />
+                              <span>Total: <strong>{formatCurrency(stats.total.total)}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </div>
         </div>
       </div>
 
-      {/* Invoice List */}
-      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-          <div>
-            <h3 className="font-semibold text-lg">Historique des ventes</h3>
-            <p className="text-sm text-base-content/60">{filtered.length} facture(s) sur {invoices.length}</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <FilterSelect
-              value={filter}
-              onChange={setFilter}
-              placeholder="Tous les statuts"
-              options={[
-                { value: 'paid', label: 'Payé' },
-                { value: 'partial', label: 'Partiel' },
-                { value: 'pending', label: 'En attente' },
-              ]}
-            />
-            <div className="min-w-50">
-              <SearchBar
-                value={search}
-                onChange={setSearch}
-                onClear={() => setSearch('')}
-                placeholder="Rechercher par N° facture, client, date..."
-              />
+      {/* Invoices Table */}
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur">
+        <div className="border-b border-base-200 p-4"><h3 className="font-semibold text-lg">Historique des ventes</h3></div>
+        <div className="overflow-x-auto">
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-base-content/60">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p>{invoices.length === 0 ? 'Aucune vente enregistrée.' : 'Aucune facture ne correspond aux filtres.'}</p>
             </div>
-          </div>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p className="text-base-content/70">{invoices.length === 0 ? 'Aucune vente enregistrée.' : 'Aucune facture ne correspond aux filtres.'}</p>
-            {invoices.length === 0 && (
-              <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm mt-4">
-                Créer une première facture
-              </button>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="table table-zebra">
-                <thead>
-                  <tr>
-                    <th>N° Facture</th>
-                    <th>Client</th>
-                    <th>Date</th>
-                    <th>Total</th>
-                    <th>Encaisse</th>
-                    <th>Reste</th>
-                    <th>Statut</th>
-                    <th className="text-right">Actions</th>
+          ) : (
+            <table className="table">
+              <thead><tr className="bg-base-200"><th className="font-semibold">N° Facture</th><th className="font-semibold">Client</th><th className="font-semibold">Date</th><th className="font-semibold text-right">Total</th><th className="font-semibold text-right">Encaisse</th><th className="font-semibold text-right">Reste</th><th className="font-semibold">Statut</th><th className="font-semibold text-right">Actions</th></tr></thead>
+              <tbody>
+                {paginatedInvoices.map((invoice) => (
+                  <tr key={invoice.id} className="hover:bg-base-200">
+                    <td className="font-medium">{invoice.invoiceNumber}</td>
+                    <td>{invoice.customerName}</td>
+                    <td>{new Date(invoice.date).toLocaleDateString('fr-MA')}</td>
+                    <td className="text-right font-semibold">{formatCurrency(invoice.totalAmount)}</td>
+                    <td className="text-right text-success">{formatCurrency(invoice.amountPaid)}</td>
+                    <td className={`text-right ${invoice.remainingAmount > 0 ? 'text-warning font-medium' : ''}`}>
+                      {formatCurrency(invoice.remainingAmount)}
+                    </td>
+                    <td>
+                      <span className={`badge ${getStatusColor(invoice.paymentStatus)} badge-sm`}>
+                        {invoice.paymentStatus}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex justify-end gap-1">
+                        <Link href={`/ventes/${invoice.id}`} className="btn btn-ghost btn-sm btn-square" title="Voir détail">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </Link>
+                        <button onClick={() => handleExportPDF(invoice)} className="btn btn-ghost btn-sm btn-square text-info" title="Télécharger PDF">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </button>
+                        <button onClick={() => handleExportImage(invoice)} className="btn btn-ghost btn-sm btn-square text-success" title="Télécharger Image">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </button>
+                        <button onClick={() => openEditModal(invoice)} className="btn btn-ghost btn-sm btn-square" title="Modifier">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </button>
+                        <button onClick={() => openDeleteModal(invoice)} className="btn btn-ghost btn-sm btn-square" title="Supprimer">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {paginatedInvoices.map((invoice) => (
-                    <tr key={invoice.id}>
-                      <td className="font-medium">{invoice.invoiceNumber}</td>
-                      <td>{invoice.customerName}</td>
-                      <td>{new Date(invoice.date).toLocaleDateString('fr-MA')}</td>
-                      <td className="font-semibold">{formatCurrency(invoice.totalAmount)}</td>
-                      <td className="text-success">{formatCurrency(invoice.amountPaid)}</td>
-                      <td className={invoice.remainingAmount > 0 ? 'text-warning font-medium' : ''}>
-                        {formatCurrency(invoice.remainingAmount)}
-                      </td>
-                      <td>
-                        <span className={`badge ${getStatusColor(invoice.paymentStatus)} badge-sm`}>
-                          {invoice.paymentStatus}
-                        </span>
-                      </td>
-                      <td className="text-right">
-                        <div className="flex gap-1 justify-end">
-                          <Link href={`/ventes/${invoice.id}`} className="btn btn-ghost btn-xs" title="Voir détail">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </Link>
-                          <button onClick={() => handleExportPDF(invoice)} className="btn btn-ghost btn-xs text-info" title="Télécharger PDF">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </button>
-                          <button onClick={() => handleExportImage(invoice)} className="btn btn-ghost btn-xs text-success" title="Télécharger Image">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </button>
-                          <button onClick={() => openEditModal(invoice)} className="btn btn-ghost btn-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button onClick={() => openDeleteModal(invoice)} className="btn btn-ghost btn-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </>
-        )}
-      </div>      {/* Add Modal */}
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      </div>
+
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Nouvelle facture de vente" size="xl">
         <form onSubmit={handleAddInvoice} className="space-y-4">
           {/* Client & Date */}
