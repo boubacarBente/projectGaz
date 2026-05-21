@@ -684,6 +684,7 @@ export default function FacturesPage() {
       </div>      {/* Add Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Nouvelle facture de vente" size="xl">
         <form onSubmit={handleAddInvoice} className="space-y-4">
+          {/* Client & Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="form-control">
               <label className="label block">
@@ -716,6 +717,103 @@ export default function FacturesPage() {
             </div>
           </div>
 
+          {/* Produits */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-semibold text-sm text-base-content/70">Produits vendus</h4>
+              <button type="button" onClick={addLine} className="btn btn-sm btn-primary btn-outline gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Ajouter
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="table table-xs">
+                <thead>
+                  <tr>
+                    <th className="bg-base-100">Produit</th>
+                    <th className="bg-base-100 text-center">Qté</th>
+                    <th className="bg-base-100 text-right">Prix unit.</th>
+                    <th className="bg-base-100 text-right">Total</th>
+                    <th className="bg-base-100"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.lines.map((line, index) => {
+                    const qty = parseFloat(line.quantity || '0');
+                    const price = parseFloat(line.unitPrice || '0');
+                    const total = qty * price;
+                    return (
+                      <tr key={index}>
+                        <td>
+                          <select
+                            value={line.productId}
+                            onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.salePrice.toString()); }}
+                            className="select select-bordered select-sm w-full focus:select-focus"
+                          >
+                            <option value="">Sélectionner...</option>
+                            {products.map(p => (
+                              <option key={p.id} value={p.id}>{p.code} - {p.name} ({p.capacity})</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            type="number" step="any"
+                            value={line.quantity}
+                            onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                            className="input input-bordered input-sm w-20 text-center focus:input-focus"
+                            min="1"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number" step="any"
+                            value={line.unitPrice}
+                            onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
+                            className="input input-bordered input-sm w-28 text-right focus:input-focus"
+                            placeholder="0"
+                            min="1"
+                          />
+                        </td>
+                        <td className="text-right font-semibold text-sky-600">
+                          {line.quantity && line.unitPrice ? formatCurrency(total) + ' F' : '—'}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => removeLine(index)}
+                            className="btn btn-ghost btn-sm btn-circle"
+                            disabled={formData.lines.length === 1}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="font-bold text-base">
+                    <td colSpan={3} className="text-right">Total général</td>
+                    <td className="text-right text-sky-600">
+                      {formatCurrency(
+                        formData.lines.reduce((sum, line) =>
+                          sum + (parseFloat(line.quantity || '0') * parseFloat(line.unitPrice || '0')), 0
+                        )
+                      )} F
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* Paiement & Notes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="form-control">
               <label className="label">
@@ -738,8 +836,6 @@ export default function FacturesPage() {
               </label>
               <input
                 type="number" step="any"
-                
-                
                 value={formData.amountPaid}
                 onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
                 className="input input-bordered"
@@ -760,70 +856,8 @@ export default function FacturesPage() {
             </div>
           </div>
 
-          <div className="border-t border-base-200 pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium">Produits</h4>
-              <button type="button" onClick={addLine} className="btn btn-ghost btn-sm">
-                + Ajouter une ligne
-              </button>
-            </div>
-            <div className="space-y-2">
-              {formData.lines.map((line, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
-                    <label className="label text-xs"><span className="label-text">Produit</span></label>
-                    <select
-                      value={line.productId}
-                      onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.salePrice.toString()); }}
-                      className="select select-bordered select-sm w-full"
-                    >
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="label text-xs"><span className="label-text">Qté</span></label>
-                    <input
-                      type="number" step="any"
-                      
-                      value={line.quantity}
-                      onChange={(e) => updateLine(index, 'quantity', e.target.value)}
-                      className="input input-bordered input-sm w-full"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <label className="label text-xs"><span className="label-text">Prix</span></label>
-                    <input
-                      type="number" step="any"
-                      
-                      
-                      value={line.unitPrice}
-                      onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
-                      className="input input-bordered input-sm w-full"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <button
-                      type="button"
-                      onClick={() => removeLine(index)}
-                      className="btn btn-ghost btn-sm btn-circle"
-                      disabled={formData.lines.length === 1}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
-            <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">
-              Annuler
-            </button>
+            <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">Annuler</button>
             <button type="submit" disabled={isSubmitting} className="btn btn-primary">
               {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
@@ -852,6 +886,7 @@ export default function FacturesPage() {
         size="xl"
       >
         <form onSubmit={handleEditInvoice} className="space-y-4">
+          {/* Client & Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="form-control">
               <label className="label block">
@@ -865,9 +900,7 @@ export default function FacturesPage() {
               >
                 <option value="">Sélectionner un client...</option>
                 {customers.map(c => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                  </option>
+                  <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -885,6 +918,103 @@ export default function FacturesPage() {
             </div>
           </div>
 
+          {/* Produits */}
+          <div className="bg-base-200/30 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-semibold text-sm text-base-content/70">Produits vendus</h4>
+              <button type="button" onClick={addLine} className="btn btn-sm btn-primary btn-outline gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Ajouter
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="table table-xs">
+                <thead>
+                  <tr>
+                    <th className="bg-base-100">Produit</th>
+                    <th className="bg-base-100 text-center">Qté</th>
+                    <th className="bg-base-100 text-right">Prix unit.</th>
+                    <th className="bg-base-100 text-right">Total</th>
+                    <th className="bg-base-100"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.lines.map((line, index) => {
+                    const qty = parseFloat(line.quantity || '0');
+                    const price = parseFloat(line.unitPrice || '0');
+                    const total = qty * price;
+                    return (
+                      <tr key={index}>
+                        <td>
+                          <select
+                            value={line.productId}
+                            onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.salePrice.toString()); }}
+                            className="select select-bordered select-sm w-full focus:select-focus"
+                          >
+                            <option value="">Sélectionner...</option>
+                            {products.map(p => (
+                              <option key={p.id} value={p.id}>{p.code} - {p.name} ({p.capacity})</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            type="number" step="any"
+                            value={line.quantity}
+                            onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                            className="input input-bordered input-sm w-20 text-center focus:input-focus"
+                            min="1"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number" step="any"
+                            value={line.unitPrice}
+                            onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
+                            className="input input-bordered input-sm w-28 text-right focus:input-focus"
+                            placeholder="0"
+                            min="1"
+                          />
+                        </td>
+                        <td className="text-right font-semibold text-sky-600">
+                          {line.quantity && line.unitPrice ? formatCurrency(total) + ' F' : '—'}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => removeLine(index)}
+                            className="btn btn-ghost btn-sm btn-circle"
+                            disabled={formData.lines.length === 1}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="font-bold text-base">
+                    <td colSpan={3} className="text-right">Total général</td>
+                    <td className="text-right text-sky-600">
+                      {formatCurrency(
+                        formData.lines.reduce((sum, line) =>
+                          sum + (parseFloat(line.quantity || '0') * parseFloat(line.unitPrice || '0')), 0
+                        )
+                      )} F
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* Paiement & Notes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="form-control">
               <label className="label">
@@ -907,8 +1037,6 @@ export default function FacturesPage() {
               </label>
               <input
                 type="number" step="any"
-                
-                
                 value={formData.amountPaid}
                 onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
                 className="input input-bordered"
@@ -924,66 +1052,6 @@ export default function FacturesPage() {
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="input input-bordered"
               />
-            </div>
-          </div>
-
-          <div className="border-t border-base-200 pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium">Produits</h4>
-              <button type="button" onClick={addLine} className="btn btn-ghost btn-sm">
-                + Ajouter une ligne
-              </button>
-            </div>
-            <div className="space-y-2">
-              {formData.lines.map((line, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
-                    <label className="label text-xs"><span className="label-text">Produit</span></label>
-                    <select
-                      value={line.productId}
-                      onChange={(e) => { const p = products.find(p => p.id.toString() === e.target.value); updateLine(index, 'productId', e.target.value); if (p) updateLine(index, 'unitPrice', p.salePrice.toString()); }}
-                      className="select select-bordered select-sm w-full"
-                    >
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="label text-xs"><span className="label-text">Qté</span></label>
-                    <input
-                      type="number" step="any"
-                      
-                      value={line.quantity}
-                      onChange={(e) => updateLine(index, 'quantity', e.target.value)}
-                      className="input input-bordered input-sm w-full"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <label className="label text-xs"><span className="label-text">Prix</span></label>
-                    <input
-                      type="number" step="any"
-                      
-                      
-                      value={line.unitPrice}
-                      onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
-                      className="input input-bordered input-sm w-full"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <button
-                      type="button"
-                      onClick={() => removeLine(index)}
-                      className="btn btn-ghost btn-sm btn-circle"
-                      disabled={formData.lines.length === 1}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
