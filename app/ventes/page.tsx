@@ -622,7 +622,7 @@ export default function FacturesPage() {
                   <button
                     key={p}
                     onClick={() => setStatsPeriod(p)}
-                    className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
+                    className={`px-4 cursor-pointer py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
                       statsPeriod === p
                         ? 'bg-primary text-primary-content shadow-inner'
                         : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
