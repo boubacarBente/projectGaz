@@ -352,11 +352,11 @@ export default function ProduitsPage() {
                     </td>
                     <td className="text-center">
                       {product.isActive ? (
-                        <span className="badge badge-primary badge-xs">
+                        <span className="badge badge-primary p-3 badge-xs">
                           Actif
                         </span>
                       ) : (
-                        <span className="badge badge-ghost badge-xs">
+                        <span className="badge bg-amber-600 p-3 badge-xs">
                           Inactif
                         </span>
                       )}
@@ -853,9 +853,9 @@ export default function ProduitsPage() {
                   <span className="text-base-content/50">Statut</span>
                   <p className="font-medium">
                     {selectedProduct.isActive ? (
-                      <span className="badge badge-primary badge-sm">Actif</span>
+                      <span className="badge badge-primary p-2 badge-sm">Actif</span>
                     ) : (
-                      <span className="badge badge-ghost badge-sm">Inactif</span>
+                      <span className="badge bg-amber-600 p-2 badge-sm">Inactif</span>
                     )}
                   </p>
                 </div>
