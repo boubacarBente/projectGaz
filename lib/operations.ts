@@ -337,48 +337,26 @@ async function buildSalesItems(lines: LineInput[]) {
 
 export async function createPurchaseInvoice(input: {
   reference: string;
-  supplier: string;
+  supplierId: number;
   date: string;
   notes: string;
   lines: LineInput[];
   isPaid?: boolean;
 }) {
-  // --- CODE JSON (commenté) ---
-  // const invoices = await listPurchaseInvoices();
-  // const items = await buildPurchaseItems(input.lines);
-  // const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
-
-  // const invoice: PurchaseInvoice = {
-  //   id: invoices.reduce((max, item) => Math.max(max, item.id), 0) + 1,
-  //   reference: input.reference,
-  //   supplier: input.supplier,
-  //   date: input.date,
-  //   notes: input.notes,
-  //   items,
-  //   totalAmount,
-  //   isPaid: input.isPaid ?? false,
-  //   createdAt: new Date().toISOString(),
-  // };
-
-  // await writeJsonFile(purchasesFile, [invoice, ...invoices]);
-  // return invoice;
-
   // --- CODE SQL ---
   const items = await buildPurchaseItems(input.lines);
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
-  // Chercher le fournisseur par nom pour lier le supplierId
-  const supplierMatch = input.supplier
-    ? await db.select({ id: suppliers.id }).from(suppliers)
-        .where(eq(suppliers.name, input.supplier))
-        .limit(1)
-    : [];
-  const supplierId = supplierMatch.length > 0 ? supplierMatch[0].id : null;
+  // Chercher le nom du fournisseur à partir de l'ID
+  const supplierMatch = await db.select({ name: suppliers.name }).from(suppliers)
+    .where(eq(suppliers.id, input.supplierId))
+    .limit(1);
+  const supplierName = supplierMatch.length > 0 ? supplierMatch[0].name : '';
 
   const result = await db.insert(purchaseInvoices).values({
     reference: input.reference,
-    supplier: input.supplier,
-    supplierId,
+    supplier: supplierName,
+    supplierId: input.supplierId,
     date: input.date,
     notes: input.notes,
     totalAmount,
@@ -412,7 +390,7 @@ export async function createPurchaseInvoice(input: {
   return {
     id: invoiceId,
     reference: input.reference,
-    supplier: input.supplier,
+    supplier: supplierName,
     date: input.date,
     notes: input.notes,
     items,
@@ -575,41 +553,12 @@ export async function getPurchaseInvoice(id: number) {
 
 export async function updatePurchaseInvoice(id: number, input: {
   reference?: string;
-  supplier?: string;
+  supplierId?: number;
   date?: string;
   notes?: string;
   lines?: LineInput[];
   isPaid?: boolean;
 }) {
-  // --- CODE JSON (commenté) ---
-  // const invoices = await listPurchaseInvoices();
-  // const index = invoices.findIndex((invoice) => invoice.id === id);
-  
-  // if (index === -1) {
-  //   throw new Error('Invoice not found');
-  // }
-
-  // const existingInvoice = invoices[index];
-  // const items = input.lines 
-  //   ? await buildPurchaseItems(input.lines)
-  //   : existingInvoice.items;
-  // const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
-
-  // const updatedInvoice: PurchaseInvoice = {
-  //   ...existingInvoice,
-  //   reference: input.reference ?? existingInvoice.reference,
-  //   supplier: input.supplier ?? existingInvoice.supplier,
-  //   date: input.date ?? existingInvoice.date,
-  //   notes: input.notes ?? existingInvoice.notes,
-  //   items,
-  //   totalAmount,
-  //   isPaid: input.isPaid ?? existingInvoice.isPaid,
-  // };
-
-  // invoices[index] = updatedInvoice;
-  // await writeJsonFile(purchasesFile, invoices);
-  // return updatedInvoice;
-
   // --- CODE SQL ---
   // Vérifier si la facture existe
   const existing = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
@@ -622,23 +571,19 @@ export async function updatePurchaseInvoice(id: number, input: {
     : await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
-  // Mettre à jour la facture
-  // Chercher le fournisseur par nom pour lier le supplierId
-  const supplierName = input.supplier;
-  let supplierId: number | null = null;
-  if (supplierName !== undefined) {
-    const supplierMatch = supplierName
-      ? await db.select({ id: suppliers.id }).from(suppliers)
-          .where(eq(suppliers.name, supplierName))
-          .limit(1)
-      : [];
-    supplierId = supplierMatch.length > 0 ? supplierMatch[0].id : null;
+  // Chercher le nom du fournisseur à partir de l'ID
+  let supplierName: string | undefined;
+  if (input.supplierId !== undefined) {
+    const supplierMatch = await db.select({ name: suppliers.name }).from(suppliers)
+      .where(eq(suppliers.id, input.supplierId))
+      .limit(1);
+    supplierName = supplierMatch.length > 0 ? supplierMatch[0].name : '';
   }
 
   await db.update(purchaseInvoices).set({
     reference: input.reference,
-    supplier: input.supplier,
-    supplierId: supplierId !== null ? supplierId : undefined,
+    ...(supplierName !== undefined ? { supplier: supplierName } : {}),
+    supplierId: input.supplierId,
     date: input.date,
     notes: input.notes,
     totalAmount,
