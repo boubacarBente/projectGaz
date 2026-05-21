@@ -306,7 +306,7 @@ export default function SupplierPaymentsPage() {
                       className="group hover:bg-base-200/40 transition-colors"
                     >
                       <td>
-                        <Link href={`/depenses/${inv.id}`} className="font-medium text-primary hover:underline">
+                        <Link href={`/factures-usine/${inv.id}`} className="font-medium text-primary hover:underline">
                           {inv.reference}
                         </Link>
                       </td>
@@ -328,7 +328,7 @@ export default function SupplierPaymentsPage() {
                       </td>
                       <td>
                         <Link
-                          href={`/depenses/${inv.id}`}
+                          href={`/factures-usine/${inv.id}`}
                           className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
