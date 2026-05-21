@@ -41,8 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 # database
-# *.db
-# db/*.db
+*.db
+db/*.db
 
 # logs
 server.log
