@@ -32,7 +32,7 @@ type PurchaseInvoiceItem = {
 type PurchaseInvoice = {
   id: number;
   reference: string;
-  supplier: string;
+  supplierName: string;
   date: string;
   notes: string;
   items: PurchaseInvoiceItem[];
@@ -105,7 +105,7 @@ export default function DepensesPage() {
   const filteredBySupplier = useMemo(() => {
     if (!supplierFilter) return filtered;
     return filtered.filter(inv =>
-      inv.supplier.toLowerCase() === supplierFilter.toLowerCase()
+      inv.supplierName.toLowerCase() === supplierFilter.toLowerCase()
     );
   }, [filtered, supplierFilter]);
 
@@ -180,6 +180,13 @@ export default function DepensesPage() {
       return;
     }
 
+    // Trouver l'ID du fournisseur à partir du nom
+    const supplierObj = suppliers.find(s => s.name === formData.supplier);
+    if (!supplierObj) {
+      toast.error('Fournisseur invalide');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
 
@@ -188,7 +195,7 @@ export default function DepensesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reference: formData.reference,
-          supplier: formData.supplier,
+          supplierId: supplierObj.id,
           date: formData.date,
           notes: formData.notes,
           lines,
@@ -228,6 +235,13 @@ export default function DepensesPage() {
       return;
     }
 
+    // Trouver l'ID du fournisseur à partir du nom
+    const supplierObj = suppliers.find(s => s.name === formData.supplier);
+    if (!supplierObj) {
+      toast.error('Fournisseur invalide');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
 
@@ -236,7 +250,7 @@ export default function DepensesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reference: formData.reference,
-          supplier: formData.supplier,
+          supplierId: supplierObj.id,
           date: formData.date,
           notes: formData.notes,
           lines,
@@ -279,7 +293,7 @@ export default function DepensesPage() {
     setSelectedInvoice(invoice);
     setFormData({
       reference: invoice.reference,
-      supplier: invoice.supplier,
+      supplier: invoice.supplierName,
       date: invoice.date,
       notes: invoice.notes,
       lines: invoice.items.map(item => ({
@@ -423,7 +437,7 @@ export default function DepensesPage() {
           <p style="font-size:18px;color:#475569;margin:0;">N° ${invoice.reference}</p>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:30px;">
-          <div><p style="font-size:12px;color:#64748b;margin:0;">Fournisseur</p><p style="font-size:16px;font-weight:bold;margin:5px 0 0 0;">${invoice.supplier}</p></div>
+          <div><p style="font-size:12px;color:#64748b;margin:0;">Fournisseur</p><p style="font-size:16px;font-weight:bold;margin:5px 0 0 0;">${invoice.supplierName}</p></div>
           <div style="text-align:right;">
             <p style="font-size:12px;color:#64748b;margin:0;">Date</p><p style="font-size:14px;margin:5px 0 0 0;">${new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
           </div>
@@ -587,7 +601,7 @@ export default function DepensesPage() {
                   {paginatedInvoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td className="font-medium">{invoice.reference}</td>
-                      <td>{invoice.supplier}</td>
+                      <td>{invoice.supplierName}</td>
                       <td>{new Date(invoice.date).toLocaleDateString('fr-MA')}</td>
                       <td>
                         <div className="text-sm">
@@ -1144,7 +1158,7 @@ export default function DepensesPage() {
               </div>
               <div>
                 <p className="text-xs text-base-content/60">Fournisseur</p>
-                <p className="font-medium">{selectedInvoice.supplier}</p>
+                <p className="font-medium">{selectedInvoice.supplierName}</p>
               </div>
               <div>
                 <p className="text-xs text-base-content/60">Montant total</p>

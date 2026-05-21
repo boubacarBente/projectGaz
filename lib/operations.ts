@@ -2,13 +2,12 @@
 import path from "node:path";
 import Database from "better-sqlite3";
 import { db } from "../db/index";
-import { findPurchaseInvoices, findPurchaseInvoiceById, findSalesInvoices, findSalesInvoiceById } from "@/db/helpers";
-import {
+import { 
   customerTypes,
   customers,
-  products,
+  products, 
   suppliers,
-  purchaseInvoices,
+  purchaseInvoices, 
   purchaseInvoiceItems,
   salesInvoices,
   salesInvoiceItems,
@@ -16,7 +15,7 @@ import {
   stockMovements,
   settings
 } from "../db/schema";
-import { eq, desc, asc, like, sql, and } from "drizzle-orm";
+import { eq, desc, asc, like, sql, and, or } from "drizzle-orm";
 import { listProducts } from "@/lib/products";
 
 export type PurchaseInvoiceItem = {
@@ -31,8 +30,7 @@ export type PurchaseInvoiceItem = {
 export type PurchaseInvoice = {
   id: number;
   reference: string;
-  supplierName: string;
-  supplierId: number | null;
+  supplier: string;
   date: string;
   notes: string;
   items: PurchaseInvoiceItem[];
@@ -53,7 +51,6 @@ export type SalesInvoiceItem = {
 export type SalesInvoice = {
   id: number;
   invoiceNumber: string;
-  customerId: number | null;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -212,61 +209,82 @@ export function calculateSalesProfitMetrics(
 // }
 
 export async function listPurchaseInvoices() {
-  const rows = await findPurchaseInvoices();
+  // --- CODE JSON (commenté) ---
+  // const invoices = await readJsonFile<PurchaseInvoice[]>(purchasesFile);
+  // return invoices.sort((a, b) => b.date.localeCompare(a.date));
 
-  return rows.map(mapPurchaseInvoiceRow);
-}
-
-function mapPurchaseInvoiceRow(row: any): PurchaseInvoice {
-  return {
-    id: row.id,
-    reference: row.reference,
-    supplierName: row.supplier?.name ?? '',
-    supplierId: row.supplierId,
-    date: row.date,
-    notes: row.notes || "",
-    items: row.items.map((item: any) => ({
-      productId: item.productId,
-      productCode: item.productCode,
-      productName: item.productName,
-      quantity: item.quantity,
-      unitCost: item.unitCost,
-      totalCost: item.totalCost,
-    })),
-    totalAmount: row.totalAmount ?? 0,
-    isPaid: row.isPaid ?? false,
-    createdAt: row.createdAt?.toISOString() || "",
-  };
+  // --- CODE SQL ---
+  const invoices = await db.select().from(purchaseInvoices).orderBy(desc(purchaseInvoices.date));
+  
+  const invoicesWithItems: PurchaseInvoice[] = await Promise.all(
+    invoices.map(async (inv) => {
+      const items = await db.select()
+        .from(purchaseInvoiceItems)
+        .where(eq(purchaseInvoiceItems.invoiceId, inv.id));
+      
+      return {
+        id: inv.id,
+        reference: inv.reference,
+        supplier: inv.supplier,
+        date: inv.date,
+        notes: inv.notes || "",
+        items: items.map(item => ({
+          productId: item.productId,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          totalCost: item.totalCost,
+        })),
+        totalAmount: inv.totalAmount ?? 0,
+        isPaid: inv.isPaid ?? false,
+        createdAt: inv.createdAt?.toISOString() || "",
+      };
+    })
+  );
+  
+  return invoicesWithItems;
 }
 
 export async function listSalesInvoices() {
-  const rows = await findSalesInvoices();
-  return rows.map(mapSalesInvoiceRow);
-}
+  // --- CODE JSON (commenté) ---
+  // const invoices = await readJsonFile<SalesInvoice[]>(salesFile);
+  // return invoices.sort((a, b) => b.date.localeCompare(a.date));
 
-function mapSalesInvoiceRow(row: any): SalesInvoice {
-  return {
-    id: row.id,
-    invoiceNumber: row.invoiceNumber,
-    customerId: row.customerId,
-    customerName: row.customer?.name ?? row.customerName,
-    date: row.date,
-    paymentMethod: row.paymentMethod || "Espèces",
-    notes: row.notes || "",
-    items: row.items.map((item: any) => ({
-      productId: item.productId,
-      productCode: item.productCode,
-      productName: item.productName,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      totalPrice: item.totalPrice,
-    })),
-    totalAmount: row.totalAmount ?? 0,
-    amountPaid: row.amountPaid ?? 0,
-    remainingAmount: row.remainingAmount ?? 0,
-    paymentStatus: (row.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
-    createdAt: row.createdAt?.toISOString() || "",
-  };
+  // --- CODE SQL ---
+  const invoices = await db.select().from(salesInvoices).orderBy(desc(salesInvoices.date));
+  
+  const invoicesWithItems: SalesInvoice[] = await Promise.all(
+    invoices.map(async (inv) => {
+      const items = await db.select()
+        .from(salesInvoiceItems)
+        .where(eq(salesInvoiceItems.invoiceId, inv.id));
+      
+      return {
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        customerName: inv.customerName,
+        date: inv.date,
+        paymentMethod: inv.paymentMethod || "Espèces",
+        notes: inv.notes || "",
+        items: items.map(item => ({
+          productId: item.productId,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        })),
+        totalAmount: inv.totalAmount ?? 0,
+        amountPaid: inv.amountPaid ?? 0,
+        remainingAmount: inv.remainingAmount ?? 0,
+        paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+        createdAt: inv.createdAt?.toISOString() || "",
+      };
+    })
+  );
+  
+  return invoicesWithItems;
 }
 
 type LineInput = {
@@ -319,19 +337,48 @@ async function buildSalesItems(lines: LineInput[]) {
 
 export async function createPurchaseInvoice(input: {
   reference: string;
-  supplierId: number;
+  supplier: string;
   date: string;
   notes: string;
   lines: LineInput[];
   isPaid?: boolean;
 }) {
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listPurchaseInvoices();
+  // const items = await buildPurchaseItems(input.lines);
+  // const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
+
+  // const invoice: PurchaseInvoice = {
+  //   id: invoices.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+  //   reference: input.reference,
+  //   supplier: input.supplier,
+  //   date: input.date,
+  //   notes: input.notes,
+  //   items,
+  //   totalAmount,
+  //   isPaid: input.isPaid ?? false,
+  //   createdAt: new Date().toISOString(),
+  // };
+
+  // await writeJsonFile(purchasesFile, [invoice, ...invoices]);
+  // return invoice;
+
   // --- CODE SQL ---
   const items = await buildPurchaseItems(input.lines);
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
+  // Chercher le fournisseur par nom pour lier le supplierId
+  const supplierMatch = input.supplier
+    ? await db.select({ id: suppliers.id }).from(suppliers)
+        .where(eq(suppliers.name, input.supplier))
+        .limit(1)
+    : [];
+  const supplierId = supplierMatch.length > 0 ? supplierMatch[0].id : null;
+
   const result = await db.insert(purchaseInvoices).values({
     reference: input.reference,
-    supplierId: input.supplierId,
+    supplier: input.supplier,
+    supplierId,
     date: input.date,
     notes: input.notes,
     totalAmount,
@@ -365,8 +412,7 @@ export async function createPurchaseInvoice(input: {
   return {
     id: invoiceId,
     reference: input.reference,
-    supplierName: '',
-    supplierId: input.supplierId,
+    supplier: input.supplier,
     date: input.date,
     notes: input.notes,
     items,
@@ -377,7 +423,6 @@ export async function createPurchaseInvoice(input: {
 }
 
 export async function createSalesInvoice(input: {
-  customerId?: number;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -435,7 +480,6 @@ export async function createSalesInvoice(input: {
 
   const result = await db.insert(salesInvoices).values({
     invoiceNumber,
-    customerId: input.customerId,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -467,24 +511,23 @@ export async function createSalesInvoice(input: {
     .where(eq(customers.name, input.customerName))
     .limit(1);
 
-  if (existingCustomer) {
-    await db.update(customers)
-      .set({
-        totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
-        updatedAt: new Date(),
-      })
-      .where(eq(customers.id, existingCustomer.id));
+    if (existingCustomer) {
+      await db.update(customers)
+        .set({
+          totalPurchases: (existingCustomer.totalPurchases ?? 0) + totalAmount,
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, existingCustomer.id));
 
-    // Lier la facture au client trouvé pour l'historique des paiements
-    await db.update(salesInvoices)
-      .set({ customerId: existingCustomer.id })
-      .where(eq(salesInvoices.id, invoiceId));
-  }
+      // Lier la facture au client trouvé pour l'historique des paiements
+      await db.update(salesInvoices)
+        .set({ customerId: existingCustomer.id })
+        .where(eq(salesInvoices.id, invoiceId));
+    }
 
   return {
     id: invoiceId,
     invoiceNumber,
-    customerId: input.customerId ?? null,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -499,19 +542,74 @@ export async function createSalesInvoice(input: {
 }
 
 export async function getPurchaseInvoice(id: number) {
-  const row = await findPurchaseInvoiceById(id);
-  if (!row) return null;
-  return mapPurchaseInvoiceRow(row);
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listPurchaseInvoices();
+  // return invoices.find((invoice) => invoice.id === id) || null;
+
+  // --- CODE SQL ---
+  const invoices = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
+  if (invoices.length === 0) return null;
+  
+  const inv = invoices[0];
+  const items = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
+  
+  return {
+    id: inv.id,
+    reference: inv.reference,
+    supplier: inv.supplier,
+    date: inv.date,
+    notes: inv.notes || "",
+    items: items.map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      totalCost: item.totalCost,
+    })),
+    totalAmount: inv.totalAmount,
+    isPaid: inv.isPaid,
+    createdAt: inv.createdAt?.toISOString() || "",
+  };
 }
 
 export async function updatePurchaseInvoice(id: number, input: {
   reference?: string;
-  supplierId?: number;
+  supplier?: string;
   date?: string;
   notes?: string;
   lines?: LineInput[];
   isPaid?: boolean;
 }) {
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listPurchaseInvoices();
+  // const index = invoices.findIndex((invoice) => invoice.id === id);
+  
+  // if (index === -1) {
+  //   throw new Error('Invoice not found');
+  // }
+
+  // const existingInvoice = invoices[index];
+  // const items = input.lines 
+  //   ? await buildPurchaseItems(input.lines)
+  //   : existingInvoice.items;
+  // const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
+
+  // const updatedInvoice: PurchaseInvoice = {
+  //   ...existingInvoice,
+  //   reference: input.reference ?? existingInvoice.reference,
+  //   supplier: input.supplier ?? existingInvoice.supplier,
+  //   date: input.date ?? existingInvoice.date,
+  //   notes: input.notes ?? existingInvoice.notes,
+  //   items,
+  //   totalAmount,
+  //   isPaid: input.isPaid ?? existingInvoice.isPaid,
+  // };
+
+  // invoices[index] = updatedInvoice;
+  // await writeJsonFile(purchasesFile, invoices);
+  // return updatedInvoice;
+
   // --- CODE SQL ---
   // Vérifier si la facture existe
   const existing = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
@@ -525,9 +623,22 @@ export async function updatePurchaseInvoice(id: number, input: {
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
   // Mettre à jour la facture
+  // Chercher le fournisseur par nom pour lier le supplierId
+  const supplierName = input.supplier;
+  let supplierId: number | null = null;
+  if (supplierName !== undefined) {
+    const supplierMatch = supplierName
+      ? await db.select({ id: suppliers.id }).from(suppliers)
+          .where(eq(suppliers.name, supplierName))
+          .limit(1)
+      : [];
+    supplierId = supplierMatch.length > 0 ? supplierMatch[0].id : null;
+  }
+
   await db.update(purchaseInvoices).set({
     reference: input.reference,
-    supplierId: input.supplierId,
+    supplier: input.supplier,
+    supplierId: supplierId !== null ? supplierId : undefined,
     date: input.date,
     notes: input.notes,
     totalAmount,
@@ -595,8 +706,7 @@ export async function updatePurchaseInvoice(id: number, input: {
   return {
     id,
     reference: input.reference ?? existing[0].reference,
-    supplierName: '',
-    supplierId: input.supplierId ?? existing[0].supplierId,
+    supplier: input.supplier ?? existing[0].supplier,
     date: input.date ?? existing[0].date,
     notes: (input.notes ?? existing[0].notes) || "",
     items: items.map(item => ({
@@ -654,9 +764,39 @@ export async function deletePurchaseInvoice(id: number) {
 }
 
 export async function getSalesInvoice(id: number) {
-  const row = await findSalesInvoiceById(id);
-  if (!row) return null;
-  const invoice = mapSalesInvoiceRow(row);
+  // --- CODE JSON (commenté) ---
+  // const invoices = await listSalesInvoices();
+  // return invoices.find((invoice) => invoice.id === id) || null;
+
+  // --- CODE SQL ---
+  const invoices = await db.select().from(salesInvoices).where(eq(salesInvoices.id, id));
+  if (invoices.length === 0) return null;
+  
+  const inv = invoices[0];
+  const items = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
+  
+  const invoice = {
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber,
+    customerId: inv.customerId,
+    customerName: inv.customerName,
+    date: inv.date,
+    paymentMethod: inv.paymentMethod || "Espèces",
+    notes: inv.notes || "",
+    items: items.map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    })),
+    totalAmount: inv.totalAmount ?? 0,
+    amountPaid: inv.amountPaid ?? 0,
+    remainingAmount: inv.remainingAmount ?? 0,
+    paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+    createdAt: inv.createdAt?.toISOString() || "",
+  };
 
   // Calculer le coût d'achat et le bénéfice via l'inventaire
   const purchases = await listPurchaseInvoices();
@@ -665,7 +805,6 @@ export async function getSalesInvoice(id: number) {
 }
 
 export async function updateSalesInvoice(id: number, input: {
-  customerId?: number;
   customerName?: string;
   date?: string;
   paymentMethod?: string;
@@ -734,7 +873,6 @@ export async function updateSalesInvoice(id: number, input: {
         : "Paye";
 
   await db.update(salesInvoices).set({
-    customerId: input.customerId,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -763,7 +901,6 @@ export async function updateSalesInvoice(id: number, input: {
   return {
     id,
     invoiceNumber: existing[0].invoiceNumber,
-    customerId: input.customerId ?? existing[0].customerId,
     customerName: input.customerName ?? existing[0].customerName,
     date: input.date ?? existing[0].date,
     paymentMethod: input.paymentMethod ?? existing[0].paymentMethod,
@@ -805,20 +942,18 @@ export async function deleteSalesInvoice(id: number) {
   const invoice = existing[0];
 
   // Soustraire le montant du total des achats du client
-  if (invoice.customerId) {
-    const [customer] = await db.select()
-      .from(customers)
-      .where(eq(customers.id, invoice.customerId))
-      .limit(1);
+  const [customer] = await db.select()
+    .from(customers)
+    .where(eq(customers.name, invoice.customerName))
+    .limit(1);
 
-    if (customer) {
-      await db.update(customers)
-        .set({
-          totalPurchases: Math.max((customer.totalPurchases ?? 0) - (invoice.totalAmount ?? 0), 0),
-          updatedAt: new Date(),
-        })
-        .where(eq(customers.id, customer.id));
-    }
+  if (customer) {
+    await db.update(customers)
+      .set({
+        totalPurchases: Math.max((customer.totalPurchases ?? 0) - (invoice.totalAmount ?? 0), 0),
+        updatedAt: new Date(),
+      })
+      .where(eq(customers.id, customer.id));
   }
 
   await db.delete(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
@@ -1467,7 +1602,7 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
   };
 }
 
-export async function resetDatabase() {
+export async function resetDatabaseExceptProductsAndCustomers() {
   const client: Database.Database = (db as any).$client;
 
   client.transaction(() => {
@@ -1483,13 +1618,11 @@ export async function resetDatabase() {
     client.prepare('DELETE FROM stock').run();
     // Supprimer les fournisseurs
     client.prepare('DELETE FROM suppliers').run();
-    // Supprimer les produits
-    client.prepare('DELETE FROM products').run();
     // Supprimer les clients et leurs types (clients d'abord à cause de FK)
     client.prepare('DELETE FROM customers').run();
     client.prepare('DELETE FROM customer_types').run();
     // Réinitialiser les séquences auto-increment
-    client.prepare("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'products', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'stock', 'stock_movements', 'suppliers')").run();
+    client.prepare("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'stock', 'stock_movements', 'suppliers')").run();
     // Supprimer les paramètres
     client.prepare('DELETE FROM settings').run();
 
