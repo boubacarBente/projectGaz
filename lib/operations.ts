@@ -656,7 +656,12 @@ export async function deletePurchaseInvoice(id: number) {
 export async function getSalesInvoice(id: number) {
   const row = await findSalesInvoiceById(id);
   if (!row) return null;
-  return mapSalesInvoiceRow(row);
+  const invoice = mapSalesInvoiceRow(row);
+
+  // Calculer le coût d'achat et le bénéfice via l'inventaire
+  const purchases = await listPurchaseInvoices();
+  const { salesWithProfit } = calculateSalesProfitMetrics(purchases, [invoice]);
+  return salesWithProfit[0] || invoice;
 }
 
 export async function updateSalesInvoice(id: number, input: {
