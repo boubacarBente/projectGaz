@@ -1,26 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { toast } from 'react-toastify';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [step, setStep] = useState<'name' | 'password'>('name');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
-
-  // Setup mode
-  const [setupName, setSetupName] = useState('');
   const [setupPassword, setSetupPassword] = useState('');
   const [setupConfirm, setSetupConfirm] = useState('');
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Vérifier si un admin existe déjà
     fetch('/api/auth/setup')
       .then(res => res.json())
       .then(data => {
@@ -30,10 +27,25 @@ export default function LoginPage() {
       .catch(() => setIsLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (step === 'password' && passwordRef.current) {
+      passwordRef.current.focus();
+    }
+  }, [step]);
+
+  const handleNameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error('Veuillez entrer un nom d\'utilisateur');
+      return;
+    }
+    setStep('password');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !password.trim()) {
-      toast.error('Veuillez remplir tous les champs');
+    if (!password.trim()) {
+      toast.error('Veuillez entrer votre mot de passe');
       return;
     }
 
@@ -63,7 +75,7 @@ export default function LoginPage() {
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!setupName.trim() || !setupPassword.trim()) {
+    if (!setupPassword.trim() || !setupConfirm.trim()) {
       toast.error('Veuillez remplir tous les champs');
       return;
     }
@@ -81,7 +93,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: setupName.trim(), password: setupPassword }),
+        body: JSON.stringify({ name: name.trim(), password: setupPassword }),
       });
 
       const data = await res.json();
@@ -94,8 +106,7 @@ export default function LoginPage() {
 
       toast.success('Administrateur créé ! Connectez-vous.');
       setNeedsSetup(false);
-      setName(setupName.trim());
-      setSetupName('');
+      setStep('password');
       setSetupPassword('');
       setSetupConfirm('');
       setIsSubmitting(false);
@@ -105,144 +116,180 @@ export default function LoginPage() {
     }
   };
 
+  const resetToName = () => {
+    setStep('name');
+    setPassword('');
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-base-200">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <span className="loading loading-spinner loading-lg text-green-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-base-100 rounded-2xl shadow-xl border border-base-200 p-8">
-          {/* Logo */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 overflow-hidden">
-              <Image src="/logo.jpeg" alt="Logo" width={80} height={80} className="object-cover" />
-            </div>
-            <h1 className="text-2xl font-bold text-base-content">
-              {needsSetup ? 'Configuration initiale' : 'Connexion'}
-            </h1>
-            <p className="text-sm text-base-content/60 mt-1">
-              {needsSetup
-                ? 'Créez le compte administrateur'
-                : 'Connectez-vous à votre espace'}
-            </p>
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-4">
+      <div className="w-full max-w-lg">
+        {/* Top bar */}
+        <div className="bg-[#1a1a1a] rounded-t-xl border border-[#2a2a2a] border-b-0 px-5 py-3 flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+            <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+            <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
+          </div>
+          <span className="text-[#555] text-xs font-mono ml-2">gestion-gaz — login</span>
+        </div>
+
+        {/* Terminal body */}
+        <div className="bg-[#121212] rounded-b-xl border border-[#2a2a2a] shadow-2xl shadow-black/50 p-6 md:p-10 font-mono">
+          {/* Header */}
+          <div className="mb-6 text-[#33ff33] text-xs leading-relaxed">
+            <p className="opacity-70">Mini-Centre Distribution — Gestion Gaz v1.0</p>
+            <p className="opacity-50">{needsSetup ? 'Aucun utilisateur trouvé. Créez un compte administrateur.' : 'Authentification requise.'}</p>
+            <p className="opacity-40 mt-1">{'─'.repeat(40)}</p>
           </div>
 
           {needsSetup ? (
-            /* Formulaire de création du premier admin */
+            /* Setup form */
             <form onSubmit={handleSetup} className="space-y-4">
+              <div className="flex items-center gap-2 text-green-400">
+                <span className="text-green-500">$</span>
+                <span className="text-cyan-400">sudo</span>
+                <span>/setup-admin</span>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-green-500/50 shrink-0">login:</span>
+                <span className="text-white/80">{name || 'admin'}</span>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-base-content/80 mb-1.5">
-                  Nom d&apos;utilisateur
-                </label>
-                <input
-                  type="text"
-                  value={setupName}
-                  onChange={e => setSetupName(e.target.value)}
-                  className="input input-bordered w-full"
-                  placeholder="admin"
-                  autoFocus
-                />
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-green-500/50 shrink-0">password:</span>
+                  <input
+                    type="password"
+                    value={setupPassword}
+                    onChange={e => setSetupPassword(e.target.value)}
+                    className="bg-transparent border-none outline-none text-white/80 font-mono text-sm flex-1 p-0"
+                    placeholder="••••••••"
+                    autoFocus
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-base-content/80 mb-1.5">
-                  Mot de passe
-                </label>
-                <input
-                  type="password"
-                  value={setupPassword}
-                  onChange={e => setSetupPassword(e.target.value)}
-                  className="input input-bordered w-full"
-                  placeholder="••••••••"
-                />
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-green-500/50 shrink-0">confirm:</span>
+                  <input
+                    type="password"
+                    value={setupConfirm}
+                    onChange={e => setSetupConfirm(e.target.value)}
+                    className="bg-transparent border-none outline-none text-white/80 font-mono text-sm flex-1 p-0"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-base-content/80 mb-1.5">
-                  Confirmer le mot de passe
-                </label>
-                <input
-                  type="password"
-                  value={setupConfirm}
-                  onChange={e => setSetupConfirm(e.target.value)}
-                  className="input input-bordered w-full"
-                  placeholder="••••••••"
-                />
-              </div>
+
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="btn btn-primary w-full gap-2"
+                className="w-full mt-4 px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white font-mono text-sm transition-colors"
               >
                 {isSubmitting ? (
-                  <span className="loading loading-spinner loading-sm"></span>
+                  <span className="loading loading-spinner loading-sm" />
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
+                  'Créer l\'administrateur'
                 )}
-                Créer l&apos;administrateur
               </button>
             </form>
           ) : (
-            /* Formulaire de connexion */
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-base-content/80 mb-1.5">
-                  Nom d&apos;utilisateur
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="input input-bordered w-full"
-                  placeholder="Entrez votre nom"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-base-content/80 mb-1.5">
-                  Mot de passe
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="input input-bordered w-full"
-                  placeholder="••••••••"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn btn-primary w-full gap-2"
-              >
-                {isSubmitting ? (
-                  <span className="loading loading-spinner loading-sm"></span>
+            /* Login form — two steps */
+            <form onSubmit={step === 'name' ? handleNameSubmit : handleLogin}>
+              {/* Username — always visible */}
+              <div className="flex items-center gap-2 text-sm mb-2">
+                <span className="text-green-500/50 shrink-0">{name ? 'login:' : 'login:'}</span>
+                {step === 'name' ? (
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleNameSubmit(e as any)}
+                    className="bg-transparent border-none outline-none text-white/80 font-mono text-sm flex-1 p-0 caret-green-400"
+                    placeholder="Entrez votre nom"
+                    autoFocus
+                  />
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                  </svg>
+                  <span className="text-white/80">{name}</span>
                 )}
-                Se connecter
-              </button>
+              </div>
+
+              {/* Password — animated reveal */}
+              <AnimatePresence>
+                {step === 'password' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                    exit={{ opacity: 0, y: -6, height: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2 text-sm mb-6">
+                      <span className="text-green-500/50 shrink-0">password:</span>
+                      <input
+                        ref={passwordRef}
+                        type="password"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className="bg-transparent border-none outline-none text-white/80 font-mono text-sm flex-1 p-0 caret-green-400"
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.15 }}
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white font-mono text-sm transition-colors flex items-center justify-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <span className="loading loading-spinner loading-sm" />
+                      ) : (
+                        <>
+                          <span className="text-green-300">$</span>
+                          ./login
+                        </>
+                      )}
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Back link when on password step */}
+              {step === 'password' && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.25 }}
+                  type="button"
+                  onClick={resetToName}
+                  className="mt-3 text-xs text-green-700 hover:text-green-500 font-mono transition-colors"
+                >
+                  $ login --reset
+                </motion.button>
+              )}
             </form>
           )}
 
-          <div className="mt-6 text-center text-xs text-base-content/40">
-            {needsSetup
-              ? 'Première connexion détectée — créez votre compte administrateur'
-              : 'Session valable le temps de la navigation'}
+          {/* Bottom status */}
+          <div className="mt-6 pt-3 border-t border-[#1f1f1f] text-[#33ff33]/30 text-[10px] font-mono flex items-center gap-2">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500/50" />
+            {needsSetup ? 'setup mode' : `session: ${new Date().toLocaleTimeString()}`}
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
