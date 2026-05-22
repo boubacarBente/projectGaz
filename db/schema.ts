@@ -132,6 +132,17 @@ export const stockMovements = sqliteTable('stock_movements', {
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
+// Utilisateurs
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  passwordHash: text('password_hash').notNull(),
+  role: text('role').default('user'), // 'admin' | 'user'
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
+
 // Paramètres
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -229,5 +240,7 @@ export type Stock = typeof stock.$inferSelect;
 export type NewStock = typeof stock.$inferInsert;
 export type StockMovement = typeof stockMovements.$inferSelect;
 export type NewStockMovement = typeof stockMovements.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
 export type Settings = typeof settings.$inferSelect;
 export type NewSettings = typeof settings.$inferInsert;

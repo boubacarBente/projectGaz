@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { ToastContainer } from "react-toastify";
 import { SettingsProvider } from "./parametres/page";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +22,9 @@ export default function RootLayout({
       <body className="min-h-full">
         <SettingsProvider>
           <ThemeProvider>
-            <AppShell>{children}</AppShell>
+            <AuthProvider>
+              <AppShell>{children}</AppShell>
+            </AuthProvider>
             <ToastContainer
               position="top-right"
               autoClose={4000}

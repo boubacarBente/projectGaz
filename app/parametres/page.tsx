@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { Modal } from '@/components/modal';
 import { applyThemeColors } from '@/lib/colors';
+import { useAuth } from '@/components/auth-provider';
 
 type Settings = {
   companyName: string;
@@ -534,6 +535,9 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         </div>
       </SettingsCard>
 
+      {/* Users Management Card */}
+      <UsersSection />
+
       <SettingsCard
         title="Zone dangereuse"
         icon={
@@ -741,6 +745,273 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         </div>
       </Modal>
     </form>
+  );
+}
+
+// ============================================
+// Users Section Component
+// ============================================
+type UserRow = {
+  id: number;
+  name: string;
+  role: string;
+  isActive: boolean | null;
+  createdAt: Date | null;
+};
+
+function UsersSection() {
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formPassword, setFormPassword] = useState('');
+  const [formRole, setFormRole] = useState<'admin' | 'user'>('user');
+  const [formSubmitting, setFormSubmitting] = useState(false);
+
+  const loadUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        setUsers(await res.json());
+      }
+    } catch {
+      // silent
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { loadUsers(); }, []);
+
+  // Modal de confirmation générique
+  const resetForm = () => {
+    setFormName('');
+    setFormPassword('');
+    setFormRole('user');
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim() || !formPassword.trim()) {
+      toast.error('Nom et mot de passe requis');
+      return;
+    }
+    if (formPassword.length < 4) {
+      toast.error('Le mot de passe doit contenir au moins 4 caractères');
+      return;
+    }
+    setFormSubmitting(true);
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formName.trim(), password: formPassword, role: formRole }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || 'Erreur');
+        return;
+      }
+      toast.success('Utilisateur créé !');
+      setShowAddModal(false);
+      resetForm();
+      loadUsers();
+    } catch {
+      toast.error('Erreur serveur');
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || 'Erreur');
+        return;
+      }
+      toast.success('Utilisateur supprimé');
+      setDeleteConfirm(null);
+      loadUsers();
+    } catch {
+      toast.error('Erreur serveur');
+    }
+  };
+
+  const canEdit = currentUser?.role === 'admin';
+
+  return (
+    <div className="bg-base-100 border border-base-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="px-6 py-4 bg-base-200/20 border-b border-base-200 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-secondary/10 text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </div>
+          <h3 className="font-semibold text-base-content">Utilisateurs</h3>
+        </div>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => { resetForm(); setShowAddModal(true); }}
+            className="btn btn-primary btn-sm gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Ajouter
+          </button>
+        )}
+      </div>
+      <div className="p-6">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <span className="loading loading-spinner loading-md text-primary"></span>
+          </div>
+        ) : users.length === 0 ? (
+          <p className="text-center py-8 text-base-content/40">Aucun utilisateur</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table table-sm">
+              <thead>
+                <tr className="text-base-content/60 text-xs uppercase tracking-wider">
+                  <th>Nom</th>
+                  <th>Rôle</th>
+                  <th>Statut</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id} className="hover:bg-base-200/30 transition-colors">
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                          {u.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium">{u.name}</span>
+                        {u.id === currentUser?.id && (
+                          <span className="badge badge-xs badge-ghost">Vous</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge badge-sm ${u.role === 'admin' ? 'badge-primary' : 'badge-ghost'}`}>
+                        {u.role === 'admin' ? 'Admin' : 'Utilisateur'}
+                      </span>
+                    </td>
+                    <td>
+                      {u.isActive ? (
+                        <span className="text-xs text-success font-medium">Actif</span>
+                      ) : (
+                        <span className="text-xs text-error font-medium">Inactif</span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      {canEdit && u.id !== currentUser?.id && (
+                        <div className="flex items-center justify-end gap-1">
+                          {deleteConfirm === u.id ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(u.id)}
+                                className="btn btn-xs btn-error gap-1"
+                              >
+                                Confirmer
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirm(null)}
+                                className="btn btn-xs btn-ghost"
+                              >
+                                Annuler
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirm(u.id)}
+                              className="btn btn-xs btn-ghost text-error"
+                              title="Supprimer"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Add User Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => { if (!formSubmitting) { setShowAddModal(false); resetForm(); } }}
+        title="Ajouter un utilisateur"
+        size="sm"
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-base-content/80 mb-1">Nom d&apos;utilisateur</label>
+            <input
+              type="text"
+              value={formName}
+              onChange={e => setFormName(e.target.value)}
+              className="input input-bordered w-full"
+              placeholder="ex: jean"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-base-content/80 mb-1">Mot de passe</label>
+            <input
+              type="password"
+              value={formPassword}
+              onChange={e => setFormPassword(e.target.value)}
+              className="input input-bordered w-full"
+              placeholder="••••••••"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-base-content/80 mb-1">Rôle</label>
+            <select
+              value={formRole}
+              onChange={e => setFormRole(e.target.value as 'admin' | 'user')}
+              className="select select-bordered w-full"
+            >
+              <option value="user">Utilisateur</option>
+              <option value="admin">Administrateur</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => { setShowAddModal(false); resetForm(); }}
+              disabled={formSubmitting}
+              className="btn btn-ghost"
+            >
+              Annuler
+            </button>
+            <button type="submit" disabled={formSubmitting} className="btn btn-primary">
+              {formSubmitting ? <span className="loading loading-spinner loading-sm"></span> : 'Créer'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 }
 

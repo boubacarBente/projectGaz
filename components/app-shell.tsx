@@ -7,6 +7,7 @@ import { ReactNode, useState } from "react";
 import { useSettings } from "@/app/parametres/page";
 import { useTheme } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/components/auth-provider";
 import { motion, AnimatePresence } from 'framer-motion';
 
 const navigation = [
@@ -89,6 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { settings, isLoading } = useSettings();
   const { theme } = useTheme();
+  const { user, logout } = useAuth();
   const isDark = theme === 'dark';
   const companyName = isLoading ? "Gestion Gaz" : settings.companyName;
   const isActive = (href: string) => {
@@ -160,44 +162,63 @@ export function AppShell({ children }: { children: ReactNode }) {
           </ul>
         </nav>
 
-        {/* Settings Card */}
+        {/* User card */}
         <div className="p-4 border-t" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
           <div className="p-4 rounded-2xl" style={{
             backgroundColor: 'color-mix(in srgb, var(--sidebar-text) 10%, transparent)',
             border: '1px solid color-mix(in srgb, var(--sidebar-text) 15%, transparent)',
           }}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, var(--p-color), var(--s-color))',
-                }}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ color: 'var(--sidebar-text)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+            {/* User info */}
+            {user && (
+              <div className="flex items-center gap-3 mb-3 pb-3 border-b" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--p-color), var(--s-color))',
+                    color: 'white',
+                  }}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--sidebar-text)' }}>{user.name}</p>
+                  <p className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>
+                    {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-sm" style={{ color: 'var(--sidebar-text)' }}>Paramètres</h3>
-                <p className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Configurez</p>
-              </div>
+            )}
+
+            {/* Theme toggle */}
+            <div className="flex items-center justify-between mb-3 px-1">
+              <span className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Thème</span>
+              <ThemeToggle />
             </div>
+
+            {/* Settings link */}
             <Link 
               href="/parametres" 
-              className="btn btn-sm w-full border-0 text-white"
+              className="btn btn-sm w-full border-0 text-white mb-2"
               style={{
                 background: 'linear-gradient(135deg, var(--p-color), var(--s-color))',
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              Ouvrir les paramètres
+              Paramètres
             </Link>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Thème</span>
-              <ThemeToggle />
-            </div>
+
+            {/* Logout button */}
+            <button
+              onClick={logout}
+              className="btn btn-sm w-full btn-ghost"
+              style={{ color: 'var(--sidebar-text-muted)' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Déconnexion
+            </button>
           </div>
         </div>
       </aside>
@@ -283,11 +304,33 @@ export function AppShell({ children }: { children: ReactNode }) {
                   ))}
                 </ul>
               </nav>
-              <div className="p-4 border-t" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
+              <div className="p-4 border-t space-y-3" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
+                {user && (
+                  <div className="flex items-center gap-3 px-3 mb-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                      style={{ background: 'linear-gradient(135deg, var(--p-color), var(--s-color))' }}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--sidebar-text)' }}>{user.name}</p>
+                      <p className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>{user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between px-3">
                   <span className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Thème</span>
                   <ThemeToggle />
                 </div>
+                <button
+                  onClick={logout}
+                  className="btn btn-sm w-full btn-ghost"
+                  style={{ color: 'var(--sidebar-text-muted)' }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Déconnexion
+                </button>
               </div>
             </motion.aside>
           </>
