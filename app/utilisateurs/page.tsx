@@ -381,7 +381,7 @@ export default function UtilisateursPage() {
                             </svg>
                           </button>
                           {/* Delete button — not for self */}
-                          {u.id !== user?.id && (
+                          {u.id !== currentUserId && (
                             deleteConfirm === u.id ? (
                               <>
                                 <button
