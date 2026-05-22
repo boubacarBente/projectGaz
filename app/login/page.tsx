@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -75,28 +75,7 @@ function GeometricBg() {
   );
 }
 
-// ─── Mouse glow follower ───
-function MouseGlow() {
-  const ref = useRef<HTMLDivElement>(null);
 
-  const handleMouse = useCallback((e: MouseEvent) => {
-    if (ref.current) {
-      ref.current.style.transform = `translate(${e.clientX - 150}px, ${e.clientY - 150}px)`;
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouse);
-    return () => window.removeEventListener('mousemove', handleMouse);
-  }, [handleMouse]);
-
-  return (
-    <div
-      ref={ref}
-      className="fixed top-0 left-0 w-[300px] h-[300px] rounded-full bg-white/5 blur-[100px] pointer-events-none z-0 transition-transform duration-500 ease-out will-change-transform"
-    />
-  );
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -226,7 +205,6 @@ export default function LoginPage() {
     <div className="relative min-h-screen flex items-center justify-center bg-[#0a0a0a] font-['Inter',system-ui,sans-serif] overflow-hidden selection:bg-white/10">
       <GeometricBg />
       <ParticleField />
-      <MouseGlow />
 
       {/* Cinematic grain overlay */}
       <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.03]"
