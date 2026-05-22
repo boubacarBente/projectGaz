@@ -1253,7 +1253,9 @@ export default function ParametresPage() {
       </div>
 
       {/* Users Management Card */}
-      <UsersSection />
+      <div id="utilisateurs">
+        <UsersSection />
+      </div>
     </motion.div>
   );
 }
