@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { Modal } from '@/components/modal';
 import { applyThemeColors } from '@/lib/colors';
+import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useAuth } from '@/components/auth-provider';
 
 type Settings = {
   companyName: string;
@@ -745,4 +748,90 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
 }
 
 // ============================================
+// Main Page Component
+// ============================================
+export default function ParametresPage() {
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/parametres');
+        if (res.ok) {
+          const data = await res.json();
+          const merged = { ...defaultSettings, ...data };
+          setSettings(merged);
+        }
+      } catch {
+        // fallback to defaults
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  const handleSave = async (updates: Partial<Settings>) => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/parametres', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) throw new Error('Erreur');
+      const saved = await res.json();
+      setSettings(prev => ({ ...prev, ...saved }));
+      toast.success('Paramètres enregistrés!');
+    } catch {
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <span className="loading loading-spinner loading-lg text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-base-content/40">Vous devez être connecté.</p>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 max-w-5xl mx-auto"
+    >
+      <PageHeader
+        eyebrow="Configuration"
+        title="Paramètres"
+        description="Personnalisez les paramètres de votre application selon vos besoins"
+      />
+
+      <div className="rounded-2xl border border-base-200 bg-base-100 p-1 shadow-xl shadow-base-200/30">
+        <SettingsForm
+          onSave={handleSave}
+          initialSettings={settings}
+          isSubmitting={isSubmitting}
+          setIsSubmitting={setIsSubmitting}
+        />
+      </div>
+    </motion.div>
+  );
+}
 
