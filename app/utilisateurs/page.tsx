@@ -75,6 +75,7 @@ function Modal({
 export default function UtilisateursPage() {
   const router = useRouter();
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
 
   // Modal states
@@ -123,6 +124,7 @@ export default function UtilisateursPage() {
           return;
         }
 
+        setCurrentUserId(data.user.id);
         setAuthState('authenticated');
         loadUsers();
       } catch {
@@ -332,7 +334,7 @@ export default function UtilisateursPage() {
                             {u.name.charAt(0).toUpperCase()}
                           </div>
                           <span className="font-medium">{u.name}</span>
-                          {u.id === user?.id && (
+                          {u.id === currentUserId && (
                             <span className="badge badge-xs badge-ghost">Vous</span>
                           )}
                         </div>
