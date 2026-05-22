@@ -348,7 +348,7 @@ export default function LoginPage() {
                       type="submit"
                       className="w-full mt-4 px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.15] text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 flex items-center justify-center gap-2 group/btn"
                     >
-                      <span>Continuer</span>
+                      <span className='cursor-pointer'>Continuer</span>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover/btn:translate-x-0.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
@@ -387,7 +387,7 @@ export default function LoginPage() {
                             transition={{ delay: 0.3 }}
                             type="button"
                             onClick={resetToName}
-                            className="text-[10px] text-white/20 hover:text-white/40 mt-0.5 transition-colors duration-300 font-mono"
+                            className="text-[10px] cursor-pointer text-white/20 hover:text-white/40 mt-0.5 transition-colors duration-300 font-mono"
                           >
                             Changer d'utilisateur
                           </motion.button>
