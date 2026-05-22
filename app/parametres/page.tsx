@@ -535,9 +535,6 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         </div>
       </SettingsCard>
 
-      {/* Users Management Card */}
-      <UsersSection />
-
       <SettingsCard
         title="Zone dangereuse"
         icon={
@@ -764,13 +761,21 @@ function UsersSection() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
-  // Form state
+  // Form state — Create
   const [formName, setFormName] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formRole, setFormRole] = useState<'admin' | 'user'>('user');
   const [formSubmitting, setFormSubmitting] = useState(false);
+
+  // Form state — Edit
+  const [editName, setEditName] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editRole, setEditRole] = useState<'admin' | 'user'>('user');
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const loadUsers = async () => {
     try {
@@ -787,13 +792,23 @@ function UsersSection() {
 
   useEffect(() => { loadUsers(); }, []);
 
-  // Modal de confirmation générique
+  // Reset create form
   const resetForm = () => {
     setFormName('');
     setFormPassword('');
     setFormRole('user');
   };
 
+  // Reset edit form
+  const resetEditForm = () => {
+    setEditUser(null);
+    setEditName('');
+    setEditPassword('');
+    setEditRole('user');
+    setEditIsActive(true);
+  };
+
+  // ——— CREATE ———
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formPassword.trim()) {
@@ -827,6 +842,59 @@ function UsersSection() {
     }
   };
 
+  // ——— UPDATE ———
+  const openEditModal = (u: UserRow) => {
+    setEditUser(u);
+    setEditName(u.name);
+    setEditPassword('');
+    setEditRole(u.role as 'admin' | 'user');
+    setEditIsActive(u.isActive ?? true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser) return;
+    if (!editName.trim()) {
+      toast.error('Le nom est requis');
+      return;
+    }
+    if (editPassword && editPassword.length < 4) {
+      toast.error('Le mot de passe doit contenir au moins 4 caractères');
+      return;
+    }
+
+    setEditSubmitting(true);
+    try {
+      const body: Record<string, unknown> = {
+        name: editName.trim(),
+        role: editRole,
+        isActive: editIsActive,
+      };
+      if (editPassword) {
+        body.password = editPassword;
+      }
+
+      const res = await fetch(`/api/users/${editUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || 'Erreur');
+        return;
+      }
+      toast.success('Utilisateur modifié !');
+      resetEditForm();
+      loadUsers();
+    } catch {
+      toast.error('Erreur serveur');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  // ——— DELETE ———
   const handleDelete = async (id: number) => {
     try {
       const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
@@ -914,9 +982,9 @@ function UsersSection() {
                       )}
                     </td>
                     <td className="text-right">
-                      {canEdit && u.id !== currentUser?.id && (
+                      {canEdit && (
                         <div className="flex items-center justify-end gap-1">
-                          {deleteConfirm === u.id ? (
+                          {u.id !== currentUser?.id && deleteConfirm === u.id ? (
                             <>
                               <button
                                 type="button"
@@ -934,16 +1002,32 @@ function UsersSection() {
                               </button>
                             </>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => setDeleteConfirm(u.id)}
-                              className="btn btn-xs btn-ghost text-error"
-                              title="Supprimer"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                            <>
+                              {/* Edit button — visible for all users except self */}
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(u)}
+                                className="btn btn-xs btn-ghost text-info"
+                                title="Modifier"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              {/* Delete button — not for self */}
+                              {u.id !== currentUser?.id && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteConfirm(u.id)}
+                                  className="btn btn-xs btn-ghost text-error"
+                                  title="Supprimer"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       )}
@@ -956,7 +1040,7 @@ function UsersSection() {
         )}
       </div>
 
-      {/* Add User Modal */}
+      {/* ——— Add User Modal ——— */}
       <Modal
         isOpen={showAddModal}
         onClose={() => { if (!formSubmitting) { setShowAddModal(false); resetForm(); } }}
@@ -1010,6 +1094,87 @@ function UsersSection() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* ——— Edit User Modal ——— */}
+      <Modal
+        isOpen={editUser !== null}
+        onClose={() => { if (!editSubmitting) resetEditForm(); }}
+        title="Modifier l'utilisateur"
+        size="sm"
+      >
+        {editUser && (
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-base-200">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
+                {editUser.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-medium text-base-content">{editUser.name}</p>
+                <p className="text-xs text-base-content/60">ID: {editUser.id}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-base-content/80 mb-1">Nom d&apos;utilisateur</label>
+              <input
+                type="text"
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                className="input input-bordered w-full"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-base-content/80 mb-1">
+                Nouveau mot de passe
+                <span className="text-xs text-base-content/40 ml-1">(laisser vide pour conserver l&apos;actuel)</span>
+              </label>
+              <input
+                type="password"
+                value={editPassword}
+                onChange={e => setEditPassword(e.target.value)}
+                className="input input-bordered w-full"
+                placeholder="••••••••"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-base-content/80 mb-1">Rôle</label>
+              <select
+                value={editRole}
+                onChange={e => setEditRole(e.target.value as 'admin' | 'user')}
+                className="select select-bordered w-full"
+              >
+                <option value="user">Utilisateur</option>
+                <option value="admin">Administrateur</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <label className="label cursor-pointer justify-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={editIsActive}
+                  onChange={e => setEditIsActive(e.target.checked)}
+                  className="checkbox checkbox-primary checkbox-sm"
+                />
+                <span className="label-text font-medium text-sm">Actif</span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-3 pt-2 border-t border-base-200">
+              <button
+                type="button"
+                onClick={resetEditForm}
+                disabled={editSubmitting}
+                className="btn btn-ghost"
+              >
+                Annuler
+              </button>
+              <button type="submit" disabled={editSubmitting} className="btn btn-primary">
+                {editSubmitting ? <span className="loading loading-spinner loading-sm"></span> : 'Enregistrer'}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );
@@ -1086,6 +1251,9 @@ export default function ParametresPage() {
           setIsSubmitting={setIsSubmitting}
         />
       </div>
+
+      {/* Users Management Card */}
+      <UsersSection />
     </motion.div>
   );
 }
