@@ -83,9 +83,6 @@ const navigation = [
       </svg>
     )
   },
-];
-
-const adminNavigation = [
   {
     href: "/utilisateurs",
     label: "Utilisateurs",
@@ -178,54 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </ul>
 
-          {user?.role === 'admin' && (
-            <>
-              <h2 className="text-xs font-bold uppercase tracking-wider mb-3 mt-6 px-3"
-                style={{ color: 'var(--sidebar-text-muted)' }}>
-                Administration
-              </h2>
-              <ul className="space-y-1">
-                {adminNavigation.map((item) => {
-                  const isUsersActive = pathname === '/utilisateurs';
-                  return (
-                    <li key={item.href}>
-                      <Link 
-                        href={item.href} 
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 border ${
-                          isUsersActive
-                            ? 'text-white border-transparent' 
-                            : 'border-transparent'
-                        }`}
-                        style={{
-                          backgroundColor: isUsersActive
-                            ? 'color-mix(in srgb, var(--sidebar-text) 20%, transparent)'
-                            : 'transparent',
-                          color: isUsersActive ? 'var(--sidebar-text)' : 'var(--sidebar-text-muted)',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isUsersActive) {
-                            e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--sidebar-text) 10%, transparent)';
-                            e.currentTarget.style.color = 'var(--sidebar-text)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isUsersActive) {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = 'var(--sidebar-text-muted)';
-                          }
-                        }}
-                      >
-                        <span style={{ color: isUsersActive ? 'var(--sidebar-text)' : 'inherit' }}>
-                          {item.icon}
-                        </span>
-                        <span className="font-medium">{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
+
         </nav>
 
         {/* User card */}
@@ -368,37 +318,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       </Link>
                     </li>
                   ))}
-                  {user?.role === 'admin' && (
-                    <>
-                      <li className="px-3 pt-4 pb-1">
-                        <span className="text-xs font-bold uppercase tracking-wider"
-                          style={{ color: 'var(--sidebar-text-muted)' }}>
-                          Administration
-                        </span>
-                      </li>
-                      {adminNavigation.map((item) => {
-                        const isUsersActive = pathname === '/utilisateurs';
-                        return (
-                          <li key={item.href}>
-                            <Link
-                              href={item.href}
-                              onClick={() => setMobileMenuOpen(false)}
-                              className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
-                              style={{
-                                backgroundColor: isUsersActive
-                                  ? 'color-mix(in srgb, var(--sidebar-text) 20%, transparent)'
-                                  : 'transparent',
-                                color: isUsersActive ? 'var(--sidebar-text)' : 'var(--sidebar-text-muted)',
-                              }}
-                            >
-                              {item.icon}
-                              <span className="font-medium">{item.label}</span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </>
-                  )}
+
                 </ul>
               </nav>
               <div className="p-4 border-t space-y-3" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
