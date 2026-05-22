@@ -375,9 +375,9 @@ export default function LoginPage() {
                         className="flex flex-col items-center gap-3 pt-2"
                       >
                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-white/15 to-white/5 border border-white/10 flex items-center justify-center shadow-2xl shadow-black/30">
-                          <span className="text-xl font-light text-white/80">
-                            {name.charAt(0).toUpperCase()}
-                          </span>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
                         </div>
                         <div className="text-center">
                           <p className="text-sm text-white/80 font-light">{name}</p>
