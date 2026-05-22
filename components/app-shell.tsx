@@ -110,6 +110,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
+  // Login page → render children without sidebar
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
   // Main content background
   const contentBg = isDark ? 'bg-slate-900' : 'bg-base-100';
 
