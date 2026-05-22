@@ -316,137 +316,134 @@ export default function LoginPage() {
             ) : (
               /* ─── Login form — two steps ─── */
               <form onSubmit={step === 'name' ? handleNameSubmit : handleLogin} className="space-y-5">
-                {/* Step indicator */}
-                <div className="flex items-center gap-2 mb-6">
-                  <motion.span
-                    animate={{ backgroundColor: step === 'password' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.25)' }}
-                    className="w-2 h-2 rounded-full bg-white/20 transition-colors duration-500"
-                  />
-                  <span className="w-6 h-[1px] bg-white/[0.06]" />
-                  <motion.span
-                    animate={{ backgroundColor: step === 'password' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)' }}
-                    className="w-2 h-2 rounded-full transition-colors duration-500"
-                  />
-                </div>
-
-                {/* Username */}
-                <motion.div
-                  animate={{
-                    y: step === 'password' ? -6 : 0,
-                    scale: step === 'password' ? 0.98 : 1,
-                  }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-                >
-                  <label className="block text-xs text-white/30 font-mono mb-1.5 tracking-wider uppercase">
-                    Nom d'utilisateur
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-white/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </span>
-                    {step === 'name' ? (
+                {/* Step 1: just username field */}
+                {step === 'name' && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-white/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </span>
                       <input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleNameSubmit(e as any)}
                         className="w-full bg-transparent border border-white/[0.12] rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/[0.02]"
-                        placeholder="Entrez votre nom d'utilisateur"
+                        placeholder="Nom d'utilisateur"
                         autoFocus
                       />
-                    ) : (
-                      <div className="w-full border border-white/[0.06] rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light bg-white/[0.02]">
-                        {name}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
+                    </div>
 
-                {/* Password — animated reveal */}
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.15 }}
+                      type="submit"
+                      className="w-full mt-4 px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.15] text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 flex items-center justify-center gap-2 group/btn"
+                    >
+                      <span>Continuer</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover/btn:translate-x-0.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </motion.button>
+                  </motion.div>
+                )}
+
+                {/* Step 2: user avatar + name + password */}
                 <AnimatePresence mode="wait">
                   {step === 'password' && (
                     <motion.div
-                      key="password-field"
-                      initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
-                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                      exit={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-                      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+                      key="password-step"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4, ease: 'easeOut' }}
+                      className="space-y-6"
                     >
-                      <label className="block text-xs text-white/30 font-mono mb-1.5 tracking-wider uppercase">
-                        Mot de passe
-                      </label>
-                      <div className="relative">
-                        {/* Glow on focus */}
-                        <div className="absolute -inset-0.5 bg-white/5 rounded-xl opacity-0 transition-opacity duration-300 has-[input:focus]:opacity-100 pointer-events-none" />
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-white/20 z-10">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        </span>
-                        <input
-                          ref={passwordRef}
-                          type="password"
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          className="w-full bg-transparent border border-white/[0.12] rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/[0.02] relative z-[1]"
-                          placeholder="••••••••"
-                        />
-                      </div>
+                      {/* Avatar + username */}
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0, y: 10 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+                        className="flex flex-col items-center gap-3 pt-2"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-white/15 to-white/5 border border-white/10 flex items-center justify-center shadow-2xl shadow-black/30">
+                          <span className="text-xl font-light text-white/80">
+                            {name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-white/80 font-light">{name}</p>
+                          <motion.button
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            type="button"
+                            onClick={resetToName}
+                            className="text-[10px] text-white/20 hover:text-white/40 mt-0.5 transition-colors duration-300 font-mono"
+                          >
+                            Changer d'utilisateur
+                          </motion.button>
+                        </div>
+                      </motion.div>
+
+                      {/* Password field */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        transition={{ duration: 0.5, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+                      >
+                        <div className="relative">
+                          <div className="absolute -inset-0.5 bg-white/5 rounded-xl opacity-0 transition-opacity duration-300 has-[input:focus]:opacity-100 pointer-events-none" />
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-white/20 z-10">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          </span>
+                          <input
+                            ref={passwordRef}
+                            type="password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            className="w-full bg-transparent border border-white/[0.12] rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/[0.02] relative z-[1]"
+                            placeholder="Mot de passe"
+                          />
+                        </div>
+                      </motion.div>
+
+                      {/* Login button */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.25, ease: 'easeOut' }}
+                      >
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="w-full px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.15] text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 disabled:opacity-30 flex items-center justify-center gap-2 group/btn"
+                        >
+                          {isSubmitting ? (
+                            <span className="loading loading-spinner loading-sm" />
+                          ) : (
+                            <>
+                              <span>Connexion</span>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                              </svg>
+                            </>
+                          )}
+                        </button>
+                      </motion.div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* Submit button */}
-                <motion.div
-                  key={step === 'name' ? 'continue-btn' : 'login-btn'}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                >
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full mt-2 px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.15] text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 disabled:opacity-30 flex items-center justify-center gap-2 group/btn"
-                  >
-                    {isSubmitting ? (
-                      <span className="loading loading-spinner loading-sm" />
-                    ) : (
-                      <>
-                        <span>{step === 'name' ? 'Continuer' : 'Connexion'}</span>
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className={`h-4 w-4 transition-transform duration-300 ${step === 'password' ? 'group-hover/btn:translate-x-1' : 'group-hover/btn:translate-x-0.5'}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={1.5}
-                        >
-                          {step === 'name' ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                          ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                          )}
-                        </svg>
-                      </>
-                    )}
-                  </button>
-                </motion.div>
-
-                {/* Reset link */}
-                {step === 'password' && (
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.4, delay: 0.3 }}
-                    type="button"
-                    onClick={resetToName}
-                    className="mt-1 text-xs text-white/20 hover:text-white/40 font-mono transition-colors duration-300"
-                  >
-                    $ cd ~ &amp;&amp; login --reset
-                  </motion.button>
-                )}
               </form>
             )}
 
