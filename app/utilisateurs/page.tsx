@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/components/auth-provider';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -74,10 +73,9 @@ function Modal({
 // User Management Page
 // ============================================
 export default function UtilisateursPage() {
-  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -98,13 +96,6 @@ export default function UtilisateursPage() {
   const [editIsActive, setEditIsActive] = useState(true);
   const [editSubmitting, setEditSubmitting] = useState(false);
 
-  // Redirect non-admin users
-  useEffect(() => {
-    if (!authLoading && user && user.role !== 'admin') {
-      router.push('/');
-    }
-  }, [user, authLoading, router]);
-
   const loadUsers = useCallback(async () => {
     try {
       const res = await fetch('/api/users');
@@ -113,18 +104,38 @@ export default function UtilisateursPage() {
       }
     } catch {
       // silent
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
+  // Auth check indépendant du AuthProvider
   useEffect(() => {
-    if (!authLoading && user?.role === 'admin') {
-      loadUsers();
-    } else if (!authLoading && !user) {
-      setIsLoading(false);
+    let cancelled = false;
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) throw new Error('not authenticated');
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (!data.user || data.user.role !== 'admin') {
+          router.push('/');
+          return;
+        }
+
+        setAuthState('authenticated');
+        loadUsers();
+      } catch {
+        if (!cancelled) {
+          setAuthState('unauthenticated');
+          router.push('/login');
+        }
+      }
     }
-  }, [authLoading, user, loadUsers]);
+
+    checkAuth();
+    return () => { cancelled = true; };
+  }, [router, loadUsers]);
 
   // Reset forms
   const resetForm = () => {
@@ -245,7 +256,7 @@ export default function UtilisateursPage() {
   };
 
   // Loading / non-admin states
-  if (authLoading) {
+  if (authState === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <span className="loading loading-spinner loading-lg text-primary" />
@@ -253,16 +264,8 @@ export default function UtilisateursPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-base-content/40">Vous devez être connecté.</p>
-      </div>
-    );
-  }
-
-  if (user.role !== 'admin') {
-    return null; // Will redirect via useEffect
+  if (authState === 'unauthenticated') {
+    return null; // redirected by useEffect
   }
 
   return (
@@ -302,7 +305,7 @@ export default function UtilisateursPage() {
           </button>
         </div>
         <div className="p-6">
-          {isLoading ? (
+          {authState === 'loading' ? (
             <div className="flex justify-center py-8">
               <span className="loading loading-spinner loading-md text-primary" />
             </div>
