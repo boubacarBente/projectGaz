@@ -432,7 +432,7 @@ export default function UtilisateursPage() {
               value={formName}
               onChange={e => setFormName(e.target.value)}
               className="input input-bordered w-full"
-              placeholder="ex: jean"
+              placeholder="ex: bouba"
               autoFocus
             />
           </div>
@@ -453,7 +453,7 @@ export default function UtilisateursPage() {
               onChange={e => setFormRole(e.target.value as 'admin' | 'user')}
               className="select select-bordered w-full"
             >
-              <option value="user">Utilisateur</option>
+              <option value="user">Simple Utilisateur</option>
               <option value="admin">Administrateur</option>
             </select>
           </div>
