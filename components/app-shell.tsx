@@ -86,9 +86,9 @@ const navigation = [
 ];
 
 const adminNavigation = [
-  { 
-    href: "/parametres#utilisateurs", 
-    label: "Utilisateurs", 
+  {
+    href: "/utilisateurs",
+    label: "Utilisateurs",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -180,41 +180,44 @@ export function AppShell({ children }: { children: ReactNode }) {
                 Administration
               </h2>
               <ul className="space-y-1">
-                {adminNavigation.map((item) => (
-                  <li key={item.href}>
-                    <Link 
-                      href={item.href} 
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 border ${
-                        pathname === '/parametres'
-                          ? 'text-white border-transparent' 
-                          : 'border-transparent'
-                      }`}
-                      style={{
-                        backgroundColor: pathname === '/parametres'
-                          ? 'color-mix(in srgb, var(--sidebar-text) 20%, transparent)'
-                          : 'transparent',
-                        color: pathname === '/parametres' ? 'var(--sidebar-text)' : 'var(--sidebar-text-muted)',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (pathname !== '/parametres') {
-                          e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--sidebar-text) 10%, transparent)';
-                          e.currentTarget.style.color = 'var(--sidebar-text)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (pathname !== '/parametres') {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = 'var(--sidebar-text-muted)';
-                        }
-                      }}
-                    >
-                      <span style={{ color: pathname === '/parametres' ? 'var(--sidebar-text)' : 'inherit' }}>
-                        {item.icon}
-                      </span>
-                      <span className="font-medium">{item.label}</span>
-                    </Link>
-                  </li>
-                ))}
+                {adminNavigation.map((item) => {
+                  const isUsersActive = pathname === '/utilisateurs';
+                  return (
+                    <li key={item.href}>
+                      <Link 
+                        href={item.href} 
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 border ${
+                          isUsersActive
+                            ? 'text-white border-transparent' 
+                            : 'border-transparent'
+                        }`}
+                        style={{
+                          backgroundColor: isUsersActive
+                            ? 'color-mix(in srgb, var(--sidebar-text) 20%, transparent)'
+                            : 'transparent',
+                          color: isUsersActive ? 'var(--sidebar-text)' : 'var(--sidebar-text-muted)',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isUsersActive) {
+                            e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--sidebar-text) 10%, transparent)';
+                            e.currentTarget.style.color = 'var(--sidebar-text)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isUsersActive) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = 'var(--sidebar-text-muted)';
+                          }
+                        }}
+                      >
+                        <span style={{ color: isUsersActive ? 'var(--sidebar-text)' : 'inherit' }}>
+                          {item.icon}
+                        </span>
+                        <span className="font-medium">{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </>
           )}
@@ -368,24 +371,27 @@ export function AppShell({ children }: { children: ReactNode }) {
                           Administration
                         </span>
                       </li>
-                      {adminNavigation.map((item) => (
-                        <li key={item.href}>
-                          <Link
-                            href={item.href}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
-                            style={{
-                              backgroundColor: pathname === '/parametres'
-                                ? 'color-mix(in srgb, var(--sidebar-text) 20%, transparent)'
-                                : 'transparent',
-                              color: pathname === '/parametres' ? 'var(--sidebar-text)' : 'var(--sidebar-text-muted)',
-                            }}
-                          >
-                            {item.icon}
-                            <span className="font-medium">{item.label}</span>
-                          </Link>
-                        </li>
-                      ))}
+                      {adminNavigation.map((item) => {
+                        const isUsersActive = pathname === '/utilisateurs';
+                        return (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
+                              style={{
+                                backgroundColor: isUsersActive
+                                  ? 'color-mix(in srgb, var(--sidebar-text) 20%, transparent)'
+                                  : 'transparent',
+                                color: isUsersActive ? 'var(--sidebar-text)' : 'var(--sidebar-text-muted)',
+                              }}
+                            >
+                              {item.icon}
+                              <span className="font-medium">{item.label}</span>
+                            </Link>
+                          </li>
+                        );
+                      })}
                     </>
                   )}
                 </ul>
