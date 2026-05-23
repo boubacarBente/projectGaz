@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -89,6 +89,10 @@ export default function StockPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(stock, ['productCode', 'productName']);
   const ITEMS_PER_PAGE = 10;
+
+  const sortedFiltered = useMemo(() => {
+    return [...filtered].sort((a, b) => a.productCode.localeCompare(b.productCode));
+  }, [filtered]);
 
   useEffect(() => {
     fetchData();
@@ -299,7 +303,7 @@ export default function StockPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stock.map((item) => {
+                  {sortedFiltered.map((item) => {
                     const isLow = item.currentStock <= item.minStock;
                     const isOut = item.currentStock === 0;
                     return (

@@ -284,13 +284,9 @@ export default function FacturesPage() {
   );
   const ITEMS_PER_PAGE = 10;
 
-  // Trier par date de creation (dernier ajout en premier) et paginer
+  // Trier par date (plus récente en premier) et paginer
   const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
+    return [...filtered].sort((a, b) => b.date.localeCompare(a.date));
   }, [filtered]);
 
   const paginatedInvoices = useMemo(() => {

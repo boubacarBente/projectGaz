@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -247,6 +247,14 @@ export default function ClientsPage() {
       )
     : customers;
 
+  const sortedFiltered = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [filtered]);
+
   const topCustomers = [...customers].sort((a, b) => b.totalPurchases - a.totalPurchases).slice(0, 5);
   const totalAll = customers.reduce((s, c) => s + c.totalPurchases, 0);
   const activeCount = customers.filter((c) => c.isActive).length;
@@ -338,7 +346,7 @@ export default function ClientsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((customer) => (
+                  {sortedFiltered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((customer) => (
                     <motion.tr
                       key={customer.id}
                       layout

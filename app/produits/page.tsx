@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -218,6 +218,14 @@ export default function ProduitsPage() {
       currency: 'GNF',
     }).format(amount);
 
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [products]);
+
+  const sortedFiltered = useMemo(() => {
+    return [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [filtered]);
+
   const activeProducts = products.filter((p) => p.isActive).length;
   const averageSalePrice =
     products.length > 0
@@ -331,7 +339,7 @@ export default function ProduitsPage() {
                 </tr>
               </thead>
               <tbody>
-                {(search === '' ? products : filtered).slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((product) => (
+                {(search === '' ? sortedProducts : sortedFiltered).slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((product) => (
                   <tr key={product.id} className="hover:bg-base-200">
                     <td>
                       <div className="font-semibold">{product.code}</div>
@@ -401,7 +409,7 @@ export default function ProduitsPage() {
         </div>
         <Pagination 
           currentPage={currentPage} 
-          totalPages={Math.ceil((search === '' ? products.length : filtered.length) / ITEMS_PER_PAGE)} 
+          totalPages={Math.ceil((search === '' ? sortedProducts.length : sortedFiltered.length) / ITEMS_PER_PAGE)} 
           onPageChange={setCurrentPage} 
         />
       </div>
