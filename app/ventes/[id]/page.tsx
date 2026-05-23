@@ -1,18 +1,11 @@
 import Link from "next/link";
 
+import { getSalesInvoice } from "@/lib/operations";
 import { PrintButton } from "./print-button";
 
 type FactureDetailPageProps = {
   params: Promise<{ id: string }>;
 };
-
-async function getInvoice(id: number) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/factures/${id}`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
@@ -28,7 +21,7 @@ export default async function FactureDetailPage({
   params,
 }: FactureDetailPageProps) {
   const { id } = await params;
-  const invoice = await getInvoice(parseInt(id));
+  const invoice = await getSalesInvoice(parseInt(id));
 
   if (!invoice) {
     return (
