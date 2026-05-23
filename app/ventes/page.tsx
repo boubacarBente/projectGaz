@@ -7,6 +7,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
+
+type Period = 'day' | 'week' | 'month' | 'year' | 'total';
+
+function getPeriodFilter(period: Period): (date: Date) => boolean {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfDay);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  switch (period) {
+    case 'day':
+      return (d) => d >= startOfDay;
+    case 'week':
+      return (d) => d >= startOfWeek;
+    case 'month':
+      return (d) => d >= startOfMonth;
+    case 'year':
+      return (d) => d >= startOfYear;
+    case 'total':
+      return () => true;
+  }
+}
 // DatePicker removed
 
 // Dynamic import for PDF generation (client-side only)
@@ -112,17 +136,6 @@ export default function FacturesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
   const [formData, setFormData] = useState<InvoiceFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
-    invoices,
-    ['invoiceNumber', 'customerName', 'date', 'paymentStatus'],
-    (item, filterValue) => {
-      if (filterValue === 'paid') return item.paymentStatus === 'Paye';
-      if (filterValue === 'partial') return item.paymentStatus === 'Partiel';
-      if (filterValue === 'pending') return item.paymentStatus === 'En attente';
-      return true;
-    }
-  );
-  const ITEMS_PER_PAGE = 10;
 
   // Stats state
   type StatsData = {
@@ -145,6 +158,29 @@ export default function FacturesPage() {
   const [statsTo, setStatsTo] = useState('');
   const [statsCustomer, setStatsCustomer] = useState('');
   const [statsStatus, setStatsStatus] = useState('');
+
+  // Période de filtrage pour la liste des factures (façon dashboard)
+  const [period, setPeriod] = useState<Period>('total');
+
+  const periodFilter = useMemo(() => getPeriodFilter(period), [period]);
+
+  // Filtrer les invoices par période AVANT le search filter
+  const periodFilteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => periodFilter(new Date(inv.date)));
+  }, [invoices, periodFilter]);
+
+  // useSearchFilter reçoit les invoices déjà filtrées par période
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
+    periodFilteredInvoices,
+    ['invoiceNumber', 'customerName', 'date', 'paymentStatus'],
+    (item, filterValue) => {
+      if (filterValue === 'paid') return item.paymentStatus === 'Paye';
+      if (filterValue === 'partial') return item.paymentStatus === 'Partiel';
+      if (filterValue === 'pending') return item.paymentStatus === 'En attente';
+      return true;
+    }
+  );
+  const ITEMS_PER_PAGE = 10;
 
   // Trier par date de creation (dernier ajout en premier) et paginer
   const sorted = useMemo(() => {
@@ -903,7 +939,24 @@ export default function FacturesPage() {
 
       {/* Invoices Table */}
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur">
-        <div className="border-b border-base-200 p-4"><h3 className="font-semibold text-lg">Historique des ventes</h3></div>
+        <div className="border-b border-base-200 p-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="font-semibold text-lg">Historique des ventes</h3>
+          <div className="flex rounded-lg border border-base-300 overflow-hidden bg-base-200/50 shadow-xs">
+            {(['total', 'year', 'month', 'week', 'day'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => { setPeriod(p); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
+                  period === p
+                    ? 'bg-primary text-primary-content shadow-xs'
+                    : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
+                }`}
+              >
+                {p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="overflow-x-auto">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-base-content/60">
