@@ -66,11 +66,10 @@ export function SearchBar({ value, onChange, onClear, placeholder = 'Rechercher.
       {/* Glow effect on focus */}
       <div className={`absolute -inset-0.5 rounded-xl bg-linear-to-r from-primary/20 via-info/20 to-primary/20 opacity-0 blur-sm transition-all duration-500 ${focused && 'opacity-100'}`} />
 
-      <div className={`relative flex items-center transition-all duration-300 rounded-xl border-2 ${
-        focused
+      <div className={`relative flex items-center transition-all duration-300 rounded-xl border-2 ${focused
           ? 'border-primary/50 bg-base-100 shadow-lg shadow-primary/10'
           : 'border-base-300 bg-base-200/50 hover:border-base-300'
-      }`}>
+        }`}>
         {/* Search icon */}
         <div className="absolute left-3.5 flex items-center pointer-events-none">
           <motion.div
@@ -139,12 +138,11 @@ export function FilterSelect({ value, onChange, options, placeholder = 'Tous' }:
 
   return (
     <div className="relative group cursor-pointer">
-      <div className={`absolute -inset-0.5 rounded-xl bg-linear-to-r from-secondary/20 via-accent/20 to-secondary/20 opacity-0 blur-sm transition-all duration-500 ${focused && 'opacity-100'}`} />
-      <div className={`relative flex items-center transition-all duration-300 rounded-xl border-2 ${
-        focused
+      <div className={`absolute b -inset-0.5 rounded-xl bg-linear-to-r from-secondary/20 via-accent/20 to-secondary/20 opacity-0 blur-sm transition-all duration-500 ${focused && 'opacity-100'}`} />
+      <div className={`relative flex items-center transition-all duration-300 rounded-xl border-2 ${focused
           ? 'border-secondary/50 bg-base-100 shadow-lg shadow-secondary/10'
           : 'border-base-300 bg-base-200/50 hover:border-base-300'
-      }`}>
+        }`}>
         {/* Filter icon */}
         <div className="absolute left-3.5 flex items-center pointer-events-none">
           <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transition-colors duration-300 ${value ? 'text-secondary' : 'text-base-content/50'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -160,7 +158,7 @@ export function FilterSelect({ value, onChange, options, placeholder = 'Tous' }:
         >
           <option value="">{placeholder}</option>
           {options.map(o => (
-            <option className='mb-0.5 nth-last-[1]:mb-0 hover:bg-amber-200' key={o.value} value={o.value}>{o.label}</option>
+            <option className='mb-0.5 nth-last-[1]:mb-0 bg-base-100 dark:bg-base-50  dark:hover:bg-amber-200 dark:hover:text-black' key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       </div>
@@ -202,11 +200,10 @@ export function Pagination({ currentPage, totalPages, onPageChange }: {
             key={page}
             whileTap={{ scale: 0.9 }}
             onClick={() => onPageChange(page)}
-            className={`btn btn-sm min-w-[2.25rem] rounded-lg font-medium transition-all duration-200 ${
-              currentPage === page
+            className={`btn btn-sm min-w-[2.25rem] rounded-lg font-medium transition-all duration-200 ${currentPage === page
                 ? 'btn-primary shadow-md shadow-primary/20'
                 : 'btn-ghost hover:bg-base-300/50'
-            }`}
+              }`}
           >
             {page}
           </motion.button>
