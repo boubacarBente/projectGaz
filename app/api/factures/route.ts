@@ -1,12 +1,9 @@
 import { listSalesInvoices, createSalesInvoice } from '@/lib/operations';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const from = searchParams.get('from') || undefined;
-    const to = searchParams.get('to') || undefined;
-    const invoices = await listSalesInvoices(from, to);
+    const invoices = await listSalesInvoices();
     return NextResponse.json(invoices);
   } catch (error) {
     console.error('Error fetching sales invoices:', error);

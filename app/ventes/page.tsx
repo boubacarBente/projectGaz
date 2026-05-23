@@ -146,35 +146,6 @@ export default function FacturesPage() {
   const [statsCustomer, setStatsCustomer] = useState('');
   const [statsStatus, setStatsStatus] = useState('');
 
-  // Période de filtrage pour la liste des factures
-  const [listPeriod, setListPeriod] = useState('total');
-
-  const getDateRange = useCallback((period: string): { from: string; to: string } => {
-    const now = new Date();
-    const to = now.toISOString().slice(0, 10);
-    let from: string;
-    switch (period) {
-      case 'day':
-        from = to;
-        break;
-      case 'week': {
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
-        from = startOfWeek.toISOString().slice(0, 10);
-        break;
-      }
-      case 'month': {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        from = startOfMonth.toISOString().slice(0, 10);
-        break;
-      }
-      default:
-        from = '';
-        break;
-    }
-    return { from, to: from ? to : '' };
-  }, []);
-
   // Trier par date de creation (dernier ajout en premier) et paginer
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -193,39 +164,7 @@ export default function FacturesPage() {
 
   useEffect(() => {
     fetchData();
-  }, [listPeriod]);
-
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const { from, to } = getDateRange(listPeriod);
-      let url = '/api/factures';
-      if (from) url += `?from=${from}`;
-      if (to) url += `${from ? '&' : '?'}to=${to}`;
-
-      const [invoicesRes, productsRes, customersRes] = await Promise.all([
-        fetch(url),
-        fetch('/api/produits'),
-        fetch('/api/clients'),
-      ]);
-      const invoicesData = await invoicesRes.json();
-      const productsData = await productsRes.json();
-      const customersData = await customersRes.json();
-      setInvoices(invoicesData);
-      setProducts(productsData);
-      setCustomers(customersData);
-      if (productsData.length > 0) {
-        setFormData(prev => ({
-          ...prev,
-          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitPrice: productsData[0].salePrice.toString() }]
-        }));
-      }
-    } catch {
-      toast.error('Erreur lors du chargement des données');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [listPeriod, getDateRange]);
+  }, []);
 
   const fetchStats = useCallback(async () => {
     setIsStatsLoading(true);
@@ -250,6 +189,33 @@ export default function FacturesPage() {
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [invoicesRes, productsRes, customersRes] = await Promise.all([
+        fetch('/api/factures'),
+        fetch('/api/produits'),
+        fetch('/api/clients'),
+      ]);
+      const invoicesData = await invoicesRes.json();
+      const productsData = await productsRes.json();
+      const customersData = await customersRes.json();
+      setInvoices(invoicesData);
+      setProducts(productsData);
+      setCustomers(customersData);
+      if (productsData.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitPrice: productsData[0].salePrice.toString() }]
+        }));
+      }
+    } catch {
+      toast.error('Erreur lors du chargement des données');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const resetForm = () => setFormData(initialFormData);
 
@@ -937,24 +903,7 @@ export default function FacturesPage() {
 
       {/* Invoices Table */}
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur">
-        <div className="border-b border-base-200 p-4 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-semibold text-lg">Historique des ventes</h3>
-          <div className="flex rounded-lg border border-base-300 overflow-hidden bg-base-200/50 shadow-xs">
-            {(['total', 'month', 'week', 'day'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => { setListPeriod(p); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
-                  listPeriod === p
-                    ? 'bg-primary text-primary-content shadow-xs'
-                    : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
-                }`}
-              >
-                {p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="border-b border-base-200 p-4"><h3 className="font-semibold text-lg">Historique des ventes</h3></div>
         <div className="overflow-x-auto">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-base-content/60">
