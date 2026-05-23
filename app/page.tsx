@@ -108,24 +108,27 @@ function formatCurrency(value: number | undefined | null) {
   }
 }
 
-function getPeriodFilter(period: Period): (date: Date) => boolean {
+function getPeriodFilter(period: Period): (dateStr: string) => boolean {
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfWeek = new Date(startOfDay);
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const todayStr = todayUTC.toISOString().slice(0, 10);
+  const weekStart = new Date(todayUTC);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const monthStr = todayStr.slice(0, 7);
+  const yearStr = todayStr.slice(0, 4);
 
   switch (period) {
     case 'today':
+      return (dateStr) => dateStr === todayStr;
     case 'day':
-      return (d) => d >= startOfDay;
+      return (dateStr) => dateStr === todayStr;
     case 'week':
-      return (d) => d >= startOfWeek;
+      return (dateStr) => dateStr >= weekStartStr;
     case 'month':
-      return (d) => d >= startOfMonth;
+      return (dateStr) => dateStr.slice(0, 7) === monthStr;
     case 'year':
-      return (d) => d >= startOfYear;
+      return (dateStr) => dateStr.slice(0, 4) === yearStr;
     case 'total':
       return () => true;
   }
@@ -158,8 +161,8 @@ export default function DashboardPage() {
 
   const filteredData = useMemo(() => {
     if (!snapshot) return null;
-    const sales = snapshot.sales.filter((s) => periodFilter(new Date(s.date)));
-    const purchases = snapshot.purchases.filter((p) => periodFilter(new Date(p.date)));
+    const sales = snapshot.sales.filter((s) => periodFilter(s.date));
+    const purchases = snapshot.purchases.filter((p) => periodFilter(p.date));
     const totalSales = sales.reduce((sum, s) => sum + s.totalAmount, 0);
     const totalPurchases = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
     const grossProfit = sales.reduce((sum, s) => sum + (s.grossProfit ?? 0), 0);
