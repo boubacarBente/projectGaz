@@ -45,7 +45,7 @@ function PeriodTabs({ active, onChange }: { active: PeriodKey; onChange: (k: Per
     { key: 'byYear', label: 'Année' },
     { key: 'byMonth', label: 'Mois' },
     { key: 'byWeek', label: 'Semaine' },
-    { key: 'byDay', label: 'Jour' },
+    { key: 'byDay', label: 'Aujourd’hui' },
   ];
   return (
     <div className="flex flex-wrap gap-1.5 bg-base-200/60 p-1 rounded-2xl w-fit" role="tablist">
