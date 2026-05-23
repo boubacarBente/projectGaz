@@ -138,8 +138,15 @@ export default function SupplierPaymentsPage() {
 
   const periodData: PeriodAgg[] = periodView === 'all' ? [] : aggregates?.[periodView] || [];
 
-  // Compute card totals based on selected period (MUST be before early returns, hooks rule)
+  // Compute card totals based on selected period and/or search filter
   const cardTotals = useMemo(() => {
+    if (searchQuery) {
+      return {
+        totalInvoices: filteredInvoices.length,
+        totalAmount: filteredInvoices.reduce((s: number, i: PurchaseInvoice) => s + i.totalAmount, 0),
+        totalItems: filteredInvoices.reduce((s: number, i: PurchaseInvoice) => s + i.items.reduce((si, item) => si + item.quantity, 0), 0),
+      };
+    }
     if (periodView === 'all' || periodData.length === 0) {
       return aggregates?.all || null;
     }
@@ -148,7 +155,7 @@ export default function SupplierPaymentsPage() {
       totalAmount: periodData.reduce((s, p) => s + p.total, 0),
       totalItems: 0, // items not available in period aggregates
     };
-  }, [periodView, periodData, aggregates]);
+  }, [periodView, periodData, aggregates, searchQuery, filteredInvoices]);
 
   if (loading) {
     return (
