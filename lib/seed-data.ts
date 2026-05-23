@@ -1,6 +1,11 @@
 import Database from "better-sqlite3";
 import { db } from "@/db";
 
+function randomDateBetween(start: Date, end: Date): string {
+  const d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+  return d.toISOString().slice(0, 10);
+}
+
 export const seedClients = [
   { name: "Mamadou Diallo", phone: "+224 621 111 111", address: "Conakry, Ratoma", city: "Conakry", typeId: 1 },
   { name: "Fatoumata Bah", phone: "+224 622 222 222", address: "Conakry, Dixinn", city: "Conakry", typeId: 1 },
@@ -225,11 +230,17 @@ export async function seedDatabase() {
       `UPDATE suppliers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE id = ?`
     );
 
-    const invoicesCount = purchaseInvoiceSeeds.length;
+    const startDate = new Date('2026-01-01');
+    const endDate = new Date();
+    const purchaseInvoices = purchaseInvoiceSeeds.map(inv => ({
+      ...inv,
+      date: randomDateBetween(startDate, endDate),
+    }));
+    const invoicesCount = purchaseInvoices.length;
 
     client.transaction(() => {
-      for (let i = 0; i < purchaseInvoiceSeeds.length; i++) {
-        const seed = purchaseInvoiceSeeds[i];
+      for (let i = 0; i < purchaseInvoices.length; i++) {
+        const seed = purchaseInvoices[i];
         const supplier = suppliers.find(s => s.id === seed.supplierId)!;
         const ref = `ACH ${String(i + 1).padStart(4, '0')}`;
         const dateObj = new Date(seed.date + 'T08:00:00');
@@ -289,11 +300,17 @@ export async function seedDatabase() {
       `UPDATE customers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE name = ?`
     );
 
-    const totalSales = saleInvoiceSeeds.length;
+    const startDate = new Date('2026-01-01');
+    const endDate = new Date();
+    const saleInvoices = saleInvoiceSeeds.map(inv => ({
+      ...inv,
+      date: randomDateBetween(startDate, endDate),
+    }));
+    const totalSales = saleInvoices.length;
 
     client.transaction(() => {
-      for (let i = 0; i < saleInvoiceSeeds.length; i++) {
-        const seed = saleInvoiceSeeds[i];
+      for (let i = 0; i < saleInvoices.length; i++) {
+        const seed = saleInvoices[i];
         const customer = customers.find(c => c.name === seed.customerName)!;
         const invoiceNum = `N ${String(i + 1).padStart(6, '0')}`;
         const dateObj = new Date(seed.date + 'T10:00:00');
