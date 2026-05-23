@@ -650,7 +650,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               Voulez-vous vraiment réinitialiser les données opérationnelles ?
               <br />
               <span className="text-sm">
-                Les clients, les factures, le stock, les mouvements et les fournisseurs seront supprimés (les produits sont conservés).
+                Les clients, les factures, le stock, les mouvements, les fournisseurs et les produits seront supprimés.
               </span>
             </p>
           </div>

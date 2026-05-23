@@ -1606,8 +1606,10 @@ export async function resetDatabaseExceptProductsAndCustomers() {
     // Supprimer les clients et leurs types (clients d'abord à cause de FK)
     client.prepare('DELETE FROM customers').run();
     client.prepare('DELETE FROM customer_types').run();
+    // Supprimer les produits
+    client.prepare('DELETE FROM products').run();
     // Réinitialiser les séquences auto-increment
-    client.prepare("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'stock', 'stock_movements', 'suppliers')").run();
+    client.prepare("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'products', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'stock', 'stock_movements', 'suppliers')").run();
     // Supprimer les paramètres
     client.prepare('DELETE FROM settings').run();
 
