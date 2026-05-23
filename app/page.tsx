@@ -32,7 +32,7 @@ ChartJS.register(
   Filler
 );
 
-type Period = 'day' | 'week' | 'month' | 'year' | 'total';
+type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
 
 type SaleItem = {
   productId: number;
@@ -91,6 +91,7 @@ type Snapshot = {
 };
 
 const PERIODS: { key: Period; label: string }[] = [
+  { key: 'today', label: 'Aujourd\u2019hui' },
   { key: 'day', label: 'Jour' },
   { key: 'week', label: 'Semaine' },
   { key: 'month', label: 'Mois' },
@@ -116,6 +117,7 @@ function getPeriodFilter(period: Period): (date: Date) => boolean {
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
   switch (period) {
+    case 'today':
     case 'day':
       return (d) => d >= startOfDay;
     case 'week':

@@ -297,7 +297,7 @@ export default function FournisseursPage() {
             <div className="flex flex-wrap items-center gap-3">
               {/* Period selector */}
               <div className="flex rounded-xl border border-base-300 overflow-hidden bg-base-100 shadow-sm">
-                {(['total', 'month', 'week', 'day'] as const).map((p) => (
+                {(['today', 'total', 'month', 'week', 'day'] as const).map((p) => (
                   <button
                     key={p}
                     onClick={() => setStatsPeriod(p)}
@@ -307,7 +307,7 @@ export default function FournisseursPage() {
                         : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
                     }`}
                   >
-                    {p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
+                    {p === 'today' ? 'Aujourd\'hui' : p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
                   </button>
                 ))}
               </div>
@@ -426,7 +426,7 @@ export default function FournisseursPage() {
                     {/* Period chart */}
                     <div className="bg-base-100 rounded-xl border border-base-300 p-4">
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">
-                        {statsPeriod === 'total' ? 'Achats par fournisseur' : 'Évolution des achats'}
+                        {statsPeriod === 'total' || statsPeriod === 'today' ? 'Achats par fournisseur' : 'Évolution des achats'}
                       </h4>
                       {stats.byPeriod && stats.byPeriod.length > 0 ? (
                         <div className="space-y-2">
