@@ -66,6 +66,16 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-FR').format(value);
 }
 
+function formatPeriodLabel(label: string) {
+  // '2026-05' → 'mai 2026'
+  const parts = label.split('-');
+  if (parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]))) {
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, 1)
+      .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  }
+  return label;
+}
+
 function SparklineBar({ values, max, color }: { values: number[]; max: number; color: string }) {
   const h = 32;
   return (
@@ -425,7 +435,7 @@ export default function FournisseursPage() {
                             const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
                             return (
                               <div key={item.label} className="flex items-center gap-3">
-                                <span className="text-xs font-mono w-20 text-base-content/60 shrink-0">{item.label}</span>
+                                <span className="text-xs w-24 text-base-content/60 shrink-0">{formatPeriodLabel(item.label)}</span>
                                 <div className="flex-1 h-5 bg-base-200 rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
