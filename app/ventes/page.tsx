@@ -10,24 +10,26 @@ import { Modal } from '@/components/modal';
 
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
 
-function getPeriodFilter(period: Period): (date: Date) => boolean {
+function getPeriodFilter(period: Period): (dateStr: string) => boolean {
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfWeek = new Date(startOfDay);
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const todayStr = todayUTC.toISOString().slice(0, 10);
+  const weekStart = new Date(todayUTC);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const monthStr = todayStr.slice(0, 7);
+  const yearStr = todayStr.slice(0, 4);
 
   switch (period) {
     case 'today':
     case 'day':
-      return (d) => d >= startOfDay;
+      return (dateStr) => dateStr === todayStr;
     case 'week':
-      return (d) => d >= startOfWeek;
+      return (dateStr) => dateStr >= weekStartStr;
     case 'month':
-      return (d) => d >= startOfMonth;
+      return (dateStr) => dateStr.slice(0, 7) === monthStr;
     case 'year':
-      return (d) => d >= startOfYear;
+      return (dateStr) => dateStr.slice(0, 4) === yearStr;
     case 'total':
       return () => true;
   }
@@ -155,7 +157,7 @@ export default function FacturesPage() {
 
   // Filtrer les invoices par période
   const periodFilteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => periodFilter(new Date(inv.date)));
+    return invoices.filter((inv) => periodFilter(inv.date));
   }, [invoices, periodFilter]);
 
   // Stats calculées client-side (comme le dashboard)
