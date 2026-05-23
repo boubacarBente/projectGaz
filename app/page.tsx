@@ -91,6 +91,7 @@ type Snapshot = {
 };
 
 const PERIODS: { key: Period; label: string }[] = [
+  { key: 'today', label: 'Aujourd\u2019hui' },
   { key: 'day', label: 'Jour' },
   { key: 'week', label: 'Semaine' },
   { key: 'month', label: 'Mois' },

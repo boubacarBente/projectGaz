@@ -307,7 +307,7 @@ export default function FournisseursPage() {
                         : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
                     }`}
                   >
-                    {p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
+                    {p === 'today' ? 'Aujourd\'hui' : p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : ' Jour'}
                   </button>
                 ))}
               </div>

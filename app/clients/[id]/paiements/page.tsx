@@ -28,7 +28,7 @@ type PeriodAgg = {
   profit: number;
 };
 
-type PeriodKey = 'all' | 'byDay' | 'byWeek' | 'byMonth' | 'byYear';
+type PeriodKey = 'all' | 'today' | 'byDay' | 'byWeek' | 'byMonth' | 'byYear';
 
 // ---------- helpers ----------
 const fCF = (v: number) => new Intl.NumberFormat('fr-FR').format(v);
@@ -45,7 +45,8 @@ function PeriodTabs({ active, onChange }: { active: PeriodKey; onChange: (k: Per
     { key: 'byYear', label: 'Année' },
     { key: 'byMonth', label: 'Mois' },
     { key: 'byWeek', label: 'Semaine' },
-    { key: 'byDay', label: 'Aujourd’hui' },
+    { key: 'byDay', label: 'Jour' },
+    { key: 'today', label: "Aujourd'hui" },
   ];
   return (
     <div className="flex flex-wrap gap-1.5 bg-base-200/60 p-1 rounded-2xl w-fit" role="tablist">
@@ -252,7 +253,7 @@ export default function CustomerPaymentsPage() {
       <PeriodTabs active={periodView} onChange={setPeriodView} />
 
       {/* ---------- Period breakdown ---------- */}
-      {periodView !== 'all' && periodData.length > 0 && (
+      {periodView !== 'all' && periodView !== 'today' && periodData.length > 0 && (
         <section className="rounded-3xl border border-base-200/80 bg-base-100/80 p-6 shadow-lg shadow-black/5 backdrop-blur">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-lg font-semibold">

@@ -741,7 +741,7 @@ export default function FacturesPage() {
                         : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
                     }`}
                   >
-                    {p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
+                    {p === 'today' ? 'Aujourd\'hui' : p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
                   </button>
                 ))}
               </div>
@@ -978,7 +978,7 @@ export default function FacturesPage() {
                     : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
                 }`}
               >
-                {p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
+                {p === 'today' ? 'Aujourd\'hui' : p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
               </button>
             ))}
           </div>
