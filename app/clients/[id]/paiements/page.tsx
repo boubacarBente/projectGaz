@@ -183,8 +183,24 @@ export default function CustomerPaymentsPage() {
     );
   }
 
-  const agg = aggregates?.all;
   const periodData: PeriodAgg[] = periodView === 'all' ? [] : aggregates?.[periodView] || [];
+
+  // Compute card totals based on selected period
+  const cardTotals = useMemo(() => {
+    if (periodView === 'all' || periodData.length === 0) {
+      return aggregates?.all || null;
+    }
+    const totalAmount = periodData.reduce((s, p) => s + p.total, 0);
+    const totalPaid = periodData.reduce((s, p) => s + p.paid, 0);
+    return {
+      totalInvoices: periodData.reduce((s, p) => s + p.count, 0),
+      totalAmount,
+      totalPaid,
+      totalRemaining: totalAmount - totalPaid,
+      totalProfit: periodData.reduce((s, p) => s + p.profit, 0),
+      totalItems: 0, // items not available in period aggregates
+    };
+  }, [periodView, periodData, aggregates]);
 
   return (
     <div className="space-y-8">
@@ -221,14 +237,14 @@ export default function CustomerPaymentsPage() {
       </section>
 
       {/* ---------- Global Stats ---------- */}
-      {agg && (
+      {cardTotals && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Factures" value={fCF(agg.totalInvoices)} sub="Nombre total" />
-          <StatCard label="Montant total" value={`${fCF(agg.totalAmount)} F`} sub="Toutes factures" accent />
-          <StatCard label="Total payé" value={`${fCF(agg.totalPaid)} F`} sub="Dont acomptes" />
-          <StatCard label="Restant dû" value={`${fCF(agg.totalRemaining)} F`} sub="Impays" />
-          <StatCard label="Bénéfice brut" value={`${fCF(agg.totalProfit)} F`} sub="Sur les ventes" accent />
-          <StatCard label="Articles vendus" value={fCF(agg.totalItems)} sub="Quantité totale" />
+          <StatCard label="Factures" value={fCF(cardTotals.totalInvoices)} sub={periodView === 'all' ? 'Nombre total' : 'Période sélectionnée'} />
+          <StatCard label="Montant total" value={`${fCF(cardTotals.totalAmount)} F`} sub={periodView === 'all' ? 'Toutes factures' : 'Période sélectionnée'} accent />
+          <StatCard label="Total payé" value={`${fCF(cardTotals.totalPaid)} F`} sub={periodView === 'all' ? 'Dont acomptes' : 'Période sélectionnée'} />
+          <StatCard label="Restant dû" value={`${fCF(cardTotals.totalRemaining)} F`} sub={periodView === 'all' ? 'Impayés' : 'Période sélectionnée'} />
+          <StatCard label="Bénéfice brut" value={`${fCF(cardTotals.totalProfit)} F`} sub={periodView === 'all' ? 'Sur les ventes' : 'Période sélectionnée'} accent />
+          <StatCard label="Articles vendus" value={cardTotals.totalItems > 0 ? fCF(cardTotals.totalItems) : '—'} sub={periodView === 'all' ? 'Quantité totale' : 'Non disponible par période'} />
         </div>
       )}
 

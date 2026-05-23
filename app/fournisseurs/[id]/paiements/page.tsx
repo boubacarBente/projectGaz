@@ -159,8 +159,19 @@ export default function SupplierPaymentsPage() {
     );
   }
 
-  const agg = aggregates?.all;
   const periodData: PeriodAgg[] = periodView === 'all' ? [] : aggregates?.[periodView] || [];
+
+  // Compute card totals based on selected period
+  const cardTotals = useMemo(() => {
+    if (periodView === 'all' || periodData.length === 0) {
+      return aggregates?.all || null;
+    }
+    return {
+      totalInvoices: periodData.reduce((s, p) => s + p.count, 0),
+      totalAmount: periodData.reduce((s, p) => s + p.total, 0),
+      totalItems: 0, // items not available in period aggregates
+    };
+  }, [periodView, periodData, aggregates]);
 
   return (
     <div className="space-y-8">
@@ -194,11 +205,24 @@ export default function SupplierPaymentsPage() {
       </section>
 
       {/* ---------- Stats ---------- */}
-      {agg && (
+      {cardTotals && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard label="Factures" value={fCF(agg.totalInvoices)} sub="Nombre total" />
-          <StatCard label="Montant total" value={`${fCF(agg.totalAmount)} GNF`} sub="Somme des achats" accent />
-          <StatCard label="Articles" value={fCF(agg.totalItems)} sub="Quantité totale" />
+          <StatCard
+            label="Factures"
+            value={fCF(cardTotals.totalInvoices)}
+            sub={periodView === 'all' ? 'Nombre total' : 'Période sélectionnée'}
+          />
+          <StatCard
+            label="Montant total"
+            value={`${fCF(cardTotals.totalAmount)} GNF`}
+            sub={periodView === 'all' ? 'Somme des achats' : 'Période sélectionnée'}
+            accent
+          />
+          <StatCard
+            label="Articles"
+            value={cardTotals.totalItems > 0 ? fCF(cardTotals.totalItems) : '—'}
+            sub={periodView === 'all' ? 'Quantité totale' : 'Non disponible par période'}
+          />
         </div>
       )}
 
