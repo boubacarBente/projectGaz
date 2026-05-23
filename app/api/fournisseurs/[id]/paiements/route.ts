@@ -48,10 +48,10 @@ export async function GET(
     }));
 
     // Group by period
-    const byDay: Record<string, { count: number; total: number }> = {};
-    const byWeek: Record<string, { count: number; total: number }> = {};
-    const byMonth: Record<string, { count: number; total: number }> = {};
-    const byYear: Record<string, { count: number; total: number }> = {};
+    const byDay: Record<string, { count: number; total: number; totalItems: number }> = {};
+    const byWeek: Record<string, { count: number; total: number; totalItems: number }> = {};
+    const byMonth: Record<string, { count: number; total: number; totalItems: number }> = {};
+    const byYear: Record<string, { count: number; total: number; totalItems: number }> = {};
 
     for (const inv of invoicesWithItems) {
       const dateObj = new Date(inv.date);
@@ -61,22 +61,27 @@ export async function GET(
       const weekKey = weekStart.toISOString().slice(0, 10);
       const monthKey = inv.date.slice(0, 7);
       const yearKey = inv.date.slice(0, 4);
+      const invItems = inv.items.reduce((si, item) => si + item.quantity, 0);
 
-      if (!byDay[dayKey]) byDay[dayKey] = { count: 0, total: 0 };
+      if (!byDay[dayKey]) byDay[dayKey] = { count: 0, total: 0, totalItems: 0 };
       byDay[dayKey].count++;
       byDay[dayKey].total += inv.totalAmount;
+      byDay[dayKey].totalItems += invItems;
 
-      if (!byWeek[weekKey]) byWeek[weekKey] = { count: 0, total: 0 };
+      if (!byWeek[weekKey]) byWeek[weekKey] = { count: 0, total: 0, totalItems: 0 };
       byWeek[weekKey].count++;
       byWeek[weekKey].total += inv.totalAmount;
+      byWeek[weekKey].totalItems += invItems;
 
-      if (!byMonth[monthKey]) byMonth[monthKey] = { count: 0, total: 0 };
+      if (!byMonth[monthKey]) byMonth[monthKey] = { count: 0, total: 0, totalItems: 0 };
       byMonth[monthKey].count++;
       byMonth[monthKey].total += inv.totalAmount;
+      byMonth[monthKey].totalItems += invItems;
 
-      if (!byYear[yearKey]) byYear[yearKey] = { count: 0, total: 0 };
+      if (!byYear[yearKey]) byYear[yearKey] = { count: 0, total: 0, totalItems: 0 };
       byYear[yearKey].count++;
       byYear[yearKey].total += inv.totalAmount;
+      byYear[yearKey].totalItems += invItems;
     }
 
     const aggregate = {

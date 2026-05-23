@@ -29,6 +29,7 @@ type PeriodAgg = {
   period: string;
   count: number;
   total: number;
+  totalItems: number;
 };
 
 type PeriodKey = 'all' | 'today' | 'byDay' | 'byWeek' | 'byMonth' | 'byYear';
@@ -110,10 +111,39 @@ export default function SupplierPaymentsPage() {
 
   const { supplier, invoices, aggregates } = data || {};
 
-  // Filter + sort invoices
-  const filteredInvoices = useMemo(() => {
+  // ---------- helpers for period filtering ----------
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const currentYear = todayStr.slice(0, 4);
+  const currentMonth = todayStr.slice(0, 7);
+  const getWeekStart = (dateStr: string) => {
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() - d.getDay());
+    return d.toISOString().slice(0, 10);
+  };
+  const currentWeekStart = getWeekStart(todayStr);
+
+  // Filter invoices by the selected period tab
+  const periodFilteredInvoices = useMemo(() => {
     if (!invoices) return [];
-    let list = [...invoices];
+    if (periodView === 'all') return [...invoices];
+
+    if (periodView === 'today') {
+      return invoices.filter((inv: PurchaseInvoice) => inv.date === todayStr);
+    }
+
+    // Filter to current period scope
+    return invoices.filter((inv: PurchaseInvoice) => {
+      if (periodView === 'byYear') return inv.date.slice(0, 4) === currentYear;
+      if (periodView === 'byMonth') return inv.date.slice(0, 7) === currentMonth;
+      if (periodView === 'byWeek') return getWeekStart(inv.date) === currentWeekStart;
+      if (periodView === 'byDay') return inv.date === todayStr;
+      return true;
+    });
+  }, [invoices, periodView, todayStr, currentYear, currentMonth, currentWeekStart]);
+
+  // Filter + sort invoices (search within period-filtered list)
+  const filteredInvoices = useMemo(() => {
+    let list = periodFilteredInvoices;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -129,7 +159,7 @@ export default function SupplierPaymentsPage() {
       return sortDir === 'desc' ? -cmp : cmp;
     });
     return list;
-  }, [invoices, searchQuery, sortField, sortDir]);
+  }, [periodFilteredInvoices, searchQuery, sortField, sortDir]);
 
   const toggleSort = (field: 'date' | 'totalAmount') => {
     if (sortField === field) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
@@ -147,13 +177,13 @@ export default function SupplierPaymentsPage() {
         totalItems: filteredInvoices.reduce((s: number, i: PurchaseInvoice) => s + i.items.reduce((si, item) => si + item.quantity, 0), 0),
       };
     }
-    if (periodView === 'all' || periodData.length === 0) {
+    if (periodView === 'all') {
       return aggregates?.all || null;
     }
     return {
       totalInvoices: periodData.reduce((s, p) => s + p.count, 0),
       totalAmount: periodData.reduce((s, p) => s + p.total, 0),
-      totalItems: 0, // items not available in period aggregates
+      totalItems: periodData.reduce((s, p) => s + p.totalItems, 0),
     };
   }, [periodView, periodData, aggregates, searchQuery, filteredInvoices]);
 
@@ -229,7 +259,7 @@ export default function SupplierPaymentsPage() {
           <StatCard
             label="Articles"
             value={cardTotals.totalItems > 0 ? fCF(cardTotals.totalItems) : '—'}
-            sub={periodView === 'all' ? 'Quantité totale' : 'Non disponible par période'}
+            sub={periodView === 'all' ? 'Quantité totale' : 'Quantité sur la période'}
           />
         </div>
       )}
@@ -254,6 +284,7 @@ export default function SupplierPaymentsPage() {
                 <tr>
                   <th>Période</th>
                   <th className="text-right">Factures</th>
+                  <th className="text-right">Articles</th>
                   <th className="text-right">Montant</th>
                 </tr>
               </thead>
@@ -269,6 +300,7 @@ export default function SupplierPaymentsPage() {
                     <tr key={p.period} className="hover:bg-base-200/40 transition-colors">
                       <td className="font-medium">{label}</td>
                       <td className="text-right text-base-content/70">{p.count}</td>
+                      <td className="text-right text-base-content/70">{p.totalItems}</td>
                       <td className="text-right font-medium">{fCF(p.total)} GNF</td>
                     </tr>
                   );
