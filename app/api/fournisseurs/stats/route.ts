@@ -71,7 +71,7 @@ export async function GET(request: Request) {
     }
 
     let byPeriod = null;
-    if (period !== 'total') {
+    if (period !== 'total' && period !== 'today') {
       byPeriod = rawDb.prepare(
         'SELECT ' + periodSelect + ', COALESCE(SUM(pi.total_amount), 0) as total, COUNT(pi.id) as count ' +
         'FROM purchase_invoices pi' + whereClause +

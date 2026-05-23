@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
 
-type Period = 'day' | 'week' | 'month' | 'year' | 'total';
+type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
 
 function getPeriodFilter(period: Period): (date: Date) => boolean {
   const now = new Date();
@@ -19,6 +19,7 @@ function getPeriodFilter(period: Period): (date: Date) => boolean {
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
   switch (period) {
+    case 'today':
     case 'day':
       return (d) => d >= startOfDay;
     case 'week':
@@ -193,7 +194,7 @@ export default function FacturesPage() {
 
     // Par période
     let byPeriod: Array<{ label: string; total: number; paid: number; count: number }> | null = null;
-    if (period !== 'total') {
+    if (period !== 'total' && period !== 'today') {
       const periodMap = new Map<string, { total: number; paid: number; count: number }>();
       for (const inv of filtered) {
         let label: string;
@@ -730,7 +731,7 @@ export default function FacturesPage() {
             {/* Period + Filter Controls */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex rounded-xl border border-base-300 overflow-hidden bg-base-100 shadow-sm">
-                {(['total', 'year', 'month', 'week', 'day'] as const).map((p) => (
+                {(['today', 'total', 'year', 'month', 'week', 'day'] as const).map((p) => (
                   <button
                     key={p}
                     onClick={() => { setPeriod(p); setCurrentPage(1); }}
@@ -740,7 +741,7 @@ export default function FacturesPage() {
                         : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
                     }`}
                   >
-                    {p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Aujourd’hui'}
+                    {p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
                   </button>
                 ))}
               </div>
@@ -800,7 +801,7 @@ export default function FacturesPage() {
                     {/* Period chart */}
                     <div className="bg-base-100 rounded-xl border border-base-300 p-4">
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">
-                        {period === 'total' ? 'Top clients' : 'Évolution du CA'}
+                        {period === 'total' || period === 'today' ? 'Top clients' : 'Évolution du CA'}
                       </h4>
 
                       {stats.byPeriod && stats.byPeriod.length > 0 ? (
@@ -967,7 +968,7 @@ export default function FacturesPage() {
         <div className="border-b border-base-200 p-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-semibold text-lg">Historique des ventes</h3>
           <div className="flex rounded-lg border border-base-300 overflow-hidden bg-base-200/50 shadow-xs">
-            {(['total', 'year', 'month', 'week', 'day'] as const).map((p) => (
+            {(['today', 'total', 'year', 'month', 'week', 'day'] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => { setPeriod(p); setCurrentPage(1); }}
@@ -977,7 +978,7 @@ export default function FacturesPage() {
                     : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
                 }`}
               >
-                {p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Aujourd’hui'}
+                {p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
               </button>
             ))}
           </div>
