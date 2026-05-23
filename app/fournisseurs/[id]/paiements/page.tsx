@@ -135,6 +135,20 @@ export default function SupplierPaymentsPage() {
     else { setSortField(field); setSortDir('desc'); }
   };
 
+  const periodData: PeriodAgg[] = periodView === 'all' ? [] : aggregates?.[periodView] || [];
+
+  // Compute card totals based on selected period (MUST be before early returns, hooks rule)
+  const cardTotals = useMemo(() => {
+    if (periodView === 'all' || periodData.length === 0) {
+      return aggregates?.all || null;
+    }
+    return {
+      totalInvoices: periodData.reduce((s, p) => s + p.count, 0),
+      totalAmount: periodData.reduce((s, p) => s + p.total, 0),
+      totalItems: 0, // items not available in period aggregates
+    };
+  }, [periodView, periodData, aggregates]);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -158,20 +172,6 @@ export default function SupplierPaymentsPage() {
       </div>
     );
   }
-
-  const periodData: PeriodAgg[] = periodView === 'all' ? [] : aggregates?.[periodView] || [];
-
-  // Compute card totals based on selected period
-  const cardTotals = useMemo(() => {
-    if (periodView === 'all' || periodData.length === 0) {
-      return aggregates?.all || null;
-    }
-    return {
-      totalInvoices: periodData.reduce((s, p) => s + p.count, 0),
-      totalAmount: periodData.reduce((s, p) => s + p.total, 0),
-      totalItems: 0, // items not available in period aggregates
-    };
-  }, [periodView, periodData, aggregates]);
 
   return (
     <div className="space-y-8">
