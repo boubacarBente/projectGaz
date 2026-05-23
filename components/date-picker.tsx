@@ -45,10 +45,12 @@ export function DatePicker({ value, onChange, placeholder = 'Sélectionner...', 
           {
             name: 'offset',
             options: { offset: [0, 4] },
+            fn: () => ({ x: 0, y: 0 }),
           },
           {
             name: 'preventOverflow',
             options: { boundary: 'viewport' as const, padding: 8 },
+            fn: () => ({ x: 0, y: 0 }),
           },
         ]}
         onCalendarOpen={() => setIsOpen(true)}

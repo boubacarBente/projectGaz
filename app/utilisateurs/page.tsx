@@ -307,11 +307,7 @@ export default function UtilisateursPage() {
           </button>
         </div>
         <div className="p-6">
-          {authState === 'loading' ? (
-            <div className="flex justify-center py-8">
-              <span className="loading loading-spinner loading-md text-primary" />
-            </div>
-          ) : users.length === 0 ? (
+          {users.length === 0 ? (
             <p className="text-center py-8 text-base-content/40">Aucun utilisateur</p>
           ) : (
             <div className="overflow-x-auto">
