@@ -68,6 +68,10 @@ a {
   text-decoration: none;
 }
 
+select, input[type="date"], input[type="time"], input[type="datetime-local"] {
+  cursor: pointer;
+}
+
 ::selection {
   background: rgba(46, 117, 182, 0.18);
 }
