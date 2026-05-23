@@ -207,7 +207,7 @@ export default function LoginPage() {
       <ParticleField />
 
       {/* Cinematic grain overlay */}
-      <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.03]"
+      <div className="fixed inset-0 z-1 pointer-events-none opacity-[0.03]"
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E")` }}
       />
 
@@ -226,7 +226,7 @@ export default function LoginPage() {
             transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
             className="relative inline-flex items-center justify-center"
           >
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-xl flex items-center justify-center shadow-2xl shadow-black/50">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-linear-to-br from-white/8 to-white/2 border border-white/8 backdrop-blur-xl flex items-center justify-center shadow-2xl shadow-black/50">
               {/* Dragon/Kali-inspired logo */}
               <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-12 sm:h-12 text-white/70" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M24 4L8 12v10c0 8.84 5.84 16.84 16 20 10.16-3.16 16-11.16 16-20V12L24 4z" />
@@ -268,7 +268,7 @@ export default function LoginPage() {
           {/* Glow behind card */}
           <div className="absolute -inset-1 bg-white/5 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-          <div className="relative backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-2xl shadow-black/40">
+          <div className="relative backdrop-blur-2xl bg-white/3 border border-white/8 rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-2xl shadow-black/40">
             {needsSetup ? (
               /* ─── Setup form ─── */
               <form onSubmit={handleSetup} className="space-y-5">
@@ -293,7 +293,7 @@ export default function LoginPage() {
                         type="password"
                         value={field === 'password' ? setupPassword : setupConfirm}
                         onChange={e => field === 'password' ? setSetupPassword(e.target.value) : setSetupConfirm(e.target.value)}
-                        className="w-full bg-transparent border border-white/[0.12] rounded-xl px-4 py-3 text-sm text-white/70 font-mono placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/[0.02]"
+                        className="w-full bg-transparent border border-white/12 rounded-xl px-4 py-3 text-sm text-white/70 font-mono placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/2"
                         placeholder="••••••••"
                         autoFocus={field === 'password'}
                       />
@@ -304,7 +304,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full mt-2 px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.15] text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 disabled:opacity-30"
+                  className="w-full mt-2 px-6 py-3 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 hover:border-white/15 text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 disabled:opacity-30"
                 >
                   {isSubmitting ? (
                     <span className="loading loading-spinner loading-sm" />
@@ -335,7 +335,7 @@ export default function LoginPage() {
                         value={name}
                         onChange={e => setName(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleNameSubmit(e as any)}
-                        className="w-full bg-transparent border border-white/[0.12] rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/[0.02]"
+                        className="w-full bg-transparent border border-white/12 rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/2"
                         placeholder="Nom d'utilisateur"
                         autoFocus
                       />
@@ -346,7 +346,7 @@ export default function LoginPage() {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.15 }}
                       type="submit"
-                      className="w-full mt-4 px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.15] text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 flex items-center justify-center gap-2 group/btn"
+                      className="w-full mt-4 px-6 py-3 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 hover:border-white/15 text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 flex items-center justify-center gap-2 group/btn"
                     >
                       <span className='cursor-pointer'>Continuer</span>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover/btn:translate-x-0.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -374,7 +374,7 @@ export default function LoginPage() {
                         transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
                         className="flex flex-col items-center gap-3 pt-2"
                       >
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-white/15 to-white/5 border border-white/10 flex items-center justify-center shadow-2xl shadow-black/30">
+                        <div className="w-16 h-16 rounded-full bg-linear-to-br from-white/15 to-white/5 border border-white/10 flex items-center justify-center shadow-2xl shadow-black/30">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
@@ -412,7 +412,7 @@ export default function LoginPage() {
                             type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            className="w-full bg-transparent border border-white/[0.12] rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/[0.02] relative z-[1]"
+                            className="w-full bg-transparent border border-white/12 rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/[0.02] relative z-[1]"
                             placeholder="Mot de passe"
                           />
                         </div>
@@ -427,7 +427,7 @@ export default function LoginPage() {
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="w-full px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.15] text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 disabled:opacity-30 flex items-center justify-center gap-2 group/btn"
+                          className="w-full px-6 py-3 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 hover:border-white/15 text-white/60 hover:text-white/80 text-sm font-light tracking-wider transition-all duration-300 disabled:opacity-30 flex items-center justify-center gap-2 group/btn"
                         >
                           {isSubmitting ? (
                             <span className="loading loading-spinner loading-sm" />
@@ -453,7 +453,7 @@ export default function LoginPage() {
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
                 {needsSetup ? 'setup mode' : 'session active'}
               </span>
-              <span>v1.0 · connexion sécurisée</span>
+              <span>KorbeGaz · connexion sécurisée</span>
             </div>
           </div>
         </motion.div>

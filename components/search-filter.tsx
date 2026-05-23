@@ -138,7 +138,7 @@ export function FilterSelect({ value, onChange, options, placeholder = 'Tous' }:
   const [focused, setFocused] = useState(false);
 
   return (
-    <div className="relative group">
+    <div className="relative group cursor-pointer">
       <div className={`absolute -inset-0.5 rounded-xl bg-linear-to-r from-secondary/20 via-accent/20 to-secondary/20 opacity-0 blur-sm transition-all duration-500 ${focused && 'opacity-100'}`} />
       <div className={`relative flex items-center transition-all duration-300 rounded-xl border-2 ${
         focused
@@ -160,7 +160,7 @@ export function FilterSelect({ value, onChange, options, placeholder = 'Tous' }:
         >
           <option value="">{placeholder}</option>
           {options.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option className='mb-0.5 nth-last-[1]:mb-0 hover:bg-amber-200' key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       </div>

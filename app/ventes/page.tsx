@@ -580,6 +580,7 @@ export default function FacturesPage() {
           </button>
         }
       />
+      <button className='btn btn-primary dark:btn-error'>hello</button>
 
       {/* Analytics Dashboard */}
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur overflow-hidden">
@@ -589,13 +590,13 @@ export default function FacturesPage() {
               <h3 className="font-semibold text-lg">Analytiques des ventes</h3>
               <p className="text-sm text-base-content/60">{invoices.length} facture(s) au total</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center">
               <FilterSelect
                 value={filter}
                 onChange={setFilter}
                 placeholder="Tous les statuts"
                 options={[
-                  { value: 'paid', label: 'Payé' },
+                  { value: 'paid', label: 'Payée' },
                   { value: 'partial', label: 'Partiel' },
                   { value: 'pending', label: 'En attente' },
                 ]}
@@ -634,9 +635,9 @@ export default function FacturesPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <input type="date" value={statsFrom} onChange={e => setStatsFrom(e.target.value)} className="w-36" />
+                <input type="date" value={statsFrom} onChange={e => setStatsFrom(e.target.value)} className="w-36 cursor-pointer" />
                 <span className="text-xs text-base-content/40">—</span>
-                <input type="date" value={statsTo} onChange={e => setStatsTo(e.target.value)} className="w-36" />
+                <input type="date" value={statsTo} onChange={e => setStatsTo(e.target.value)} className="w-36 cursor-pointer" />
                 {(statsFrom || statsTo) && (
                   <button onClick={() => { setStatsFrom(''); setStatsTo(''); }} className="btn btn-ghost btn-xs btn-square text-error">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -649,10 +650,10 @@ export default function FacturesPage() {
               <select
                 value={statsStatus}
                 onChange={(e) => setStatsStatus(e.target.value)}
-                className="select select-bordered select-sm text-xs min-w-[140px]"
+                className="select select-bordered select-sm text-xs min-w-35"
               >
                 <option value="">Tous statuts</option>
-                <option value="Paye">Payé</option>
+                <option value="Paye">Payée</option>
                 <option value="Partiel">Partiel</option>
                 <option value="En attente">En attente</option>
               </select>
@@ -741,7 +742,7 @@ export default function FacturesPage() {
                       </h4>
 
                       {stats.byPeriod && stats.byPeriod.length > 0 ? (
-                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        <div className="space-y-2 max-h-50 overflow-y-auto">
                           {stats.byPeriod.slice(-12).map((item) => {
                             const maxVal = Math.max(...stats.byPeriod!.map(p => p.total));
                             const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
@@ -762,7 +763,7 @@ export default function FacturesPage() {
                           })}
                         </div>
                       ) : statsPeriod === 'total' && stats.byCustomer && stats.byCustomer.length > 0 ? (
-                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        <div className="space-y-2 max-h-50 overflow-y-auto">
                           {stats.byCustomer.slice(0, 8).map((item) => {
                             const maxVal = Math.max(...stats.byCustomer.map(c => c.total));
                             const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
@@ -796,7 +797,7 @@ export default function FacturesPage() {
                         <span className="badge badge-ghost badge-xs">{stats.recentInvoices.length}</span>
                       </div>
                       {stats.recentInvoices.length > 0 ? (
-                        <div className="divide-y divide-base-200 max-h-[200px] overflow-y-auto">
+                        <div className="divide-y divide-base-200 max-h-50 overflow-y-auto">
                           {stats.recentInvoices.map((inv) => (
                             <div key={inv.id} className="px-4 py-2.5 flex items-center justify-between hover:bg-base-200/50 transition-colors">
                               <div className="min-w-0">
@@ -878,7 +879,7 @@ export default function FacturesPage() {
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 rounded-full bg-success" />
-                              <span>Payé: <strong>{formatCurrency(stats.total.paid)}</strong></span>
+                              <span>Payée: <strong>{formatCurrency(stats.total.paid)}</strong></span>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 rounded-full bg-warning" />
