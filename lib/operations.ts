@@ -51,6 +51,7 @@ export type SalesInvoiceItem = {
 export type SalesInvoice = {
   id: number;
   invoiceNumber: string;
+  customerId: number | null;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -242,8 +243,8 @@ export async function listPurchaseInvoices(from?: string, to?: string) {
         id: inv.id,
         supplierId: inv.supplierId,
         reference: inv.reference,
-        supplier: inv.supplier?.name || inv.supplier || '',
-        supplierName: inv.supplier?.name || inv.supplier || '',
+        supplier: inv.supplier?.name || '',
+        supplierName: inv.supplier?.name || '',
         date: inv.date,
         notes: inv.notes || "",
         items: items.map(item => ({
@@ -380,7 +381,6 @@ export async function createPurchaseInvoice(input: {
 
   const result = await db.insert(purchaseInvoices).values({
     reference: input.reference,
-    supplier: supplierName,
     supplierId: input.supplierId,
     date: input.date,
     notes: input.notes,
@@ -429,6 +429,7 @@ export async function createPurchaseInvoice(input: {
 }
 
 export async function createSalesInvoice(input: {
+  customerId?: number | null;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -562,8 +563,8 @@ export async function getPurchaseInvoice(id: number) {
   return {
     id: result.id,
     reference: result.reference,
-    supplier: result.supplier?.name || result.supplier || '',
-    supplierName: result.supplier?.name || result.supplier || '',
+    supplier: result.supplier?.name || '',
+    supplierName: result.supplier?.name || '',
     date: result.date,
     notes: result.notes || "",
     items: items.map(item => ({
@@ -574,8 +575,8 @@ export async function getPurchaseInvoice(id: number) {
       unitCost: item.unitCost,
       totalCost: item.totalCost,
     })),
-    totalAmount: result.totalAmount,
-    isPaid: result.isPaid,
+    totalAmount: result.totalAmount ?? 0,
+    isPaid: result.isPaid ?? false,
     createdAt: result.createdAt?.toISOString() || "",
   };
 }
@@ -600,18 +601,8 @@ export async function updatePurchaseInvoice(id: number, input: {
     : await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
-  // Chercher le nom du fournisseur à partir de l'ID
-  let supplierName: string | undefined;
-  if (input.supplierId !== undefined) {
-    const supplierMatch = await db.select({ name: suppliers.name }).from(suppliers)
-      .where(eq(suppliers.id, input.supplierId))
-      .limit(1);
-    supplierName = supplierMatch.length > 0 ? supplierMatch[0].name : '';
-  }
-
   await db.update(purchaseInvoices).set({
     reference: input.reference,
-    ...(supplierName !== undefined ? { supplier: supplierName } : {}),
     supplierId: input.supplierId,
     date: input.date,
     notes: input.notes,
@@ -683,10 +674,19 @@ export async function updatePurchaseInvoice(id: number, input: {
   if (oldSupplierId) await recalculateSupplierTotalPurchases(oldSupplierId);
   if (newSupplierId && newSupplierId !== oldSupplierId) await recalculateSupplierTotalPurchases(newSupplierId);
 
+  // Chercher le nom du fournisseur
+  const sid = input.supplierId ?? existing[0].supplierId;
+  const supplierRows = sid
+    ? await db.select({ name: suppliers.name }).from(suppliers).where(eq(suppliers.id, sid)).limit(1)
+    : [];
+  const resolvedSupplierName = supplierRows.length > 0 ? supplierRows[0].name : '';
+
   return {
     id,
     reference: input.reference ?? existing[0].reference,
-    supplier: input.supplier ?? existing[0].supplier,
+    supplier: resolvedSupplierName,
+    supplierName: resolvedSupplierName,
+    supplierId: sid!,
     date: input.date ?? existing[0].date,
     notes: (input.notes ?? existing[0].notes) || "",
     items: items.map(item => ({
