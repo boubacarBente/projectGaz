@@ -2,18 +2,11 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { SurfaceCard } from "@/components/surface-card";
+import { getPurchaseInvoice } from "@/lib/operations";
 
 type FactureUsineDetailPageProps = {
   params: Promise<{ id: string }>;
 };
-
-async function getInvoice(id: number) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/depenses/${id}`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
@@ -23,7 +16,7 @@ export default async function FactureUsineDetailPage({
   params,
 }: FactureUsineDetailPageProps) {
   const { id } = await params;
-  const invoice = await getInvoice(parseInt(id));
+  const invoice = await getPurchaseInvoice(parseInt(id));
 
   if (!invoice) {
     return (
