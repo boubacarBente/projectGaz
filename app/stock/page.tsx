@@ -303,7 +303,7 @@ export default function StockPage() {
                     const isLow = item.currentStock <= item.minStock;
                     const isOut = item.currentStock === 0;
                     return (
-                      <tr key={item.productId} className={isOut ? 'bg-red-50' : isLow ? 'bg-amber-50' : ''}>
+                      <tr key={item.productId} className={isOut ? 'bg-red-50 dark:bg-red-950/40' : isLow ? 'bg-amber-50 dark:bg-amber-950/40' : ''}>
                         <td className="font-medium">
                           <div className="flex items-center gap-2">
                             <span className="badge badge-neutral badge-sm">{item.productCode}</span>
@@ -400,22 +400,22 @@ export default function StockPage() {
           </div>
           
           {lowStockItems.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-green-300 bg-green-50 px-4 py-12 text-center">
+            <div className="rounded-2xl border border-dashed border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 px-4 py-12 text-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-green-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-green-700 font-medium">Tous les stocks sont OK!</p>
-              <p className="text-sm text-green-600">Aucun produit n'est sous le seuil minimum.</p>
+              <p className="text-green-700 dark:text-green-300 font-medium">Tous les stocks sont OK!</p>
+              <p className="text-sm text-green-600 dark:text-green-400">Aucun produit n'est sous le seuil minimum.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {lowStockItems.map((item) => {
                 const isOut = item.currentStock === 0;
                 return (
-                  <div key={item.productId} className={`flex items-center justify-between p-4 rounded-xl ${isOut ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
+                  <div key={item.productId} className={`flex items-center justify-between p-4 rounded-xl ${isOut ? 'bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800' : 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800'}`}>
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-full ${isOut ? 'bg-error/20' : 'bg-warning/20'}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isOut ? 'text-red-600' : 'text-amber-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isOut ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
@@ -425,7 +425,7 @@ export default function StockPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`text-lg font-bold ${isOut ? 'text-red-600' : 'text-amber-600'}`}>
+                      <p className={`text-lg font-bold ${isOut ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
                         {item.currentStock} / {item.minStock}
                       </p>
                       <p className="text-xs text-base-content/60">Stock actuel / Seuil min</p>
