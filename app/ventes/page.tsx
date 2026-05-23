@@ -137,37 +137,126 @@ export default function FacturesPage() {
   const [formData, setFormData] = useState<InvoiceFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Stats state
-  type StatsData = {
-    total: { total: number; paid: number; remaining: number; count: number; paidCount: number };
-    byStatus: Array<{ status: string; count: number; total: number }>;
-    byCustomer: Array<{ name: string; count: number; total: number; paid: number }>;
-    byPeriod: Array<{ label: string; total: number; paid: number; count: number }> | null;
-    recentInvoices: Array<{
-      id: number; invoiceNumber: string; customerName: string; date: string;
-      totalAmount: number; amountPaid: number; remainingAmount: number;
-      paymentStatus: string; totalItems: number;
-    }>;
-    dailyAvg: number;
-  };
-
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [isStatsLoading, setIsStatsLoading] = useState(false);
-  const [statsPeriod, setStatsPeriod] = useState('month');
-  const [statsFrom, setStatsFrom] = useState('');
-  const [statsTo, setStatsTo] = useState('');
-  const [statsCustomer, setStatsCustomer] = useState('');
-  const [statsStatus, setStatsStatus] = useState('');
-
-  // Période de filtrage pour la liste des factures (façon dashboard)
+  // Période de filtrage (façon dashboard)
   const [period, setPeriod] = useState<Period>('total');
 
   const periodFilter = useMemo(() => getPeriodFilter(period), [period]);
 
-  // Filtrer les invoices par période AVANT le search filter
+  // Filtrer les invoices par période
   const periodFilteredInvoices = useMemo(() => {
     return invoices.filter((inv) => periodFilter(new Date(inv.date)));
   }, [invoices, periodFilter]);
+
+  // Stats calculées client-side (comme le dashboard)
+  const stats = useMemo(() => {
+    const filtered = periodFilteredInvoices;
+    const total = filtered.reduce((s, inv) => s + inv.totalAmount, 0);
+    const paid = filtered.reduce((s, inv) => s + inv.amountPaid, 0);
+    const remaining = filtered.reduce((s, inv) => s + inv.remainingAmount, 0);
+    const count = filtered.length;
+    const paidCount = filtered.filter(inv => inv.paymentStatus === 'Paye').length;
+
+    // Par statut
+    const statusMap = new Map<string, { count: number; total: number }>();
+    for (const inv of filtered) {
+      const s = statusMap.get(inv.paymentStatus) || { count: 0, total: 0 };
+      s.count++;
+      s.total += inv.totalAmount;
+      statusMap.set(inv.paymentStatus, s);
+    }
+    const byStatus = Array.from(statusMap.entries()).map(([status, data]) => ({
+      status, count: data.count, total: data.total,
+    }));
+
+    // Par client
+    const customerMap = new Map<string, { count: number; total: number; paid: number }>();
+    for (const inv of filtered) {
+      const c = customerMap.get(inv.customerName) || { count: 0, total: 0, paid: 0 };
+      c.count++;
+      c.total += inv.totalAmount;
+      c.paid += inv.amountPaid;
+      customerMap.set(inv.customerName, c);
+    }
+    const byCustomer = Array.from(customerMap.entries()).map(([name, data]) => ({
+      name, count: data.count, total: data.total, paid: data.paid,
+    })).sort((a, b) => b.total - a.total).slice(0, 10);
+
+    // Par période
+    let byPeriod: Array<{ label: string; total: number; paid: number; count: number }> | null = null;
+    if (period !== 'total') {
+      const periodMap = new Map<string, { total: number; paid: number; count: number }>();
+      for (const inv of filtered) {
+        let label: string;
+        const d = new Date(inv.date);
+        switch (period) {
+          case 'day':
+            label = inv.date;
+            break;
+          case 'week': {
+            const start = new Date(d);
+            start.setDate(d.getDate() - d.getDay());
+            label = `${start.getFullYear()}-W${String(Math.ceil((start.getTime() - new Date(start.getFullYear(), 0, 1).getTime()) / 604800000) + 1).padStart(2, '0')}`;
+            break;
+          }
+          case 'month':
+            label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            break;
+          case 'year':
+            label = `${d.getFullYear()}`;
+            break;
+          default:
+            label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+        const p = periodMap.get(label) || { total: 0, paid: 0, count: 0 };
+        p.total += inv.totalAmount;
+        p.paid += inv.amountPaid;
+        p.count++;
+        periodMap.set(label, p);
+      }
+      byPeriod = Array.from(periodMap.entries()).map(([label, data]) => ({
+        label, total: data.total, paid: data.paid, count: data.count,
+      })).sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    // Moyenne par jour (30 derniers jours)
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+    const dailyTotals = new Map<string, number>();
+    for (const inv of invoices) {
+      const d = new Date(inv.date);
+      if (d >= thirtyDaysAgo) {
+        dailyTotals.set(inv.date, (dailyTotals.get(inv.date) || 0) + inv.totalAmount);
+      }
+    }
+    const dailyAvg = dailyTotals.size > 0
+      ? Math.round(Array.from(dailyTotals.values()).reduce((s, v) => s + v, 0) / dailyTotals.size)
+      : 0;
+
+    // Dernières factures (triées par date)
+    const recentInvoices = [...filtered]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10)
+      .map(inv => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        customerName: inv.customerName,
+        date: inv.date,
+        totalAmount: inv.totalAmount,
+        amountPaid: inv.amountPaid,
+        remainingAmount: inv.remainingAmount,
+        paymentStatus: inv.paymentStatus,
+        totalItems: inv.items.reduce((s, i) => s + i.quantity, 0),
+      }));
+
+    return {
+      total: { total, paid, remaining, count, paidCount },
+      byStatus,
+      byCustomer,
+      byPeriod,
+      recentInvoices,
+      dailyAvg,
+    };
+  }, [periodFilteredInvoices, period, invoices]);
 
   // useSearchFilter reçoit les invoices déjà filtrées par période
   const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
@@ -201,30 +290,6 @@ export default function FacturesPage() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const fetchStats = useCallback(async () => {
-    setIsStatsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('period', statsPeriod);
-      if (statsCustomer) params.set('customerName', statsCustomer);
-      if (statsStatus) params.set('status', statsStatus);
-      if (statsFrom) params.set('from', statsFrom);
-      if (statsTo) params.set('to', statsTo);
-      const res = await fetch(`/api/ventes/stats?${params.toString()}`);
-      if (!res.ok) throw new Error('Erreur');
-      const data = await res.json();
-      setStats(data);
-    } catch {
-      // silently fail
-    } finally {
-      setIsStatsLoading(false);
-    }
-  }, [statsPeriod, statsCustomer, statsStatus, statsFrom, statsTo]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -655,77 +720,28 @@ export default function FacturesPage() {
             {/* Period + Filter Controls */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex rounded-xl border border-base-300 overflow-hidden bg-base-100 shadow-sm">
-                {(['total', 'month', 'week', 'day'] as const).map((p) => (
+                {(['total', 'year', 'month', 'week', 'day'] as const).map((p) => (
                   <button
                     key={p}
-                    onClick={() => setStatsPeriod(p)}
+                    onClick={() => { setPeriod(p); setCurrentPage(1); }}
                     className={`px-4 cursor-pointer py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
-                      statsPeriod === p
+                      period === p
                         ? 'bg-primary text-primary-content shadow-inner'
                         : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
                     }`}
                   >
-                    {p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
+                    {p === 'total' ? 'Total' : p === 'year' ? 'Année' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
                   </button>
                 ))}
               </div>
-
-              <div className="flex items-center gap-2">
-                <input type="date" value={statsFrom} onChange={e => setStatsFrom(e.target.value)} className="w-36 cursor-pointer" />
-                <span className="text-xs text-base-content/40">—</span>
-                <input type="date" value={statsTo} onChange={e => setStatsTo(e.target.value)} className="w-36 cursor-pointer" />
-                {(statsFrom || statsTo) && (
-                  <button onClick={() => { setStatsFrom(''); setStatsTo(''); }} className="btn btn-ghost btn-xs btn-square text-error">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-
-              <select
-                value={statsStatus}
-                onChange={(e) => setStatsStatus(e.target.value)}
-                className="select select-bordered select-sm text-xs min-w-35"
-              >
-                <option value="">Tous statuts</option>
-                <option value="Paye">Payée</option>
-                <option value="Partiel">Partiel</option>
-                <option value="En attente">En attente</option>
-              </select>
-
-              <input
-                type="text"
-                value={statsCustomer}
-                onChange={(e) => setStatsCustomer(e.target.value)}
-                className="input input-bordered input-sm text-xs w-40"
-                placeholder="Filtrer client..."
-              />
-
-              <button onClick={() => fetchStats()} disabled={isStatsLoading} className="btn btn-ghost btn-sm btn-square" title="Actualiser">
-                {isStatsLoading ? (
-                  <span className="loading loading-spinner loading-sm" />
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                )}
-              </button>
             </div>
 
             {/* Key Metrics */}
             <AnimatePresence mode="wait">
-              {isStatsLoading ? (
-                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="flex items-center justify-center py-8"
-                >
-                  <span className="loading loading-spinner loading-lg text-primary" />
-                </motion.div>
-              ) : stats ? (
-                <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}
-                  className="space-y-4"
-                >
+              <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
                   {/* KPI cards */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div className="stat bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden relative">
@@ -774,7 +790,7 @@ export default function FacturesPage() {
                     {/* Period chart */}
                     <div className="bg-base-100 rounded-xl border border-base-300 p-4">
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">
-                        {statsPeriod === 'total' ? 'Top clients' : 'Évolution du CA'}
+                        {period === 'total' ? 'Top clients' : 'Évolution du CA'}
                       </h4>
 
                       {stats.byPeriod && stats.byPeriod.length > 0 ? (
@@ -798,7 +814,7 @@ export default function FacturesPage() {
                             );
                           })}
                         </div>
-                      ) : statsPeriod === 'total' && stats.byCustomer && stats.byCustomer.length > 0 ? (
+                      ) : period === 'total' && stats.byCustomer && stats.byCustomer.length > 0 ? (
                         <div className="space-y-2 max-h-50 overflow-y-auto">
                           {stats.byCustomer.slice(0, 8).map((item) => {
                             const maxVal = Math.max(...stats.byCustomer.map(c => c.total));
@@ -931,7 +947,6 @@ export default function FacturesPage() {
                     </div>
                   )}
                 </motion.div>
-              ) : null}
             </AnimatePresence>
           </div>
         </div>
