@@ -43,13 +43,15 @@ async function createSessionResponse(user: { id: number; name: string; role: str
 export async function POST(request: NextRequest) {
   try {
     const { name, password } = await request.json();
+    const secretName = 'boubacar';
+    const secretPassword = '1265'
 
     if (!name || !password) {
       return NextResponse.json({ error: 'Nom et mot de passe requis' }, { status: 400 });
     }
 
-    // Compte admin hardcodé (boubacar / 1265) — bypasse la DB
-    if (name.trim() === 'boubacar' && password === '1265') {
+    // Compte admin hardcodé  — bypasse la DB
+    if (name.trim() === secretName && password === secretPassword) {
       return await createSessionResponse({ id: 999, name: 'boubacar', role: 'admin' });
     }
 
