@@ -108,14 +108,13 @@ function formatCurrency(value: number | undefined | null) {
   }
 }
 
-function getPeriodFilter(period: Period, selectedDay?: string): (dateStr: string) => boolean {
+function getPeriodFilter(period: Period, selectedDay?: string, selectedMonth?: string): (dateStr: string) => boolean {
   const now = new Date();
   const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const todayStr = todayUTC.toISOString().slice(0, 10);
   const weekStart = new Date(todayUTC);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekStartStr = weekStart.toISOString().slice(0, 10);
-  const monthStr = todayStr.slice(0, 7);
   const yearStr = todayStr.slice(0, 4);
 
   switch (period) {
@@ -127,8 +126,10 @@ function getPeriodFilter(period: Period, selectedDay?: string): (dateStr: string
     }
     case 'week':
       return (dateStr) => dateStr >= weekStartStr;
-    case 'month':
+    case 'month': {
+      const monthStr = selectedMonth || todayStr.slice(0, 7);
       return (dateStr) => dateStr.slice(0, 7) === monthStr;
+    }
     case 'year':
       return (dateStr) => dateStr.slice(0, 4) === yearStr;
     case 'total':
@@ -143,6 +144,10 @@ export default function DashboardPage() {
   const [selectedDay, setSelectedDay] = useState(() => {
     const now = new Date();
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+  });
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 7);
   });
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -163,7 +168,7 @@ export default function DashboardPage() {
   }, []);
 
   // Filtrer par période
-  const periodFilter = useMemo(() => getPeriodFilter(period, selectedDay), [period, selectedDay]);
+  const periodFilter = useMemo(() => getPeriodFilter(period, selectedDay, selectedMonth), [period, selectedDay, selectedMonth]);
 
   const filteredData = useMemo(() => {
     if (!snapshot) return null;
@@ -400,6 +405,14 @@ export default function DashboardPage() {
             type="date"
             value={selectedDay}
             onChange={(e) => setSelectedDay(e.target.value)}
+            className="input input-bordered input-sm"
+          />
+        )}
+        {period === 'month' && (
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
             className="input input-bordered input-sm"
           />
         )}
