@@ -24,12 +24,16 @@ export async function GET(
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
-    // Récupérer toutes les factures via la fonction centralisée (JOIN, profit, etc.)
-    const allSalesInvoices = await listSalesInvoices();
+    const { searchParams } = request.nextUrl;
+    const from = searchParams.get('from') || undefined;
+    const to = searchParams.get('to') || undefined;
+
+    // Récupérer les factures filtrées par date via la fonction centralisée
+    const allSalesInvoices = await listSalesInvoices(from, to);
     const invoices = allSalesInvoices.filter(inv => inv.customerId === customerId);
 
-    // Calculer les métriques de profit
-    const purchases = await listPurchaseInvoices();
+    // Calculer les métriques de profit (purchases aussi filtrées par date)
+    const purchases = await listPurchaseInvoices(from, to);
     const { salesWithProfit } = calculateSalesProfitMetrics(purchases, invoices);
 
     // Group by period

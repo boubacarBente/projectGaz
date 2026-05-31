@@ -24,8 +24,12 @@ export async function GET(
       return NextResponse.json({ error: 'Supplier not found' }, { status: 404 });
     }
 
-    // Récupérer toutes les factures d'achat de ce fournisseur
-    const allInvoices = await listPurchaseInvoices();
+    const { searchParams } = request.nextUrl;
+    const from = searchParams.get('from') || undefined;
+    const to = searchParams.get('to') || undefined;
+
+    // Récupérer les factures d'achat de ce fournisseur, filtrées par période
+    const allInvoices = await listPurchaseInvoices(from, to);
     const invoices = allInvoices.filter(inv => inv.supplierId === supplierId);
 
     const invoicesWithItems = invoices.map(inv => ({

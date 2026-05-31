@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ---------- types ----------
+type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
+
 type PurchaseItem = {
   productCode: string;
   productName: string;
@@ -25,62 +27,40 @@ type PurchaseInvoice = {
   items: PurchaseItem[];
 };
 
-type PeriodAgg = {
-  period: string;
-  count: number;
-  total: number;
-  totalItems: number;
-};
-
-type PeriodKey = 'all' | 'today' | 'byDay' | 'byWeek' | 'byMonth' | 'byYear';
-
 // ---------- helpers ----------
 const fCF = (v: number) => new Intl.NumberFormat('fr-FR').format(v);
 
-function PeriodTabs({ active, onChange }: { active: PeriodKey; onChange: (k: PeriodKey) => void }) {
-  const tabs: { key: PeriodKey; label: string }[] = [
-    { key: 'all', label: 'Global' },
-    { key: 'byYear', label: 'Année' },
-    { key: 'byMonth', label: 'Mois' },
-    { key: 'byWeek', label: 'Semaine' },
-    { key: 'byDay', label: 'Jour' },
-    { key: 'today', label: "Aujourd'hui" },
-  ];
-  return (
-    <div className="flex flex-wrap gap-1.5 bg-base-200/60 p-1 rounded-2xl w-fit" role="tablist">
-      {tabs.map(({ key, label }) => (
-        <button
-          key={key}
-          role="tab"
-          aria-selected={active === key}
-          onClick={() => onChange(key)}
-          className={`cursor-pointer px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
-            active === key
-              ? 'bg-primary text-white shadow-sm shadow-primary/20'
-              : 'text-base-content/50 hover:text-base-content/80'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'today', label: "Aujourd'hui" },
+  { key: 'day', label: 'Jour' },
+  { key: 'week', label: 'Semaine' },
+  { key: 'month', label: 'Mois' },
+  { key: 'year', label: 'Année' },
+  { key: 'total', label: 'Total' },
+];
 
-function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
-  return (
-    <div className={`rounded-2xl border p-5 ${
-      accent
-        ? 'border-primary/20 bg-primary/5'
-        : 'border-base-200/80 bg-base-100/60'
-    }`}>
-      <p className="text-sm font-medium text-base-content/50">{label}</p>
-      <p className={`mt-2 text-2xl font-semibold tracking-tight ${accent ? 'text-primary' : 'text-base-content'}`}>
-        {value}
-      </p>
-      {sub && <p className="mt-1 text-xs text-base-content/40">{sub}</p>}
-    </div>
-  );
+function getDateParams(period: Period, selectedDay: string): { from?: string; to?: string } {
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const todayStr = todayUTC.toISOString().slice(0, 10);
+
+  switch (period) {
+    case 'today':
+      return { from: todayStr, to: todayStr };
+    case 'day':
+      return { from: selectedDay, to: selectedDay };
+    case 'week': {
+      const weekStart = new Date(todayUTC);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      return { from: weekStart.toISOString().slice(0, 10), to: todayStr };
+    }
+    case 'month':
+      return { from: todayStr.slice(0, 7) + '-01', to: todayStr };
+    case 'year':
+      return { from: todayStr.slice(0, 4) + '-01-01', to: todayStr };
+    case 'total':
+      return {};
+  }
 }
 
 // ---------- Main Component ----------
@@ -90,15 +70,25 @@ export default function SupplierPaymentsPage() {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [periodView, setPeriodView] = useState<PeriodKey>('all');
+  const [period, setPeriod] = useState<Period>('total');
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'date' | 'totalAmount'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
+  const dateParams = useMemo(() => getDateParams(period, selectedDay), [period, selectedDay]);
+
   useEffect(() => {
     (async () => {
+      setLoading(true);
       try {
-        const res = await fetch(`/api/fournisseurs/${supplierId}/paiements`);
+        const qs = new URLSearchParams();
+        if (dateParams.from) qs.set('from', dateParams.from);
+        if (dateParams.to) qs.set('to', dateParams.to);
+        const res = await fetch(`/api/fournisseurs/${supplierId}/paiements?${qs.toString()}`);
         const d = await res.json();
         setData(d);
       } catch (e) {
@@ -107,43 +97,14 @@ export default function SupplierPaymentsPage() {
         setLoading(false);
       }
     })();
-  }, [supplierId]);
+  }, [supplierId, dateParams]);
 
   const { supplier, invoices, aggregates } = data || {};
 
-  // ---------- helpers for period filtering ----------
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const currentYear = todayStr.slice(0, 4);
-  const currentMonth = todayStr.slice(0, 7);
-  const getWeekStart = (dateStr: string) => {
-    const d = new Date(dateStr);
-    d.setDate(d.getDate() - d.getDay());
-    return d.toISOString().slice(0, 10);
-  };
-  const currentWeekStart = getWeekStart(todayStr);
-
-  // Filter invoices by the selected period tab
-  const periodFilteredInvoices = useMemo(() => {
-    if (!invoices) return [];
-    if (periodView === 'all') return [...invoices];
-
-    if (periodView === 'today') {
-      return invoices.filter((inv: PurchaseInvoice) => inv.date === todayStr);
-    }
-
-    // Filter to current period scope
-    return invoices.filter((inv: PurchaseInvoice) => {
-      if (periodView === 'byYear') return inv.date.slice(0, 4) === currentYear;
-      if (periodView === 'byMonth') return inv.date.slice(0, 7) === currentMonth;
-      if (periodView === 'byWeek') return getWeekStart(inv.date) === currentWeekStart;
-      if (periodView === 'byDay') return inv.date === todayStr;
-      return true;
-    });
-  }, [invoices, periodView, todayStr, currentYear, currentMonth, currentWeekStart]);
-
-  // Filter + sort invoices (search within period-filtered list)
+  // Filter + sort invoices (search within API-filtered list)
   const filteredInvoices = useMemo(() => {
-    let list = periodFilteredInvoices;
+    if (!invoices) return [];
+    let list = [...invoices];
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -159,40 +120,22 @@ export default function SupplierPaymentsPage() {
       return sortDir === 'desc' ? -cmp : cmp;
     });
     return list;
-  }, [periodFilteredInvoices, searchQuery, sortField, sortDir]);
+  }, [invoices, searchQuery, sortField, sortDir]);
 
   const toggleSort = (field: 'date' | 'totalAmount') => {
     if (sortField === field) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
     else { setSortField(field); setSortDir('desc'); }
   };
 
-  const periodData: PeriodAgg[] = periodView === 'all' ? [] : aggregates?.[periodView] || [];
-
-  // Compute card totals based on selected period and/or search filter
-  const cardTotals = useMemo(() => {
-    if (searchQuery) {
-      return {
-        totalInvoices: filteredInvoices.length,
-        totalAmount: filteredInvoices.reduce((s: number, i: PurchaseInvoice) => s + i.totalAmount, 0),
-        totalItems: filteredInvoices.reduce((s: number, i: PurchaseInvoice) => s + i.items.reduce((si, item) => si + item.quantity, 0), 0),
-      };
-    }
-    if (periodView === 'all') {
-      return aggregates?.all || null;
-    }
-    return {
-      totalInvoices: periodData.reduce((s, p) => s + p.count, 0),
-      totalAmount: periodData.reduce((s, p) => s + p.total, 0),
-      totalItems: periodData.reduce((s, p) => s + p.totalItems, 0),
-    };
-  }, [periodView, periodData, aggregates, searchQuery, filteredInvoices]);
+  const cardTotals = aggregates?.all || null;
+  const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="h-32 rounded-3xl bg-base-200/50 animate-pulse" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl bg-base-200/50 animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-28 rounded-2xl bg-base-200/50 animate-pulse" />)}
         </div>
         <div className="h-96 rounded-3xl bg-base-200/50 animate-pulse" />
       </div>
@@ -212,7 +155,7 @@ export default function SupplierPaymentsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* ---------- Header ---------- */}
       <section className="rounded-3xl border border-base-200/80 bg-base-100/80 p-6 md:p-8 shadow-lg shadow-black/5 backdrop-blur">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -227,8 +170,8 @@ export default function SupplierPaymentsPage() {
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">{supplier.name}</h1>
                 <p className="text-sm text-base-content/50">
-                  {supplier.phone || '—'}
-                  {supplier.address && <span> · {supplier.address}</span>}
+                  {supplier.phone || '\u2014'}
+                  {supplier.address && <span> \u00B7 {supplier.address}</span>}
                 </p>
               </div>
             </div>
@@ -242,73 +185,52 @@ export default function SupplierPaymentsPage() {
         </div>
       </section>
 
+      {/* ---------- Period Selector ---------- */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-base-content/60 mr-1">Période :</span>
+        <div className="join">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`join-item btn btn-sm ${
+                period === p.key ? 'btn-primary' : 'btn-ghost'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {period === 'day' && (
+          <input
+            type="date"
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value)}
+            className="input input-bordered input-sm"
+          />
+        )}
+        <span className="text-xs text-base-content/40 ml-2">({periodLabel})</span>
+      </div>
+
       {/* ---------- Stats ---------- */}
       {cardTotals && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard
-            label="Factures"
-            value={fCF(cardTotals.totalInvoices)}
-            sub={periodView === 'all' ? 'Nombre total' : 'Période sélectionnée'}
-          />
-          <StatCard
-            label="Montant total"
-            value={`${fCF(cardTotals.totalAmount)} GNF`}
-            sub={periodView === 'all' ? 'Somme des achats' : 'Période sélectionnée'}
-            accent
-          />
-          <StatCard
-            label="Articles"
-            value={cardTotals.totalItems > 0 ? fCF(cardTotals.totalItems) : '—'}
-            sub={periodView === 'all' ? 'Quantité totale' : 'Quantité sur la période'}
-          />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="rounded-2xl border border-base-200/80 bg-base-100/60 p-5">
+            <p className="text-sm font-medium text-base-content/50">Factures</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-base-content">{fCF(cardTotals.totalInvoices)}</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+            <p className="text-sm font-medium text-base-content/50">Montant total</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-primary">{fCF(cardTotals.totalAmount)} GNF</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-base-200/80 bg-base-100/60 p-5">
+            <p className="text-sm font-medium text-base-content/50">Articles</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-base-content">{cardTotals.totalItems > 0 ? fCF(cardTotals.totalItems) : '\u2014'}</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
         </div>
-      )}
-
-      {/* ---------- Period Tabs ---------- */}
-      <PeriodTabs active={periodView} onChange={setPeriodView} />
-
-      {/* ---------- Period breakdown ---------- */}
-      {periodView !== 'all' && periodView !== 'today' && periodData.length > 0 && (
-        <section className="rounded-3xl border border-base-200/80 bg-base-100/80 p-6 shadow-lg shadow-black/5 backdrop-blur">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold">
-              {periodView === 'byDay' && 'Par jour'}
-              {periodView === 'byWeek' && 'Par semaine'}
-              {periodView === 'byMonth' && 'Par mois'}
-              {periodView === 'byYear' && 'Par année'}
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="table text-sm">
-              <thead>
-                <tr>
-                  <th>Période</th>
-                  <th className="text-right">Factures</th>
-                  <th className="text-right">Articles</th>
-                  <th className="text-right">Montant</th>
-                </tr>
-              </thead>
-              <tbody>
-                {periodData.map((p: PeriodAgg) => {
-                  const label =
-                    periodView === 'byMonth'
-                      ? new Date(p.period + '-02').toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })
-                      : periodView === 'byYear'
-                        ? p.period
-                        : new Date(p.period + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-                  return (
-                    <tr key={p.period} className="hover:bg-base-200/40 transition-colors">
-                      <td className="font-medium">{label}</td>
-                      <td className="text-right text-base-content/70">{p.count}</td>
-                      <td className="text-right text-base-content/70">{p.totalItems}</td>
-                      <td className="text-right font-medium">{fCF(p.total)} GNF</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
       )}
 
       {/* ---------- Search + Invoices table ---------- */}
@@ -319,7 +241,7 @@ export default function SupplierPaymentsPage() {
             <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             <input
               type="text"
-              placeholder="Rechercher une facture…"
+              placeholder="Rechercher une facture..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="input input-bordered input-sm w-full pl-9 text-sm"
@@ -380,7 +302,7 @@ export default function SupplierPaymentsPage() {
                       <td className="text-base-content/70">
                         <span className="inline-flex items-center gap-1.5">
                           {inv.items.length} art.
-                          <span className="text-xs text-base-content/30">·</span>
+                          <span className="text-xs text-base-content/30">&middot;</span>
                           <span className="text-xs text-base-content/40">{inv.items.reduce((s, i) => s + i.quantity, 0)} u.</span>
                         </span>
                       </td>

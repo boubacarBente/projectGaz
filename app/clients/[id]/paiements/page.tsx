@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ---------- types ----------
+type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
+
 type Invoice = {
   id: number;
   invoiceNumber: string;
@@ -28,8 +30,6 @@ type PeriodAgg = {
   profit: number;
 };
 
-type PeriodKey = 'all' | 'today' | 'byDay' | 'byWeek' | 'byMonth' | 'byYear';
-
 // ---------- helpers ----------
 const fCF = (v: number) => new Intl.NumberFormat('fr-FR').format(v);
 
@@ -39,50 +39,37 @@ const statusCfg: Record<string, { label: string; cls: string }> = {
   'En attente': { label: 'En attente', cls: 'badge-soft badge-error' },
 };
 
-function PeriodTabs({ active, onChange }: { active: PeriodKey; onChange: (k: PeriodKey) => void }) {
-  const tabs: { key: PeriodKey; label: string }[] = [
-    { key: 'all', label: 'Global' },
-    { key: 'byYear', label: 'Année' },
-    { key: 'byMonth', label: 'Mois' },
-    { key: 'byWeek', label: 'Semaine' },
-    { key: 'byDay', label: 'Jour' },
-    { key: 'today', label: "Aujourd'hui" },
-  ];
-  return (
-    <div className="flex flex-wrap gap-1.5 bg-base-200/60 p-1 rounded-2xl w-fit" role="tablist">
-      {tabs.map(({ key, label }) => (
-        <button
-          key={key}
-          role="tab"
-          aria-selected={active === key}
-          onClick={() => onChange(key)}
-          className={`cursor-pointer px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
-            active === key
-              ? 'bg-primary text-white shadow-sm shadow-primary/20'
-              : 'text-base-content/50 hover:text-base-content/80'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'today', label: "Aujourd'hui" },
+  { key: 'day', label: 'Jour' },
+  { key: 'week', label: 'Semaine' },
+  { key: 'month', label: 'Mois' },
+  { key: 'year', label: 'Année' },
+  { key: 'total', label: 'Total' },
+];
 
-function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
-  return (
-    <div className={`rounded-2xl border p-5 ${
-      accent
-        ? 'border-primary/20 bg-primary/5'
-        : 'border-base-200/80 bg-base-100/60'
-    }`}>
-      <p className="text-sm font-medium text-base-content/50">{label}</p>
-      <p className={`mt-2 text-2xl font-semibold tracking-tight ${accent ? 'text-primary' : 'text-base-content'}`}>
-        {value}
-      </p>
-      {sub && <p className="mt-1 text-xs text-base-content/40">{sub}</p>}
-    </div>
-  );
+function getDateParams(period: Period, selectedDay: string): { from?: string; to?: string } {
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const todayStr = todayUTC.toISOString().slice(0, 10);
+
+  switch (period) {
+    case 'today':
+      return { from: todayStr, to: todayStr };
+    case 'day':
+      return { from: selectedDay, to: selectedDay };
+    case 'week': {
+      const weekStart = new Date(todayUTC);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      return { from: weekStart.toISOString().slice(0, 10), to: todayStr };
+    }
+    case 'month':
+      return { from: todayStr.slice(0, 7) + '-01', to: todayStr };
+    case 'year':
+      return { from: todayStr.slice(0, 4) + '-01-01', to: todayStr };
+    case 'total':
+      return {};
+  }
 }
 
 // ---------- Status Badge ----------
@@ -98,7 +85,7 @@ function PaymentIcon({ method }: { method: string }) {
     <span className={`inline-flex items-center justify-center w-9 h-9 rounded-xl text-sm font-bold ${
       isCash ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
     }`}>
-      {isCash ? '💵' : '💳'}
+      {isCash ? '\u{1F4B5}' : '\u{1F4B3}'}
     </span>
   );
 }
@@ -110,15 +97,26 @@ export default function CustomerPaymentsPage() {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [periodView, setPeriodView] = useState<PeriodKey>('all');
+  const [period, setPeriod] = useState<Period>('total');
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'date' | 'totalAmount'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
+  // Build from/to from period and pass to API
+  const dateParams = useMemo(() => getDateParams(period, selectedDay), [period, selectedDay]);
+
   useEffect(() => {
     (async () => {
+      setLoading(true);
       try {
-        const res = await fetch(`/api/clients/${customerId}/paiements`);
+        const qs = new URLSearchParams();
+        if (dateParams.from) qs.set('from', dateParams.from);
+        if (dateParams.to) qs.set('to', dateParams.to);
+        const res = await fetch(`/api/clients/${customerId}/paiements?${qs.toString()}`);
         const d = await res.json();
         setData(d);
       } catch (e) {
@@ -127,7 +125,7 @@ export default function CustomerPaymentsPage() {
         setLoading(false);
       }
     })();
-  }, [customerId]);
+  }, [customerId, dateParams]);
 
   const { customer, invoices, aggregates } = data || {};
 
@@ -159,32 +157,17 @@ export default function CustomerPaymentsPage() {
     else { setSortField(field); setSortDir('desc'); }
   };
 
-  const periodData: PeriodAgg[] = periodView === 'all' ? [] : aggregates?.[periodView] || [];
+  // Compute card totals from the API aggregates
+  const cardTotals = aggregates?.all || null;
 
-  // Compute card totals based on selected period (MUST be before early returns, hooks rule)
-  const cardTotals = useMemo(() => {
-    if (periodView === 'all' || periodData.length === 0) {
-      return aggregates?.all || null;
-    }
-    const totalAmount = periodData.reduce((s, p) => s + p.total, 0);
-    const totalPaid = periodData.reduce((s, p) => s + p.paid, 0);
-    return {
-      totalInvoices: periodData.reduce((s, p) => s + p.count, 0),
-      totalAmount,
-      totalPaid,
-      totalRemaining: totalAmount - totalPaid,
-      totalProfit: periodData.reduce((s, p) => s + p.profit, 0),
-      totalItems: 0, // items not available in period aggregates
-    };
-  }, [periodView, periodData, aggregates]);
+  const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
 
   if (loading) {
     return (
       <div className="space-y-6">
-        {/* Skeleton */}
         <div className="h-32 rounded-3xl bg-base-200/50 animate-pulse" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl bg-base-200/50 animate-pulse" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-28 rounded-2xl bg-base-200/50 animate-pulse" />)}
         </div>
         <div className="h-96 rounded-3xl bg-base-200/50 animate-pulse" />
       </div>
@@ -204,7 +187,7 @@ export default function CustomerPaymentsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* ---------- Header ---------- */}
       <section className="rounded-3xl border border-base-200/80 bg-base-100/80 p-6 md:p-8 shadow-lg shadow-black/5 backdrop-blur">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -219,8 +202,8 @@ export default function CustomerPaymentsPage() {
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">{customer.name}</h1>
                 <p className="text-sm text-base-content/50">
-                  {customer.phone || '—'} 
-                  {customer.city && <span> · {customer.city}</span>}
+                  {customer.phone || '\u2014'}
+                  {customer.city && <span> \u00B7 {customer.city}</span>}
                 </p>
               </div>
             </div>
@@ -237,68 +220,70 @@ export default function CustomerPaymentsPage() {
         </div>
       </section>
 
+      {/* ---------- Period Selector ---------- */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-base-content/60 mr-1">Période :</span>
+        <div className="join">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`join-item btn btn-sm ${
+                period === p.key ? 'btn-primary' : 'btn-ghost'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {period === 'day' && (
+          <input
+            type="date"
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value)}
+            className="input input-bordered input-sm"
+          />
+        )}
+        <span className="text-xs text-base-content/40 ml-2">({periodLabel})</span>
+      </div>
+
       {/* ---------- Global Stats ---------- */}
       {cardTotals && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Factures" value={fCF(cardTotals.totalInvoices)} sub={periodView === 'all' ? 'Nombre total' : 'Période sélectionnée'} />
-          <StatCard label="Montant total" value={`${fCF(cardTotals.totalAmount)} F`} sub={periodView === 'all' ? 'Toutes factures' : 'Période sélectionnée'} accent />
-          <StatCard label="Total payé" value={`${fCF(cardTotals.totalPaid)} F`} sub={periodView === 'all' ? 'Dont acomptes' : 'Période sélectionnée'} />
-          <StatCard label="Restant dû" value={`${fCF(cardTotals.totalRemaining)} F`} sub={periodView === 'all' ? 'Impayés' : 'Période sélectionnée'} />
-          <StatCard label="Bénéfice brut" value={`${fCF(cardTotals.totalProfit)} F`} sub={periodView === 'all' ? 'Sur les ventes' : 'Période sélectionnée'} accent />
-          <StatCard label="Articles vendus" value={cardTotals.totalItems > 0 ? fCF(cardTotals.totalItems) : '—'} sub={periodView === 'all' ? 'Quantité totale' : 'Non disponible par période'} />
+          <div className="rounded-2xl border border-base-200/80 bg-base-100/60 p-5">
+            <p className="text-sm font-medium text-base-content/50">Factures</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-base-content">{fCF(cardTotals.totalInvoices)}</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+            <p className="text-sm font-medium text-base-content/50">Montant total</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-primary">{fCF(cardTotals.totalAmount)} GNF</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-base-200/80 bg-base-100/60 p-5">
+            <p className="text-sm font-medium text-base-content/50">Total payé</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-base-content">{fCF(cardTotals.totalPaid)} GNF</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-base-200/80 bg-base-100/60 p-5">
+            <p className="text-sm font-medium text-base-content/50">Restant du</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-base-content">{fCF(cardTotals.totalRemaining)} GNF</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-success/20 bg-success/5 p-5">
+            <p className="text-sm font-medium text-base-content/50">Bénéfice brut</p>
+            <p className={`mt-2 text-2xl font-semibold tracking-tight ${cardTotals.totalProfit >= 0 ? 'text-success' : 'text-error'}`}>{fCF(cardTotals.totalProfit)} GNF</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-base-200/80 bg-base-100/60 p-5">
+            <p className="text-sm font-medium text-base-content/50">Articles vendus</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-base-content">{cardTotals.totalItems > 0 ? fCF(cardTotals.totalItems) : '\u2014'}</p>
+            <p className="mt-1 text-xs text-base-content/40">{periodLabel}</p>
+          </div>
         </div>
       )}
 
-      {/* ---------- Period Tabs ---------- */}
-      <PeriodTabs active={periodView} onChange={setPeriodView} />
-
-      {/* ---------- Period breakdown ---------- */}
-      {periodView !== 'all' && periodView !== 'today' && periodData.length > 0 && (
-        <section className="rounded-3xl border border-base-200/80 bg-base-100/80 p-6 shadow-lg shadow-black/5 backdrop-blur">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold">
-              {periodView === 'byDay' && 'Par jour'}
-              {periodView === 'byWeek' && 'Par semaine'}
-              {periodView === 'byMonth' && 'Par mois'}
-              {periodView === 'byYear' && 'Par année'}
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="table text-sm">
-              <thead>
-                <tr>
-                  <th>Période</th>
-                  <th className="text-right">Factures</th>
-                  <th className="text-right">Montant</th>
-                  <th className="text-right">Payé</th>
-                  <th className="text-right">Bénéfice</th>
-                </tr>
-              </thead>
-              <tbody>
-                {periodData.map((p: PeriodAgg) => {
-                  const label =
-                    periodView === 'byMonth'
-                      ? new Date(p.period + '-02').toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })
-                      : periodView === 'byYear'
-                        ? p.period
-                        : new Date(p.period + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-                  return (
-                    <tr key={p.period} className="hover:bg-base-200/40 transition-colors">
-                      <td className="font-medium">{label}</td>
-                      <td className="text-right text-base-content/70">{p.count}</td>
-                      <td className="text-right font-medium">{fCF(p.total)} F</td>
-                      <td className="text-right text-base-content/70">{fCF(p.paid)} F</td>
-                      <td className="text-right text-emerald-600 dark:text-emerald-400 font-medium">{fCF(p.profit)} F</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {/* ---------- Period tabs + Search + Invoices table ---------- */}
+      {/* ---------- Search + Invoices table ---------- */}
       <section className="rounded-3xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur overflow-hidden">
         {/* Toolbar */}
         <div className="p-5 border-b border-base-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
@@ -306,7 +291,7 @@ export default function CustomerPaymentsPage() {
             <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             <input
               type="text"
-              placeholder="Rechercher une facture…"
+              placeholder="Rechercher une facture..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="input input-bordered input-sm w-full pl-9 text-sm"
@@ -365,7 +350,7 @@ export default function CustomerPaymentsPage() {
                       <td className="text-base-content/70">
                         <span className="inline-flex items-center gap-1.5">
                           {inv.items.length} art.
-                          <span className="text-xs text-base-content/30">·</span>
+                          <span className="text-xs text-base-content/30">&middot;</span>
                           <span className="text-xs text-base-content/40">{inv.items.reduce((s: number, i: any) => s + i.quantity, 0)} u.</span>
                         </span>
                       </td>
