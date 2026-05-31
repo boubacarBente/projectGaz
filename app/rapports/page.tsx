@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import {
   Chart as ChartJS,
@@ -29,6 +29,8 @@ ChartJS.register(
   Legend,
   Filler
 );
+
+type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
 
 type RapportData = {
   summary: {
@@ -60,6 +62,39 @@ type RapportData = {
   }[];
 };
 
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'today', label: 'Aujourd\u2019hui' },
+  { key: 'day', label: 'Jour' },
+  { key: 'week', label: 'Semaine' },
+  { key: 'month', label: 'Mois' },
+  { key: 'year', label: 'Ann\u00e9e' },
+  { key: 'total', label: 'Total' },
+];
+
+function getDateParams(period: Period, selectedDay: string): { from?: string; to?: string } {
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const todayStr = todayUTC.toISOString().slice(0, 10);
+
+  switch (period) {
+    case 'today':
+      return { from: todayStr, to: todayStr };
+    case 'day':
+      return { from: selectedDay, to: selectedDay };
+    case 'week': {
+      const weekStart = new Date(todayUTC);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      return { from: weekStart.toISOString().slice(0, 10), to: todayStr };
+    }
+    case 'month':
+      return { from: todayStr.slice(0, 7) + '-01', to: todayStr };
+    case 'year':
+      return { from: todayStr.slice(0, 4) + '-01-01', to: todayStr };
+    case 'total':
+      return {};
+  }
+}
+
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -88,17 +123,27 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
 }
 
-const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+const months = ['Jan', 'F\u00e9v', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Ao\u00fbt', 'Sep', 'Oct', 'Nov', 'D\u00e9c'];
 
 export default function RapportsPage() {
   const [data, setData] = useState<RapportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>('total');
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+  });
 
+  // Re-fetch when period or selectedDay changes
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const res = await fetch('/api/rapports');
+        const params = getDateParams(period, selectedDay);
+        const qs = new URLSearchParams();
+        if (params.from) qs.set('from', params.from);
+        if (params.to) qs.set('to', params.to);
+        const res = await fetch(`/api/rapports?${qs.toString()}`);
         const json = await res.json();
         setData(json);
       } catch (error) {
@@ -108,7 +153,7 @@ export default function RapportsPage() {
       }
     }
     fetchData();
-  }, []);
+  }, [period, selectedDay]);
 
   if (isLoading || !data) {
     return (
@@ -119,6 +164,7 @@ export default function RapportsPage() {
   }
 
   const { summary, monthlyData, soldByProduct, topCustomers } = data;
+  const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
 
   // Chart data
   const lineChartData = {
@@ -153,7 +199,7 @@ export default function RapportsPage() {
     }),
     datasets: [
       {
-        label: 'Bénéfice',
+        label: 'B\u00e9n\u00e9fice',
         data: monthlyData.map(m => m.profit),
         backgroundColor: monthlyData.map(m => m.profit >= 0 ? '#22c55e' : '#ef4444'),
         borderRadius: 8,
@@ -180,69 +226,95 @@ export default function RapportsPage() {
         description="Analyse détaillée des performances commerciales et financières."
       />
 
+      {/* Période Selector */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-base-content/60 mr-1">P\u00e9riode :</span>
+        <div className="join">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`join-item btn btn-sm ${
+                period === p.key
+                  ? 'btn-primary'
+                  : 'btn-ghost'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {period === 'day' && (
+          <input
+            type="date"
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value)}
+            className="input input-bordered input-sm"
+          />
+        )}
+        <span className="text-xs text-base-content/40 ml-2">
+          ({periodLabel})
+        </span>
+      </div>
+
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Total ventes</div>
-            <div className="stat-value text-info">{formatCurrency(summary.totalSales)}</div>
-            <div className="stat-desc">GNF</div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-info/20 bg-info/10 p-5 shadow-lg shadow-black/5 backdrop-blur">
+          <div className="flex items-start justify-between mb-3">
+            <span className="text-2xl">{'\uD83D\uDCB0'}</span>
           </div>
+          <p className="text-sm text-base-content/60 mb-1">Ventes</p>
+          <p className="text-xl font-bold text-info">{formatCurrency(summary.totalSales)} GNF</p>
+          <p className="text-xs text-base-content/40 mt-1">{summary.totalBottlesSold} bouteilles</p>
         </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Total achats</div>
-            <div className="stat-value text-warning">{formatCurrency(summary.totalPurchases)}</div>
-            <div className="stat-desc">GNF</div>
+
+        <div className="rounded-2xl border border-warning/20 bg-warning/10 p-5 shadow-lg shadow-black/5 backdrop-blur">
+          <div className="flex items-start justify-between mb-3">
+            <span className="text-2xl">{'\uD83D\uDCE6'}</span>
           </div>
+          <p className="text-sm text-base-content/60 mb-1">Achats usine</p>
+          <p className="text-xl font-bold text-warning">{formatCurrency(summary.totalPurchases)} GNF</p>
+          <p className="text-xs text-base-content/40 mt-1">{summary.totalInvoices} facture(s)</p>
         </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Bénéfice brut</div>
-            <div className={`stat-value ${summary.grossProfit >= 0 ? 'text-success' : 'text-error'}`}>
-              {formatCurrency(summary.grossProfit)}
-            </div>
-            <div className="stat-desc">GNF</div>
+
+        <div className="rounded-2xl border border-success/20 bg-success/10 p-5 shadow-lg shadow-black/5 backdrop-blur">
+          <div className="flex items-start justify-between mb-3">
+            <span className="text-2xl">{'\uD83D\uDCC8'}</span>
           </div>
+          <p className="text-sm text-base-content/60 mb-1">B\u00e9n\u00e9fice brut</p>
+          <p className={`text-xl font-bold ${summary.grossProfit >= 0 ? 'text-success' : 'text-error'}`}>
+            {formatCurrency(summary.grossProfit)} GNF
+          </p>
+          <p className="text-xs text-base-content/40 mt-1">marge</p>
         </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Bouteilles vendues</div>
-            <div className="stat-value">{summary.totalBottlesSold}</div>
-            <div className="stat-desc">unités</div>
+
+        <div className="rounded-2xl border border-accent/20 bg-accent/10 p-5 shadow-lg shadow-black/5 backdrop-blur">
+          <div className="flex items-start justify-between mb-3">
+            <span className="text-2xl">{'\uD83E\uDDFE'}</span>
           </div>
+          <p className="text-sm text-base-content/60 mb-1">Bouteilles vendues</p>
+          <p className="text-xl font-bold text-accent">{summary.totalBottlesSold}</p>
+          <p className="text-xs text-base-content/40 mt-1">unit\u00e9s</p>
         </div>
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Panier moyen</div>
-            <div className="stat-value text-lg">{formatCurrency(summary.averageBasket)}</div>
-            <div className="stat-desc">GNF/facture</div>
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
+          <p className="text-xs text-base-content/60">Panier moyen</p>
+          <p className="text-lg font-bold">{formatCurrency(summary.averageBasket)} GNF</p>
         </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Stock actuel</div>
-            <div className="stat-value text-lg">{summary.totalBottlesInStock}</div>
-            <div className="stat-desc">bouteilles</div>
-          </div>
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
+          <p className="text-xs text-base-content/60">Stock actuel</p>
+          <p className="text-lg font-bold">{summary.totalBottlesInStock} bouteilles</p>
         </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Total factures</div>
-            <div className="stat-value text-lg">{summary.totalInvoices}</div>
-            <div className="stat-desc">achats + ventes</div>
-          </div>
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
+          <p className="text-xs text-base-content/60">Clients actifs</p>
+          <p className="text-lg font-bold">{summary.totalCustomers}</p>
         </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-title">Clients</div>
-            <div className="stat-value text-lg">{summary.totalCustomers}</div>
-            <div className="stat-desc">actifs</div>
-          </div>
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
+          <p className="text-xs text-base-content/60">P\u00e9riode</p>
+          <p className="text-lg font-bold">{periodLabel}</p>
         </div>
       </div>
 
@@ -250,8 +322,8 @@ export default function RapportsPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg">Ventes vs Achats (12 mois)</h3>
-            <p className="text-sm text-base-content/60">Évolution mensuelle</p>
+            <h3 className="font-semibold text-lg">Ventes vs Achats</h3>
+            <p className="text-sm text-base-content/60">12 derniers mois</p>
           </div>
           <div className="h-64">
             <Line data={lineChartData} options={chartOptions} />
@@ -260,7 +332,7 @@ export default function RapportsPage() {
 
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg">Bénéfice mensuel</h3>
+            <h3 className="font-semibold text-lg">B\u00e9n\u00e9fice mensuel</h3>
             <p className="text-sm text-base-content/60">Par mois</p>
           </div>
           <div className="h-64">
@@ -274,15 +346,13 @@ export default function RapportsPage() {
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Top produits vendus</h3>
-            <p className="text-sm text-base-content/60">Par quantité</p>
+            <p className="text-sm text-base-content/60">Par quantit\u00e9</p>
           </div>
-          <div className="h-64">
+          <div className="h-64 flex items-center justify-center">
             {soldByProduct.length > 0 ? (
               <Doughnut data={productChartData} options={doughnutOptions} />
             ) : (
-              <div className="flex items-center justify-center h-full text-base-content/50">
-                Aucune donnée
-              </div>
+              <p className="text-base-content/50">Aucune donn\u00e9e</p>
             )}
           </div>
         </div>
@@ -324,13 +394,15 @@ export default function RapportsPage() {
 
       {/* Products Table */}
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
-        <div className="mb-4">
-          <h3 className="font-semibold text-lg">Détail des ventes par produit</h3>
-          <p className="text-sm text-base-content/60">{soldByProduct.length} produit(s) vendu(s)</p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">D\u00e9tail des ventes par produit</h3>
+            <p className="text-sm text-base-content/60">{periodLabel} &middot; {soldByProduct.length} produit(s)</p>
+          </div>
         </div>
         {soldByProduct.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
-            <p className="text-base-content/70">Aucune vente enregistrée.</p>
+          <div className="rounded-xl border border-dashed border-base-300 bg-base-200 px-4 py-8 text-center text-sm text-base-content/50">
+            Aucune vente pour cette p\u00e9riode.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -338,7 +410,7 @@ export default function RapportsPage() {
               <thead>
                 <tr>
                   <th>Produit</th>
-                  <th className="text-right">Quantité</th>
+                  <th className="text-right">Quantit\u00e9</th>
                   <th className="text-right">Chiffre d'affaires</th>
                   <th className="text-right">Part</th>
                 </tr>
@@ -359,7 +431,7 @@ export default function RapportsPage() {
                       <td className="text-right">
                         <div className="flex items-center gap-2 justify-end">
                           <div className="w-16 h-2 bg-base-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-info rounded-full" style={{ width: `${percentage}%` }}></div>
+                            <div className="h-full bg-info rounded-full" style={{ width: `${Math.min(percentage, 100)}%` }}></div>
                           </div>
                           <span className="text-sm">{percentage.toFixed(1)}%</span>
                         </div>
