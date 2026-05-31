@@ -71,7 +71,7 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: 'total', label: 'Total' },
 ];
 
-function getDateParams(period: Period, selectedDay: string): { from?: string; to?: string } {
+function getDateParams(period: Period, selectedDay: string, selectedMonth?: string): { from?: string; to?: string } {
   const now = new Date();
   const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const todayStr = todayUTC.toISOString().slice(0, 10);
@@ -86,8 +86,14 @@ function getDateParams(period: Period, selectedDay: string): { from?: string; to
       weekStart.setDate(weekStart.getDate() - weekStart.getDay());
       return { from: weekStart.toISOString().slice(0, 10), to: todayStr };
     }
-    case 'month':
-      return { from: todayStr.slice(0, 7) + '-01', to: todayStr };
+    case 'month': {
+      const monthStr = selectedMonth || todayStr.slice(0, 7);
+      const year = parseInt(monthStr.slice(0, 4), 10);
+      const mon = parseInt(monthStr.slice(5), 10);
+      const lastDay = new Date(year, mon, 0).getDate();
+      const monthEnd = monthStr + '-' + String(lastDay).padStart(2, '0');
+      return { from: monthStr + '-01', to: monthEnd };
+    }
     case 'year':
       return { from: todayStr.slice(0, 4) + '-01-01', to: todayStr };
     case 'total':
@@ -133,13 +139,17 @@ export default function RapportsPage() {
     const now = new Date();
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
   });
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 7);
+  });
 
-  // Re-fetch when period or selectedDay changes
+  // Re-fetch when period, selectedDay or selectedMonth changes
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const params = getDateParams(period, selectedDay);
+        const params = getDateParams(period, selectedDay, selectedMonth);
         const qs = new URLSearchParams();
         if (params.from) qs.set('from', params.from);
         if (params.to) qs.set('to', params.to);
@@ -249,6 +259,14 @@ export default function RapportsPage() {
             type="date"
             value={selectedDay}
             onChange={(e) => setSelectedDay(e.target.value)}
+            className="input input-bordered input-sm"
+          />
+        )}
+        {period === 'month' && (
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
             className="input input-bordered input-sm"
           />
         )}

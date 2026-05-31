@@ -112,6 +112,10 @@ export default function FournisseursPage() {
   const [statsFrom, setStatsFrom] = useState('');
   const [statsTo, setStatsTo] = useState('');
   const [statsSupplierId, setStatsSupplierId] = useState('');
+  const [statsMonth, setStatsMonth] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 7);
+  });
 
   const fetchStats = useCallback(async () => {
     setIsStatsLoading(true);
@@ -119,8 +123,18 @@ export default function FournisseursPage() {
       const params = new URLSearchParams();
       params.set('period', statsPeriod);
       if (statsSupplierId) params.set('supplierId', statsSupplierId);
-      if (statsFrom) params.set('from', statsFrom);
-      if (statsTo) params.set('to', statsTo);
+
+      // If period is month and no manual date range, derive from/to from statsMonth
+      if (statsPeriod === 'month' && !statsFrom && !statsTo) {
+        const year = parseInt(statsMonth.slice(0, 4), 10);
+        const mon = parseInt(statsMonth.slice(5), 10);
+        const lastDay = new Date(year, mon, 0).getDate();
+        params.set('from', statsMonth + '-01');
+        params.set('to', statsMonth + '-' + String(lastDay).padStart(2, '0'));
+      } else {
+        if (statsFrom) params.set('from', statsFrom);
+        if (statsTo) params.set('to', statsTo);
+      }
       const res = await fetch(`/api/fournisseurs/stats?${params.toString()}`);
       if (!res.ok) throw new Error('Erreur');
       const data = await res.json();
@@ -130,7 +144,7 @@ export default function FournisseursPage() {
     } finally {
       setIsStatsLoading(false);
     }
-  }, [statsPeriod, statsSupplierId, statsFrom, statsTo]);
+  }, [statsPeriod, statsSupplierId, statsFrom, statsTo, statsMonth]);
 
   useEffect(() => {
     fetchSuppliers();
@@ -328,6 +342,16 @@ export default function FournisseursPage() {
                   </button>
                 )}
               </div>
+
+              {/* Month picker (only when month period selected and no manual range) */}
+              {statsPeriod === 'month' && !statsFrom && !statsTo && (
+                <input
+                  type="month"
+                  value={statsMonth}
+                  onChange={(e) => setStatsMonth(e.target.value)}
+                  className="input input-bordered input-sm"
+                />
+              )}
 
               {/* Supplier filter */}
               <select

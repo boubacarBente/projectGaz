@@ -10,14 +10,13 @@ import { Modal } from '@/components/modal';
 
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
 
-function getPeriodFilter(period: Period, selectedDay?: string): (dateStr: string) => boolean {
+function getPeriodFilter(period: Period, selectedDay?: string, selectedMonth?: string): (dateStr: string) => boolean {
   const now = new Date();
   const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const todayStr = todayUTC.toISOString().slice(0, 10);
   const weekStart = new Date(todayUTC);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekStartStr = weekStart.toISOString().slice(0, 10);
-  const monthStr = todayStr.slice(0, 7);
   const yearStr = todayStr.slice(0, 4);
 
   switch (period) {
@@ -29,8 +28,10 @@ function getPeriodFilter(period: Period, selectedDay?: string): (dateStr: string
     }
     case 'week':
       return (dateStr) => dateStr >= weekStartStr;
-    case 'month':
+    case 'month': {
+      const monthStr = selectedMonth || todayStr.slice(0, 7);
       return (dateStr) => dateStr.slice(0, 7) === monthStr;
+    }
     case 'year':
       return (dateStr) => dateStr.slice(0, 4) === yearStr;
     case 'total':
@@ -158,8 +159,12 @@ export default function FacturesPage() {
     const now = new Date();
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
   });
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 7);
+  });
 
-  const periodFilter = useMemo(() => getPeriodFilter(period, selectedDay), [period, selectedDay]);
+  const periodFilter = useMemo(() => getPeriodFilter(period, selectedDay, selectedMonth), [period, selectedDay, selectedMonth]);
 
   // Filtrer les invoices par période
   const periodFilteredInvoices = useMemo(() => {
@@ -757,6 +762,14 @@ export default function FacturesPage() {
                   className="input input-bordered input-sm"
                 />
               )}
+              {period === 'month' && (
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="input input-bordered input-sm"
+                />
+              )}
             </div>
 
             {/* Key Metrics */}
@@ -999,6 +1012,14 @@ export default function FacturesPage() {
               type="date"
               value={selectedDay}
               onChange={(e) => { setSelectedDay(e.target.value); setCurrentPage(1); }}
+              className="input input-bordered input-xs"
+            />
+          )}
+          {period === 'month' && (
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }}
               className="input input-bordered input-xs"
             />
           )}
