@@ -783,10 +783,36 @@ export async function getSalesInvoice(id: number) {
     createdAt: inv.createdAt?.toISOString() || "",
   };
 
-  // Calculer le coût d'achat et le bénéfice via l'inventaire
+  // Calculer le coût d'achat et le bénéfice par produit
+  // (moyenne pondérée de tous les achats, indépendamment de la date)
   const purchases = await listPurchaseInvoices();
-  const { salesWithProfit } = calculateSalesProfitMetrics(purchases, [invoice]);
-  return salesWithProfit[0] || invoice;
+  const avgCostPerProduct = new Map<number, { qty: number; cost: number }>();
+
+  for (const p of purchases) {
+    for (const item of p.items) {
+      if (item.unitCost > 0 && item.quantity > 0) {
+        const existing = avgCostPerProduct.get(item.productId) ?? { qty: 0, cost: 0 };
+        existing.qty += item.quantity;
+        existing.cost += item.quantity * item.unitCost;
+        avgCostPerProduct.set(item.productId, existing);
+      }
+    }
+  }
+
+  let costOfGoodsSold = 0;
+  for (const item of invoice.items) {
+    const avg = avgCostPerProduct.get(item.productId);
+    const unitCost = avg ? avg.cost / avg.qty : 0;
+    costOfGoodsSold += unitCost * item.quantity;
+  }
+
+  const grossProfit = invoice.totalAmount - costOfGoodsSold;
+
+  return {
+    ...invoice,
+    costOfGoodsSold: roundAmount(costOfGoodsSold),
+    grossProfit: roundAmount(grossProfit),
+  };
 }
 
 export async function updateSalesInvoice(id: number, input: {
