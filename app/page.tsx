@@ -108,7 +108,7 @@ function formatCurrency(value: number | undefined | null) {
   }
 }
 
-function getPeriodFilter(period: Period): (dateStr: string) => boolean {
+function getPeriodFilter(period: Period, selectedDay?: string): (dateStr: string) => boolean {
   const now = new Date();
   const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const todayStr = todayUTC.toISOString().slice(0, 10);
@@ -121,8 +121,10 @@ function getPeriodFilter(period: Period): (dateStr: string) => boolean {
   switch (period) {
     case 'today':
       return (dateStr) => dateStr === todayStr;
-    case 'day':
-      return (dateStr) => dateStr === todayStr;
+    case 'day': {
+      const dayStr = selectedDay || todayStr;
+      return (dateStr) => dateStr === dayStr;
+    }
     case 'week':
       return (dateStr) => dateStr >= weekStartStr;
     case 'month':
@@ -138,6 +140,10 @@ export default function DashboardPage() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>('total');
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+  });
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -157,7 +163,7 @@ export default function DashboardPage() {
   }, []);
 
   // Filtrer par période
-  const periodFilter = useMemo(() => getPeriodFilter(period), [period]);
+  const periodFilter = useMemo(() => getPeriodFilter(period, selectedDay), [period, selectedDay]);
 
   const filteredData = useMemo(() => {
     if (!snapshot) return null;
@@ -389,6 +395,14 @@ export default function DashboardPage() {
             </button>
           ))}
         </div>
+        {period === 'day' && (
+          <input
+            type="date"
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value)}
+            className="input input-bordered input-sm"
+          />
+        )}
         <span className="text-xs text-base-content/40 ml-2">
           ({periodLabel})
         </span>
