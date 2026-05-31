@@ -218,12 +218,18 @@ export default function ProduitsPage() {
       currency: 'GNF',
     }).format(amount);
 
+  const sortByDate = (a: { createdAt: string | null }, b: { createdAt: string | null }) => {
+    const dateA = a.createdAt || '';
+    const dateB = b.createdAt || '';
+    return dateB.localeCompare(dateA);
+  };
+
   const sortedProducts = useMemo(() => {
-    return [...products].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...products].sort(sortByDate);
   }, [products]);
 
   const sortedFiltered = useMemo(() => {
-    return [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...filtered].sort(sortByDate);
   }, [filtered]);
 
   const activeProducts = products.filter((p) => p.isActive).length;
