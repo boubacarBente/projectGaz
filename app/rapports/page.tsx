@@ -199,7 +199,7 @@ export default function RapportsPage() {
     }),
     datasets: [
       {
-        label: 'B\u00e9n\u00e9fice',
+        label: 'Bénéfice',
         data: monthlyData.map(m => m.profit),
         backgroundColor: monthlyData.map(m => m.profit >= 0 ? '#22c55e' : '#ef4444'),
         borderRadius: 8,
@@ -228,7 +228,7 @@ export default function RapportsPage() {
 
       {/* Période Selector */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium text-base-content/60 mr-1">P\u00e9riode :</span>
+        <span className="text-sm font-medium text-base-content/60 mr-1">Période :</span>
         <div className="join">
           {PERIODS.map((p) => (
             <button
@@ -281,7 +281,7 @@ export default function RapportsPage() {
           <div className="flex items-start justify-between mb-3">
             <span className="text-2xl">{'\uD83D\uDCC8'}</span>
           </div>
-          <p className="text-sm text-base-content/60 mb-1">B\u00e9n\u00e9fice brut</p>
+          <p className="text-sm text-base-content/60 mb-1">Bénéfice brut</p>
           <p className={`text-xl font-bold ${summary.grossProfit >= 0 ? 'text-success' : 'text-error'}`}>
             {formatCurrency(summary.grossProfit)} GNF
           </p>
@@ -294,7 +294,7 @@ export default function RapportsPage() {
           </div>
           <p className="text-sm text-base-content/60 mb-1">Bouteilles vendues</p>
           <p className="text-xl font-bold text-accent">{summary.totalBottlesSold}</p>
-          <p className="text-xs text-base-content/40 mt-1">unit\u00e9s</p>
+          <p className="text-xs text-base-content/40 mt-1">unités</p>
         </div>
       </div>
 
@@ -313,7 +313,7 @@ export default function RapportsPage() {
           <p className="text-lg font-bold">{summary.totalCustomers}</p>
         </div>
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
-          <p className="text-xs text-base-content/60">P\u00e9riode</p>
+          <p className="text-xs text-base-content/60">Période</p>
           <p className="text-lg font-bold">{periodLabel}</p>
         </div>
       </div>
@@ -332,7 +332,7 @@ export default function RapportsPage() {
 
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg">B\u00e9n\u00e9fice mensuel</h3>
+            <h3 className="font-semibold text-lg">Bénéfice mensuel</h3>
             <p className="text-sm text-base-content/60">Par mois</p>
           </div>
           <div className="h-64">
@@ -346,13 +346,13 @@ export default function RapportsPage() {
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="mb-4">
             <h3 className="font-semibold text-lg">Top produits vendus</h3>
-            <p className="text-sm text-base-content/60">Par quantit\u00e9</p>
+            <p className="text-sm text-base-content/60">Par quantité</p>
           </div>
           <div className="h-64 flex items-center justify-center">
             {soldByProduct.length > 0 ? (
               <Doughnut data={productChartData} options={doughnutOptions} />
             ) : (
-              <p className="text-base-content/50">Aucune donn\u00e9e</p>
+              <p className="text-base-content/50">Aucune donnée</p>
             )}
           </div>
         </div>
@@ -396,13 +396,13 @@ export default function RapportsPage() {
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-semibold text-lg">D\u00e9tail des ventes par produit</h3>
+            <h3 className="font-semibold text-lg">Détail des ventes par produit</h3>
             <p className="text-sm text-base-content/60">{periodLabel} &middot; {soldByProduct.length} produit(s)</p>
           </div>
         </div>
         {soldByProduct.length === 0 ? (
           <div className="rounded-xl border border-dashed border-base-300 bg-base-200 px-4 py-8 text-center text-sm text-base-content/50">
-            Aucune vente pour cette p\u00e9riode.
+            Aucune vente pour cette période.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -410,7 +410,7 @@ export default function RapportsPage() {
               <thead>
                 <tr>
                   <th>Produit</th>
-                  <th className="text-right">Quantit\u00e9</th>
+                  <th className="text-right">Quantité</th>
                   <th className="text-right">Chiffre d'affaires</th>
                   <th className="text-right">Part</th>
                 </tr>
