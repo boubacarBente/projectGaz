@@ -10,7 +10,7 @@ import { Modal } from '@/components/modal';
 
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
 
-function getPeriodFilter(period: Period): (dateStr: string) => boolean {
+function getPeriodFilter(period: Period, selectedDay?: string): (dateStr: string) => boolean {
   const now = new Date();
   const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const todayStr = todayUTC.toISOString().slice(0, 10);
@@ -22,8 +22,11 @@ function getPeriodFilter(period: Period): (dateStr: string) => boolean {
 
   switch (period) {
     case 'today':
-    case 'day':
       return (dateStr) => dateStr === todayStr;
+    case 'day': {
+      const dayStr = selectedDay || todayStr;
+      return (dateStr) => dateStr === dayStr;
+    }
     case 'week':
       return (dateStr) => dateStr >= weekStartStr;
     case 'month':
@@ -34,7 +37,6 @@ function getPeriodFilter(period: Period): (dateStr: string) => boolean {
       return () => true;
   }
 }
-// DatePicker removed
 
 // Dynamic import for PDF generation (client-side only)
 let html2canvas: any;
@@ -152,8 +154,12 @@ export default function FacturesPage() {
 
   // Période de filtrage (façon dashboard)
   const [period, setPeriod] = useState<Period>('total');
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+  });
 
-  const periodFilter = useMemo(() => getPeriodFilter(period), [period]);
+  const periodFilter = useMemo(() => getPeriodFilter(period, selectedDay), [period, selectedDay]);
 
   // Filtrer les invoices par période
   const periodFilteredInvoices = useMemo(() => {
@@ -743,6 +749,14 @@ export default function FacturesPage() {
                   </button>
                 ))}
               </div>
+              {period === 'day' && (
+                <input
+                  type="date"
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(e.target.value)}
+                  className="input input-bordered input-sm"
+                />
+              )}
             </div>
 
             {/* Key Metrics */}
@@ -980,6 +994,14 @@ export default function FacturesPage() {
               </button>
             ))}
           </div>
+          {period === 'day' && (
+            <input
+              type="date"
+              value={selectedDay}
+              onChange={(e) => { setSelectedDay(e.target.value); setCurrentPage(1); }}
+              className="input input-bordered input-xs"
+            />
+          )}
         </div>
         <div className="overflow-x-auto">
           {filtered.length === 0 ? (
