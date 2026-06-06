@@ -310,6 +310,7 @@ export default function FacturesPage() {
   const fetchPeriodData = async (from?: string, to?: string) => {
     try {
       const params = new URLSearchParams();
+      params.set('limit', '10000');
       if (from) params.set('from', from);
       if (to) params.set('to', to);
       const res = await fetch(`/api/factures?${params}`);
