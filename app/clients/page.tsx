@@ -99,6 +99,7 @@ export default function ClientsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -117,7 +118,16 @@ export default function ClientsPage() {
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => { fetchCustomers(); }, [search, selectedType, currentPage]);
+  useEffect(() => { fetchCustomersStats(); }, []);
   useEffect(() => { fetchCustomerTypes(); }, []);
+
+  const fetchCustomersStats = async () => {
+    try {
+      const res = await fetch('/api/clients?limit=10000');
+      const data = await res.json();
+      setAllCustomers(data.data || []);
+    } catch { /* silent */ }
+  };
 
   const fetchCustomers = async () => {
     setIsLoading(true);
@@ -243,9 +253,9 @@ export default function ClientsPage() {
     }
   };
 
-  const topCustomers = [...customers].sort((a, b) => b.totalPurchases - a.totalPurchases).slice(0, 5);
-  const totalAll = customers.reduce((s, c) => s + c.totalPurchases, 0);
-  const activeCount = customers.filter((c) => c.isActive).length;
+  const topCustomers = [...allCustomers].sort((a, b) => b.totalPurchases - a.totalPurchases).slice(0, 5);
+  const totalAll = allCustomers.reduce((s, c) => s + c.totalPurchases, 0);
+  const activeCount = allCustomers.filter((c) => c.isActive).length;
 
   return (
     <motion.div
@@ -281,7 +291,7 @@ export default function ClientsPage() {
 
       {/* ---------- Stats ---------- */}
       <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Clients" value={fCF(customers.length)} hint="Total enregistrés" />
+        <StatCard label="Clients" value={fCF(total)} hint="Total enregistrés" />
         <StatCard label="Actifs" value={fCF(activeCount)} hint="En activité" />
         <StatCard label="Volume d'achats" value={fCF(totalAll) + " F"} hint="Cumulé toutes factures" accent />
       </motion.div>

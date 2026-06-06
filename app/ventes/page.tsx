@@ -736,7 +736,7 @@ export default function FacturesPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="font-semibold text-lg">Analytiques des ventes</h3>
-              <p className="text-sm text-base-content/60">{invoices.length} facture(s) au total</p>
+              <p className="text-sm text-base-content/60">{total} facture(s) au total</p>
             </div>
             <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center">
               <FilterSelect
