@@ -36,6 +36,8 @@ function formatDate(ts: string) {
 export default function PortefeuillePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -48,39 +50,34 @@ export default function PortefeuillePage() {
   const [formAmount, setFormAmount] = useState('');
   const [formDescription, setFormDescription] = useState('');
 
-  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage } = useSearchFilter(
     transactions,
-    ['description', 'type'],
-    (item, filterValue) => {
-      if (filterValue === 'income') return item.type === 'income';
-      if (filterValue === 'expense') return item.type === 'expense';
-      return true;
-    }
+    ['description'],
   );
 
   const ITEMS_PER_PAGE = 15;
 
-  const paginatedTransactions = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filtered.slice(start, start + ITEMS_PER_PAGE);
-  }, [filtered, currentPage]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage, search, filter]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('limit', String(ITEMS_PER_PAGE));
+      if (search) params.set('search', search);
+      if (filter) params.set('type', filter);
       const [txRes, summaryRes] = await Promise.all([
-        fetch('/api/wallet'),
+        fetch(`/api/wallet?${params}`),
         fetch('/api/wallet/summary'),
       ]);
       const txData = await txRes.json();
       const summaryData = await summaryRes.json();
-      setTransactions(txData);
+      setTransactions(txData.data);
+      setTotal(txData.total);
+      setTotalPages(txData.totalPages);
       setSummary(summaryData);
     } catch {
       toast.error('Erreur lors du chargement des données');
@@ -302,7 +299,7 @@ export default function PortefeuillePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedTransactions.map((tx) => (
+                  {transactions.map((tx) => (
                     <tr key={tx.id}>
                       <td className="text-sm">{formatDate(tx.createdAt)}</td>
                       <td>

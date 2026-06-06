@@ -1221,10 +1221,48 @@ export async function resetDatabaseExceptProductsAndCustomers() {
 
 // ─── Wallet (Portefeuille) ─────────────────────────────────────────
 
-export async function listWalletTransactions() {
-  return db.query.walletTransactions.findMany({
-    orderBy: [desc(walletTransactions.createdAt)],
-  });
+export async function listWalletTransactions({
+  page = 1,
+  limit = 15,
+  search,
+  type,
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: 'income' | 'expense';
+} = {}) {
+  const offset = (page - 1) * limit;
+
+  const conditions: ReturnType<typeof like>[] = [];
+  if (search) {
+    conditions.push(like(walletTransactions.description, `%${search}%`));
+  }
+  if (type) {
+    conditions.push(eq(walletTransactions.type, type));
+  }
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [data, totalResult] = await Promise.all([
+    db.query.walletTransactions.findMany({
+      where,
+      orderBy: [desc(walletTransactions.createdAt)],
+      limit,
+      offset,
+    }),
+    db.select({ count: sql<number>`count(*)` })
+      .from(walletTransactions)
+      .where(where),
+  ]);
+
+  const total = Number(totalResult[0].count);
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function getWalletTransaction(id: number) {
