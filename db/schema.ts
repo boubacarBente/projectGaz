@@ -106,32 +106,6 @@ export const salesInvoiceItems = sqliteTable('sales_invoice_items', {
   totalPrice: real('total_price').notNull(),
 });
 
-// Table du stock
-export const stock = sqliteTable('stock', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  productId: integer('product_id').references(() => products.id).notNull(),
-  productCode: text('product_code').notNull(),
-  productName: text('product_name').notNull(),
-  capacity: text('capacity').notNull(),
-  currentStock: integer('current_stock').default(0),
-  minStock: integer('min_stock').default(10),
-  lastEntry: text('last_entry'),
-  lastExit: text('last_exit'),
-});
-
-// Mouvements de stock
-export const stockMovements = sqliteTable('stock_movements', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  productId: integer('product_id').references(() => products.id).notNull(),
-  productCode: text('product_code').notNull(),
-  productName: text('product_name').notNull(),
-  type: text('type').notNull(), // 'entry', 'exit', 'adjustment', 'return'
-  quantity: integer('quantity').notNull(),
-  reference: text('reference').notNull(),
-  notes: text('notes'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
-});
-
 // Utilisateurs
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -160,13 +134,11 @@ export const settings = sqliteTable('settings', {
   companyAddress: text('company_address'),
   companyPhone: text('company_phone'),
   companyEmail: text('company_email'),
-  defaultMinStock: integer('default_min_stock').default(10),
   currency: text('currency').default('GNF'),
   currencySymbol: text('currency_symbol').default('GNF'),
   dateFormat: text('date_format').default('DD/MM/YYYY'),
   invoicePrefix: text('invoice_prefix').default('FAC'),
   purchasePrefix: text('purchase_prefix').default('ACH'),
-  lowStockAlertEnabled: integer('low_stock_alert_enabled', { mode: 'boolean' }).default(true),
   theme: text('theme').default('light'),
   primaryColor: text('primary_color').default('#1e40af'),
   sidebarColor: text('sidebar_color').default('#1e293b'),
@@ -224,13 +196,6 @@ export const salesInvoiceItemRelations = relations(salesInvoiceItems, ({ one }) 
   }),
 }));
 
-export const stockRelations = relations(stock, ({ one }) => ({
-  product: one(products, {
-    fields: [stock.productId],
-    references: [products.id],
-  }),
-}));
-
 // Types pour TypeScript
 export type Customer = typeof customers.$inferSelect;
 export type NewCustomer = typeof customers.$inferInsert;
@@ -246,10 +211,6 @@ export type SalesInvoice = typeof salesInvoices.$inferSelect;
 export type NewSalesInvoice = typeof salesInvoices.$inferInsert;
 export type SalesInvoiceItem = typeof salesInvoiceItems.$inferSelect;
 export type NewSalesInvoiceItem = typeof salesInvoiceItems.$inferInsert;
-export type Stock = typeof stock.$inferSelect;
-export type NewStock = typeof stock.$inferInsert;
-export type StockMovement = typeof stockMovements.$inferSelect;
-export type NewStockMovement = typeof stockMovements.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type WalletTransaction = typeof walletTransactions.$inferSelect;

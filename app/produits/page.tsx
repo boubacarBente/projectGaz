@@ -49,8 +49,6 @@ export default function ProduitsPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [productStock, setProductStock] = useState<{ currentStock: number; minStock: number } | null>(null);
-  const [productMovements, setProductMovements] = useState<{ id: number; type: string; quantity: number; reference: string; createdAt: string }[]>([]);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -184,32 +182,7 @@ export default function ProduitsPage() {
   const openDetailModal = async (product: Product) => {
     setSelectedProduct(product);
     setShowDetailModal(true);
-    setIsDetailLoading(true);
-    setProductStock(null);
-    setProductMovements([]);
-
-    try {
-      const [stockRes, movementsRes] = await Promise.all([
-        fetch('/api/stock'),
-        fetch('/api/stock?type=movements'),
-      ]);
-      const stockData = await stockRes.json();
-      const movementsData = await movementsRes.json();
-
-      const stockItem = stockData.find((s: { productId: number }) => s.productId === product.id);
-      if (stockItem) {
-        setProductStock({ currentStock: stockItem.currentStock, minStock: stockItem.minStock });
-      }
-
-      const productMvmts = movementsData
-        .filter((m: { productId: number }) => m.productId === product.id)
-        .slice(0, 10);
-      setProductMovements(productMvmts);
-    } catch {
-      // Silently fail for detail modal
-    } finally {
-      setIsDetailLoading(false);
-    }
+    setIsDetailLoading(false);
   };
 
   const formatCurrency = (amount: number) =>
@@ -796,8 +769,6 @@ export default function ProduitsPage() {
         onClose={() => {
           setShowDetailModal(false);
           setSelectedProduct(null);
-          setProductStock(null);
-          setProductMovements([]);
         }}
         title={
           selectedProduct ? (
@@ -821,7 +792,7 @@ export default function ProduitsPage() {
         ) : selectedProduct && (
           <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="bg-base-200/50 rounded-xl p-4 text-center">
                 <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Prix achat</p>
                 <p className="text-lg font-bold text-primary">{formatCurrency(selectedProduct.unitPrice)}</p>
@@ -829,16 +800,6 @@ export default function ProduitsPage() {
               <div className="bg-base-200/50 rounded-xl p-4 text-center">
                 <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Prix vente</p>
                 <p className="text-lg font-bold text-info">{formatCurrency(selectedProduct.salePrice)}</p>
-              </div>
-              <div className={`rounded-xl p-4 text-center ${productStock && productStock.currentStock <= productStock.minStock ? 'bg-warning/10' : 'bg-base-200/50'}`}>
-                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Stock actuel</p>
-                <p className={`text-lg font-bold ${productStock && productStock.currentStock <= productStock.minStock ? 'text-warning' : ''}`}>
-                  {productStock?.currentStock ?? '—'}
-                </p>
-              </div>
-              <div className="bg-base-200/50 rounded-xl p-4 text-center">
-                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Seuil min</p>
-                <p className="text-lg font-bold">{productStock?.minStock ?? '—'}</p>
               </div>
             </div>
 
@@ -884,47 +845,6 @@ export default function ProduitsPage() {
               </div>
             </div>
 
-            {/* Stock Movements */}
-            <div className="bg-base-200/30 rounded-xl p-4">
-              <h4 className="font-semibold text-sm text-base-content/70 mb-3 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                Mouvements récents
-              </h4>
-              {productMovements.length === 0 ? (
-                <p className="text-sm text-base-content/50 py-4 text-center">Aucun mouvement pour ce produit</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="table table-sm">
-                    <thead>
-                      <tr>
-                        <th>Type</th>
-                        <th>Qté</th>
-                        <th>Référence</th>
-                        <th>Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {productMovements.map((m) => (
-                        <tr key={m.id}>
-                          <td>
-                            {m.type === 'entry' && <span className="badge badge-primary badge-xs">Entrée</span>}
-                            {m.type === 'exit' && <span className="badge badge-primary badge-xs">Sortie</span>}
-                            {m.type === 'return' && <span className="badge badge-primary badge-xs">Retour</span>}
-                            {m.type === 'adjustment' && <span className="badge badge-primary badge-xs">Ajust.</span>}
-                          </td>
-                          <td className="font-medium">{m.quantity}</td>
-                          <td className="text-base-content/60">{m.reference}</td>
-                          <td className="text-base-content/60">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2 border-t border-base-200">
               <button
@@ -932,8 +852,6 @@ export default function ProduitsPage() {
                 onClick={() => {
                   setShowDetailModal(false);
                   setSelectedProduct(null);
-                  setProductStock(null);
-                  setProductMovements([]);
                 }}
                 className="btn btn-ghost"
               >

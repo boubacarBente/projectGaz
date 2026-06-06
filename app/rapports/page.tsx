@@ -39,7 +39,6 @@ type RapportData = {
     grossProfit: number;
     totalBottlesSold: number;
     averageBasket: number;
-    totalBottlesInStock: number;
     totalInvoices: number;
     totalCustomers: number;
   };
@@ -323,8 +322,6 @@ export default function RapportsPage() {
           <p className="text-lg font-bold">{formatCurrency(summary.averageBasket)} GNF</p>
         </div>
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
-          <p className="text-xs text-base-content/60">Stock actuel</p>
-          <p className="text-lg font-bold">{summary.totalBottlesInStock} bouteilles</p>
         </div>
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
           <p className="text-xs text-base-content/60">Clients actifs</p>

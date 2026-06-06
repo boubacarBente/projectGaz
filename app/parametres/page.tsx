@@ -15,13 +15,11 @@ type Settings = {
   companyAddress: string;
   companyPhone: string;
   companyEmail: string;
-  defaultMinStock: number;
   currency: string;
   currencySymbol: string;
   dateFormat: string;
   invoicePrefix: string;
   purchasePrefix: string;
-  lowStockAlertEnabled: boolean;
   theme: 'light' | 'dark';
   primaryColor: string;
   sidebarColor: string;
@@ -32,13 +30,11 @@ const defaultSettings: Settings = {
   companyAddress: '',
   companyPhone: '',
   companyEmail: '',
-  defaultMinStock: 10,
   currency: 'GNF',
   currencySymbol: 'GNF',
   dateFormat: 'DD/MM/YYYY',
   invoicePrefix: 'FAC',
   purchasePrefix: 'ACH',
-  lowStockAlertEnabled: true,
   theme: 'light',
   primaryColor: '#1e40af',
   sidebarColor: '#1e293b',
@@ -310,45 +306,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         </div>
       </SettingsCard>
 
-      {/* Stock Settings Card */}
-      <SettingsCard
-        title="Gestion du stock"
-        icon={
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-        }
-        iconBg="bg-warning/10 text-warning"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium text-sm">Seuil de stock minimum par défaut</span>
-            </label>
-            <input
-              type="number" step="any"
-              
-              value={formData.defaultMinStock}
-              onChange={(e) => updateField('defaultMinStock', parseInt(e.target.value) || 0)}
-              className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
-            />
-            <label className="label">
-              <span className="label-text-alt text-xs opacity-60">Alerte quand le stock atteint cette valeur</span>
-            </label>
-          </div>
-          <div className="form-control flex flex-col justify-center">
-            <label className="label cursor-pointer justify-start gap-3">
-              <input
-                type="checkbox"
-                checked={formData.lowStockAlertEnabled}
-                onChange={(e) => updateField('lowStockAlertEnabled', e.target.checked)}
-                className="checkbox checkbox-primary checkbox-sm"
-              />
-              <span className="label-text font-medium text-sm">Activer les alertes de stock faible</span>
-            </label>
-          </div>
-        </div>
-      </SettingsCard>
+
 {/* Appearance Card */}
       <SettingsCard
         title="Apparence"
@@ -550,7 +508,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
           <h4 className="mb-2 font-semibold text-error">Réinitialiser la base de données</h4>
           <p className="text-sm leading-6 text-base-content/70">
             Cette action supprime les clients, les types de clients, les factures de vente, les factures d&apos;usine,
-            les fournisseurs, les mouvements de stock, le stock actuel et remet les paramètres par défaut.
+            les fournisseurs et remet les paramètres par défaut.
             <strong> Les produits sont conservés.</strong>
           </p>
           <div className="mt-4 flex justify-end">
@@ -650,7 +608,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               Voulez-vous vraiment réinitialiser les données opérationnelles ?
               <br />
               <span className="text-sm">
-                Les clients, les factures, le stock, les mouvements, les fournisseurs et les produits seront supprimés.
+                Les clients, les factures, les fournisseurs et les produits seront supprimés.
               </span>
             </p>
           </div>
