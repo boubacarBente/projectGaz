@@ -35,6 +35,7 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
 - `sales_invoice_items` - Items des factures de vente
 - `stock` - Stock actuel par produit
 - `stock_movements` - Historique des mouvements de stock
+- `wallet_transactions` - Transactions du portefeuille (entrées/sorties)
 - `settings` - Paramètres de l'application
 
 ### Relations importantes
@@ -126,6 +127,14 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 
 ### Dashboard
 - `GET /api/operations/snapshot` - Statistiques pour le dashboard
+
+### Portefeuille
+- `GET /api/wallet` - Liste paginée des transactions
+- `POST /api/wallet` - Créer une transaction
+- `GET /api/wallet/[id]` - Détail d'une transaction
+- `PUT /api/wallet/[id]` - Modifier une transaction
+- `DELETE /api/wallet/[id]` - Supprimer une transaction
+- `GET /api/wallet/summary` - Résumé (solde, totaux, nombre)
 
 ### Autres
 - `GET /api/ventes/stats` - Statistiques des ventes

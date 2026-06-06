@@ -1,6 +1,6 @@
 import { db } from './index';
 import { desc } from 'drizzle-orm';
-import { purchaseInvoices, salesInvoices } from './schema';
+import { purchaseInvoices, salesInvoices, walletTransactions } from './schema';
 
 // Types retournés par les helpers avec relations chargées
 export type PurchaseInvoiceRow = {
@@ -86,6 +86,33 @@ export async function findSalesInvoices() {
 }
 
 /** Récupère une facture de vente par son ID avec le client et les items */
+export async function findWalletTransactions() {
+  return db.query.walletTransactions.findMany({
+    orderBy: [desc(walletTransactions.createdAt)],
+  });
+}
+
+export async function findWalletTransactionById(id: number) {
+  const result = await db.query.walletTransactions.findFirst({
+    where: (wt, { eq }) => eq(wt.id, id),
+  });
+  return result ?? null;
+}
+
+export async function findLastWalletTransaction() {
+  const result = await db.query.walletTransactions.findFirst({
+    orderBy: [desc(walletTransactions.createdAt)],
+  });
+  return result ?? null;
+}
+
+export async function findWalletTransactionsAfterId(id: number) {
+  return db.query.walletTransactions.findMany({
+    where: (wt, { gt }) => gt(wt.id, id),
+    orderBy: [desc(walletTransactions.createdAt)],
+  });
+}
+
 export async function findSalesInvoiceById(id: number) {
   const result = await db.query.salesInvoices.findFirst({
     where: (si, { eq }) => eq(si.id, id),

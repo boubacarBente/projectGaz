@@ -1,4 +1,9 @@
 ﻿import { mkdir, readFile, writeFile } from "node:fs/promises";
+import {
+  findWalletTransactionById,
+  findLastWalletTransaction,
+  findWalletTransactionsAfterId,
+} from "../db/helpers";
 import path from "node:path";
 import Database from "better-sqlite3";
 import { db } from "../db/index";
@@ -13,7 +18,8 @@ import {
   salesInvoiceItems,
   stock,
   stockMovements,
-  settings
+  settings,
+  walletTransactions
 } from "../db/schema";
 import { eq, desc, asc, like, sql, and, or, gte, lte } from "drizzle-orm";
 import { listProducts } from "@/lib/products";
@@ -1635,7 +1641,9 @@ export async function resetDatabaseExceptProductsAndCustomers() {
     // Supprimer les produits
     client.prepare('DELETE FROM products').run();
     // Réinitialiser les séquences auto-increment
-    client.prepare("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'products', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'stock', 'stock_movements', 'suppliers')").run();
+    client.prepare("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'products', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'stock', 'stock_movements', 'suppliers', 'wallet_transactions')").run();
+    // Supprimer les transactions du portefeuille
+    client.prepare('DELETE FROM wallet_transactions').run();
     // Supprimer les paramètres
     client.prepare('DELETE FROM settings').run();
 
@@ -1645,4 +1653,155 @@ export async function resetDatabaseExceptProductsAndCustomers() {
   })();
 
   return { success: true };
+}
+
+// ─── Wallet (Portefeuille) ─────────────────────────────────────────
+
+export async function listWalletTransactions() {
+  return db.query.walletTransactions.findMany({
+    orderBy: [desc(walletTransactions.createdAt)],
+  });
+}
+
+export async function getWalletTransaction(id: number) {
+  const tx = await findWalletTransactionById(id);
+  if (!tx) return null;
+  return tx;
+}
+
+export async function createWalletTransaction(data: {
+  amount: number;
+  type: 'income' | 'expense';
+  description?: string;
+}) {
+  const client: Database.Database = (db as any).$client;
+
+  return client.transaction(() => {
+    // Récupérer le dernier solde
+    const last = client.prepare('SELECT balance_after FROM wallet_transactions ORDER BY id DESC LIMIT 1').get() as { balance_after: number } | undefined;
+    const lastBalance = last?.balance_after ?? 0;
+
+    // Calculer le nouveau solde
+    const newBalance = data.type === 'income'
+      ? lastBalance + data.amount
+      : lastBalance - data.amount;
+
+    if (newBalance < 0) {
+      throw new Error('Solde insuffisant pour effectuer cette opération');
+    }
+
+    // Insérer la transaction
+    const stmt = client.prepare(`
+      INSERT INTO wallet_transactions (amount, type, description, balance_after, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const now = new Date();
+    const result = stmt.run(data.amount, data.type, data.description || null, newBalance, now.getTime(), now.getTime());
+
+    return {
+      id: result.lastInsertRowid as number,
+      amount: data.amount,
+      type: data.type,
+      description: data.description || null,
+      balanceAfter: newBalance,
+      createdAt: now,
+      updatedAt: now,
+    };
+  })();
+}
+
+export async function updateWalletTransaction(
+  id: number,
+  data: { amount?: number; type?: 'income' | 'expense'; description?: string }
+) {
+  const existing = await findWalletTransactionById(id);
+  if (!existing) throw new Error('Transaction introuvable');
+
+  const client: Database.Database = (db as any).$client;
+
+  return client.transaction(() => {
+    const now = new Date();
+    const amount = data.amount ?? existing.amount;
+    const type = data.type ?? existing.type;
+    const description = data.description !== undefined ? data.description : existing.description;
+
+    // Mettre à jour la transaction
+    client.prepare(`
+      UPDATE wallet_transactions
+      SET amount = ?, type = ?, description = ?, updated_at = ?
+      WHERE id = ?
+    `).run(amount, type, description, now.getTime(), id);
+
+    // Recalculer les soldes à partir de cette transaction
+    recalculateBalancesFrom(client, id);
+
+    // Retourner la transaction mise à jour
+    const updated = client.prepare('SELECT * FROM wallet_transactions WHERE id = ?').get(id) as any;
+    return {
+      id: updated.id,
+      amount: updated.amount,
+      type: updated.type,
+      description: updated.description,
+      balanceAfter: updated.balance_after,
+      createdAt: new Date(updated.created_at),
+      updatedAt: new Date(updated.updated_at),
+    };
+  })();
+}
+
+export async function deleteWalletTransaction(id: number) {
+  const existing = await findWalletTransactionById(id);
+  if (!existing) throw new Error('Transaction introuvable');
+
+  const client: Database.Database = (db as any).$client;
+
+  client.transaction(() => {
+    // Supprimer la transaction
+    client.prepare('DELETE FROM wallet_transactions WHERE id = ?').run(id);
+
+    // Recalculer les soldes à partir de la première transaction suivante
+    const nextTx = client.prepare('SELECT id FROM wallet_transactions WHERE id > ? ORDER BY id ASC LIMIT 1').get(id) as { id: number } | undefined;
+    if (nextTx) {
+      recalculateBalancesFrom(client, nextTx.id);
+    }
+  })();
+}
+
+function recalculateBalancesFrom(client: Database.Database, startId: number) {
+  // Récupérer le solde avant cette transaction
+  const prev = client.prepare('SELECT balance_after FROM wallet_transactions WHERE id < ? ORDER BY id DESC LIMIT 1').get(startId) as { balance_after: number } | undefined;
+  let currentBalance = prev?.balance_after ?? 0;
+
+  // Récupérer toutes les transactions à partir de startId, triées par id croissant
+  const txs = client.prepare('SELECT id, amount, type FROM wallet_transactions WHERE id >= ? ORDER BY id ASC').all(startId) as Array<{ id: number; amount: number; type: string }>;
+
+  for (const tx of txs) {
+    currentBalance = tx.type === 'income'
+      ? currentBalance + tx.amount
+      : currentBalance - tx.amount;
+
+    client.prepare('UPDATE wallet_transactions SET balance_after = ? WHERE id = ?').run(currentBalance, tx.id);
+  }
+}
+
+export async function getWalletSummary() {
+  const client: Database.Database = (db as any).$client;
+
+  const lastTx = client.prepare('SELECT balance_after FROM wallet_transactions ORDER BY id DESC LIMIT 1').get() as { balance_after: number } | undefined;
+  const currentBalance = lastTx?.balance_after ?? 0;
+
+  const stats = client.prepare(`
+    SELECT
+      COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
+      COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense,
+      COUNT(*) as transactions_count
+    FROM wallet_transactions
+  `).get() as { total_income: number; total_expense: number; transactions_count: number };
+
+  return {
+    currentBalance,
+    totalIncome: stats.total_income,
+    totalExpense: stats.total_expense,
+    transactionsCount: stats.transactions_count,
+  };
 }
