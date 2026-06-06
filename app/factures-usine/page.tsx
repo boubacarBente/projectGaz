@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -99,27 +99,26 @@ export default function DepensesPage() {
     ['reference', 'date'],
   );
 
-  const [allStatsInvoices, setAllStatsInvoices] = useState<PurchaseInvoice[]>([]);
+  const [depensesStats, setDepensesStats] = useState<{ totalAmount: number; totalBottles: number; averageCost: number } | null>(null);
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchData();
   }, [currentPage, search, filter, supplierFilter]);
   useEffect(() => {
-    fetchAllStatsInvoices();
-  }, []);
+    fetchDepensesStats();
+  }, [supplierFilter]);
 
-  const fetchAllStatsInvoices = async () => {
+  const fetchDepensesStats = async () => {
     try {
       const params = new URLSearchParams();
-      params.set('limit', '10000');
       if (supplierFilter) {
         const supplier = suppliers.find(s => s.name.toLowerCase() === supplierFilter.toLowerCase());
         if (supplier) params.set('supplierId', String(supplier.id));
       }
-      const res = await fetch(`/api/depenses?${params}`);
+      const res = await fetch(`/api/depenses/stats?${params}`);
       const data = await res.json();
-      setAllStatsInvoices(data.data || []);
+      setDepensesStats(data);
     } catch { /* silent */ }
   };
 
@@ -477,11 +476,9 @@ export default function DepensesPage() {
     `;
   }
 
-  const totalAmount = allStatsInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const totalBottles = allStatsInvoices.reduce((sum, inv) =>
-    sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
-  );
-  const averageCost = allStatsInvoices.length > 0 ? totalAmount / allStatsInvoices.length : 0;
+  const totalAmount = depensesStats?.totalAmount ?? 0;
+  const totalBottles = depensesStats?.totalBottles ?? 0;
+  const averageCost = depensesStats?.averageCost ?? 0;
 
   if (isLoading) {
     return (
