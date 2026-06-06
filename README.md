@@ -1,6 +1,6 @@
 # Système de Gestion — Distribution de Bouteilles de Gaz
 
-Application web complète pour la gestion d'une entreprise de vente et distribution de bouteilles de gaz. Ce système permet de gérer l'ensemble des opérations commerciales : facturation, gestion des stocks, suivi des clients et fournisseurs, tableaux de bord analytiques, avec authentification et gestion des utilisateurs.
+Application web complète pour la gestion d'une entreprise de vente et distribution de bouteilles de gaz. Ce système permet de gérer l'ensemble des opérations commerciales : facturation, suivi des clients et fournisseurs, tableaux de bord analytiques, avec authentification et gestion des utilisateurs.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat&logo=next.js)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat&logo=sqlite)
@@ -25,7 +25,7 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 ## Fonctionnalités
 
 ### 📊 Tableau de Bord
-- Indicateurs clés (CA total, achats, bénéfice brut, stock)
+- Indicateurs clés (CA total, achats, bénéfice brut)
 - Graphiques d'évolution (ventes vs achats sur 12 mois)
 - Top produits vendus (graphique donut)
 - Bénéfice mensuel (graphique barres)
@@ -54,13 +54,6 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Gestion des avances et reste à payer
 - Génération PDF et export image
 - Filtres par statut de paiement
-
-### 📦 Gestion des Stocks
-- Stock actuel par produit avec capacité
-- Seuil d'alerte minimum configurable
-- Mouvements d'entrée/sortie avec référence
-- Alertes visuelles pour stock faible
-- Historique complet des mouvements
 
 ### 🚚 Dépenses / Achats Usine
 - Factures d'approvisionnement multi-produits
@@ -148,7 +141,6 @@ projectGaz/
 │   │   ├── parametres/           #   GET/PUT paramètres + seed/reset
 │   │   ├── produits/             #   CRUD produits
 │   │   ├── rapports/             #   Données analytiques
-│   │   ├── stock/                #   Stock + mouvements
 │   │   ├── users/                #   Gestion des utilisateurs
 │   │   └── ventes/               #   Stats ventes
 │   ├── clients/                  # Pages clients (liste, détail, types)
@@ -158,7 +150,6 @@ projectGaz/
 │   ├── parametres/               # Page des paramètres
 │   ├── produits/                 # Page du catalogue produits
 │   ├── rapports/                 # Page des rapports
-│   ├── stock/                    # Page de gestion du stock
 │   ├── utilisateurs/             # Page de gestion des utilisateurs
 │   ├── ventes/                   # Pages des ventes (liste, nouvelle, détail)
 │   ├── page.tsx                  # Dashboard principal
@@ -206,8 +197,6 @@ projectGaz/
 | `purchase_invoice_items` | Lignes des factures d'achat (produit, quantité, coût) |
 | `sales_invoices` | Factures de vente (numéro, client, date, paiement) |
 | `sales_invoice_items` | Lignes des factures de vente (produit, quantité, prix) |
-| `stock` | Stock actuel par produit (quantité, seuil minimum) |
-| `stock_movements` | Historique des mouvements (entrée, sortie, ajustement) |
 | `settings` | Paramètres de l'application (couleurs, devise, etc.) |
 
 ### Relations Drizzle
@@ -220,7 +209,6 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 - `customers → customer_types` : one-to-one via `typeId`
 - `purchase_invoice_items → products` : one-to-one
 - `sales_invoice_items → products` : one-to-one
-- `stock → products` : one-to-one
 
 **Principe :** Les helpers utilisent `db.query...with` pour charger automatiquement les relations sans avoir à écrire de `SELECT` avec toutes les colonnes en dur. Si le schéma change, un seul endroit est à modifier : `mapPurchaseInvoiceRow()` dans `lib/operations.ts`.
 
@@ -249,7 +237,6 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | `/clients/types` | Gestion des types de clients |
 | `/clients/[id]/paiements` | Historique des achats d'un client |
 | `/produits` | Catalogue des produits |
-| `/stock` | Gestion du stock et mouvements |
 | `/fournisseurs` | Gestion des fournisseurs |
 | `/fournisseurs/[id]/paiements` | Paiements d'un fournisseur |
 | `/rapports` | Rapports et analyses détaillées |
@@ -307,13 +294,6 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | GET | `/api/depenses/[id]` | Détail d'une dépense |
 | PUT | `/api/depenses/[id]` | Modifier une dépense |
 | DELETE | `/api/depenses/[id]` | Supprimer une dépense |
-
-### Stock
-| Méthode | Route | Description |
-|---------|-------|-------------|
-| GET | `/api/stock` | Stock actuel (ou ?type=movements / ?type=alerts) |
-| POST | `/api/stock` | Ajouter un mouvement de stock |
-| PUT | `/api/stock` | Mettre à jour le seuil minimum |
 
 ### Authentification
 | Méthode | Route | Description |
