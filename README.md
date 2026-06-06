@@ -1,6 +1,6 @@
 # Système de Gestion — Distribution de Bouteilles de Gaz
 
-Application web complète pour la gestion d'une entreprise de vente et distribution de bouteilles de gaz. Ce système permet de gérer l'ensemble des opérations commerciales : facturation, gestion des stocks, suivi des clients et fournisseurs, tableaux de bord analytiques.
+Application web complète pour la gestion d'une entreprise de vente et distribution de bouteilles de gaz. Ce système permet de gérer l'ensemble des opérations commerciales : facturation, gestion des stocks, suivi des clients et fournisseurs, tableaux de bord analytiques, avec authentification et gestion des utilisateurs.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat&logo=next.js)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat&logo=sqlite)
@@ -20,6 +20,7 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - [API REST](#api-rest)
 - [Scripts Utiles](#scripts-utiles)
 - [Design](#design)
+- [Authentification](#authentification)
 
 ## Fonctionnalités
 
@@ -73,6 +74,13 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Répartition des ventes par produit
 - Top clients et fournisseurs
 
+### 🔐 Authentification & Utilisateurs
+- Système d'authentification par cookie (hachage SHA-256)
+- Deux rôles : **admin** et **user**
+- Page de connexion sécurisée
+- Gestion des utilisateurs (création, modification, suppression)
+- Routes protégées par middleware
+
 ### ⚙️ Paramètres
 - Informations de l'entreprise (nom, téléphone, email, adresse)
 - Personnalisation des couleurs (primaire, sidebar)
@@ -87,11 +95,12 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 | Framework | Next.js 16 (App Router) |
 | Base de données | SQLite 3 |
 | ORM | Drizzle ORM |
-| Styling | Tailwind CSS + DaisyUI 5.5 |
+| Styling | Tailwind CSS 4 + DaisyUI 5.5 |
 | Graphiques | Chart.js 4 (react-chartjs-2) |
 | Génération PDF/Image | jsPDF + html2canvas |
 | Animations | Framer Motion |
 | Notifications | React Toastify |
+| Authentification | Système custom (cookies + SHA-256) |
 
 ## Installation
 
@@ -130,45 +139,56 @@ L'application sera disponible sur [http://localhost:3000](http://localhost:3000)
 projectGaz/
 ├── app/                          # Routes Next.js (App Router)
 │   ├── api/                      # Routes API REST
+│   │   ├── auth/                 #   Connexion, déconnexion, session
 │   │   ├── clients/              #   CRUD clients + types
 │   │   ├── depenses/             #   CRUD factures d'achat
 │   │   ├── factures/             #   CRUD factures de vente
-│   │   ├── fournisseurs/         #   CRUD fournisseurs + paiements
+│   │   ├── fournisseurs/         #   CRUD fournisseurs + stats
 │   │   ├── operations/           #   Dashboard (snapshot)
 │   │   ├── parametres/           #   GET/PUT paramètres + seed/reset
 │   │   ├── produits/             #   CRUD produits
 │   │   ├── rapports/             #   Données analytiques
-│   │   └── stock/                #   Stock + mouvements
+│   │   ├── stock/                #   Stock + mouvements
+│   │   ├── users/                #   Gestion des utilisateurs
+│   │   └── ventes/               #   Stats ventes
 │   ├── clients/                  # Pages clients (liste, détail, types)
-│   ├── depenses/                 # Pages des factures d'achat
-│   ├── factures/                 # Pages des factures de vente
-│   ├── factures-usine/           # Page usine (alias dépenses)
+│   ├── factures-usine/           # Pages des factures d'achat usine
 │   ├── fournisseurs/             # Pages fournisseurs
+│   ├── login/                    # Page de connexion
 │   ├── parametres/               # Page des paramètres
 │   ├── produits/                 # Page du catalogue produits
 │   ├── rapports/                 # Page des rapports
 │   ├── stock/                    # Page de gestion du stock
+│   ├── utilisateurs/             # Page de gestion des utilisateurs
+│   ├── ventes/                   # Pages des ventes (liste, nouvelle, détail)
 │   ├── page.tsx                  # Dashboard principal
 │   └── layout.tsx                # Layout racine
 ├── components/                   # Composants React réutilisables
-│   ├── app-shell.tsx             #   Sidebar + menu mobile
+│   ├── app-shell.tsx             #   Sidebar + menu mobile + user menu
+│   ├── auth-provider.tsx         #   Contexte d'authentification
+│   ├── date-picker.tsx           #   Sélecteur de date
+│   ├── metric-card.tsx           #   Carte de métrique dashboard
 │   ├── modal.tsx                 #   Modal animée (framer-motion)
 │   ├── module-page.tsx           #   Template de page module
 │   ├── page-header.tsx           #   En-tête de page
 │   ├── search-filter.tsx         #   Recherche + filtre + pagination
-│   ├── theme-provider.tsx        #   Contexte thème clair/sombre
+│   ├── surface-card.tsx          #   Carte générique
+│   ├── theme-provider.tsx        #   Contexte thème clair/sombre + couleurs
 │   └── theme-toggle.tsx          #   Bouton de bascule thème
 ├── db/                           # Base de données
 │   ├── schema.ts                 # Définition des tables Drizzle
 │   ├── helpers.ts                #   Requêtes avec relations (JOIN auto)
 │   ├── index.ts                  #   Connexion SQLite + schéma
-│   └── database.db               #   Fichier de la base
+│   └── database2.db              #   Fichier de la base SQLite
 ├── lib/                          # Utilitaires et fonctions métier
-│   ├── colors.ts                 # Application des couleurs CSS
+│   ├── auth.ts                   # Authentification (hachage, CRUD users)
+│   ├── colors.ts                 # Application des couleurs CSS (OKLCH)
 │   ├── invoice-export.ts         # Export PDF/Image
 │   ├── operations.ts             # Fonctions métier (CRUD + rapports)
-│   └── products.ts               # Fonctions produits
-└── data/                         # Anciennes données JSON (archivé)
+│   ├── products.ts               # Fonctions produits
+│   └── seed-data.ts              # Données de démonstration
+├── data/                         # Anciennes données JSON (archivé)
+└── middleware.ts                 # Protection des routes (auth)
 ```
 
 ## Base de Données
@@ -177,6 +197,7 @@ projectGaz/
 
 | Table | Description |
 |-------|-------------|
+| `users` | Utilisateurs (nom, hash mot de passe, rôle admin/user) |
 | `suppliers` | Fournisseurs (nom, téléphone, adresse, total achats) |
 | `customers` | Clients (nom, téléphone, email, adresse, ville, type) |
 | `customer_types` | Types de clients (classification libre) |
@@ -219,9 +240,9 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | Route | Description |
 |-------|-------------|
 | `/` | Dashboard avec graphiques et indicateurs |
-| `/factures` | Liste et gestion des factures de vente |
-| `/factures/nouvelle` | Création d'une nouvelle facture |
-| `/factures/[id]` | Détail et export d'une facture |
+| `/ventes` | Liste et gestion des factures de vente |
+| `/ventes/nouvelle` | Création d'une nouvelle facture |
+| `/ventes/[id]` | Détail et export d'une facture |
 | `/factures-usine` | Liste des factures d'achat (fournisseurs) |
 | `/factures-usine/[id]` | Détail d'une facture d'achat |
 | `/clients` | Gestion des clients (CRUD + modals) |
@@ -229,11 +250,12 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | `/clients/[id]/paiements` | Historique des achats d'un client |
 | `/produits` | Catalogue des produits |
 | `/stock` | Gestion du stock et mouvements |
-| `/depenses` | Factures d'achat / approvisionnement |
 | `/fournisseurs` | Gestion des fournisseurs |
 | `/fournisseurs/[id]/paiements` | Paiements d'un fournisseur |
 | `/rapports` | Rapports et analyses détaillées |
 | `/parametres` | Configuration de l'application |
+| `/login` | Page de connexion |
+| `/utilisateurs` | Gestion des utilisateurs (admin) |
 
 ## API REST
 
@@ -293,6 +315,23 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | POST | `/api/stock` | Ajouter un mouvement de stock |
 | PUT | `/api/stock` | Mettre à jour le seuil minimum |
 
+### Authentification
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| POST | `/api/auth/login` | Connexion |
+| POST | `/api/auth/logout` | Déconnexion |
+| GET | `/api/auth/me` | Session courante |
+| GET | `/api/auth/setup` | Vérifier si premier démarrage |
+| POST | `/api/auth/setup` | Créer le premier admin |
+
+### Utilisateurs
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/api/users` | Liste tous les utilisateurs |
+| POST | `/api/users` | Créer un utilisateur |
+| PUT | `/api/users/[id]` | Modifier un utilisateur |
+| DELETE | `/api/users/[id]` | Supprimer un utilisateur |
+
 ### Autres
 | Méthode | Route | Description |
 |---------|-------|-------------|
@@ -300,6 +339,10 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | GET | `/api/rapports` | Données analytiques complètes |
 | GET | `/api/parametres` | Récupérer les paramètres |
 | PUT | `/api/parametres` | Mettre à jour les paramètres |
+| POST | `/api/parametres/seed-data` | Insérer les données de démonstration |
+| POST | `/api/parametres/reset-data` | Réinitialiser toutes les données |
+| GET | `/api/ventes/stats` | Statistiques des ventes |
+| GET | `/api/fournisseurs/stats` | Statistiques des fournisseurs |
 
 ## Scripts Utiles
 
@@ -312,6 +355,40 @@ npm run db:push          # Pousser le schéma vers la DB
 npm run db:studio        # Ouvrir Drizzle Studio
 ```
 
+## Server Actions
+
+| Action | Fichier | Description |
+|--------|---------|-------------|
+| `getCustomers()` | `app/clients/actions.ts` | Liste tous les clients |
+| `getCustomer(id)` | `app/clients/actions.ts` | Détail d'un client |
+| `createCustomer(data)` | `app/clients/actions.ts` | Créer un client |
+| `updateCustomer(id, data)` | `app/clients/actions.ts` | Modifier un client |
+| `deleteCustomer(id)` | `app/clients/actions.ts` | Supprimer un client |
+| `getTopCustomers(limit)` | `app/clients/actions.ts` | Top clients par achats |
+| `getCustomerTypes()` | `app/clients/actions.ts` | Types de clients |
+| `addPurchaseToCustomer()` | `app/clients/actions.ts` | Ajouter un achat client |
+| `createInvoice()` | `app/ventes/actions.ts` | Créer une facture de vente |
+| `createProduct()` | `app/produits/actions.ts` | Créer un produit |
+| `updateProduct()` | `app/produits/actions.ts` | Modifier un produit |
+| `deleteProduct()` | `app/produits/actions.ts` | Supprimer un produit |
+
+## Authentification
+
+Le système utilise une **authentification custom** sans dépendance externe :
+
+- **Hachage** : SHA-256 via `crypto.subtle.digest()`
+- **Session** : Cookies HTTP (`session_user` + `session`)
+- **Rôles** : `admin` et `user`
+- **Protection** : Middleware Next.js protégeant toutes les routes sauf `/login` et les assets statiques
+- **Setup** : Route `/api/auth/setup` pour créer le premier administrateur au premier démarrage
+
+### Middleware
+
+Le fichier `middleware.ts` intercepte toutes les requêtes et :
+- Laisse passer les routes publiques (`/login`, `/api/auth/*`)
+- Vérifie la présence du cookie `session_user`
+- Redirige vers `/login` si non authentifié (pages) ou retourne 401 (API)
+
 ## Design
 
 ### Personnalisation
@@ -319,12 +396,12 @@ Les couleurs de l'application sont **configurables dynamiquement** depuis la pag
 - **Couleur primaire** (`primary_color`) : boutons, accents, badges
 - **Couleur sidebar** (`sidebar_color`) : fond de la barre latérale
 - **Thème** : clair ou sombre
-- Appliquées en temps réel via des variables CSS DaisyUI (voir `lib/colors.ts`)
+- Appliquées en temps réel via des variables CSS DaisyUI en format OKLCH (voir `lib/colors.ts`)
 
 ### Navigation
-- **Desktop** : Sidebar fixe avec navigation complète + lien rapide vers les paramètres
+- **Desktop** : Sidebar fixe avec navigation complète + menu utilisateur + lien rapide vers les paramètres
 - **Mobile** : Header fixe avec menu hamburger → drawer coulissant animé
 
 ---
 
-*Dernière mise à jour : 19/05/2026*
+*Dernière mise à jour : 06/06/2026*

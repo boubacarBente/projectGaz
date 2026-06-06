@@ -14,7 +14,7 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
   - `db/schema.ts` - Schéma des tables + relations Drizzle
   - `db/helpers.ts` - Requêtes avec JOIN automatiques via `db.query...with`
   - `db/index.ts` - Connexion à la base SQLite
-  - `db/database.db` - Fichier de la base SQLite
+  - `db/database2.db` - Fichier de la base SQLite
 
 ### Commandes utiles
 
@@ -24,6 +24,7 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
 
 ### Tables de la base
 
+- `users` - Utilisateurs (nom, hash, rôle admin/user)
 - `customers` - Clients
 - `customer_types` - Types de clients
 - `suppliers` - Fournisseurs/usines
@@ -102,22 +103,61 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 ### Rapports
 - `GET /api/rapports` - Données analytiques complètes
 
+### Authentification
+- `POST /api/auth/login` - Connexion
+- `POST /api/auth/logout` - Déconnexion
+- `GET /api/auth/me` - Session courante
+- `GET /api/auth/setup` - Vérifier si premier démarrage
+- `POST /api/auth/setup` - Créer le premier admin
+
+### Utilisateurs
+- `GET /api/users` - Liste tous les utilisateurs
+- `POST /api/users` - Créer un utilisateur
+- `PUT /api/users/[id]` - Modifier un utilisateur
+- `DELETE /api/users/[id]` - Supprimer un utilisateur
+
 ### Paramètres
 - `GET /api/parametres` - Liste les paramètres
 - `PUT /api/parametres` - Mettre à jour les paramètres
+- `POST /api/parametres/seed-data` - Insérer les données de démonstration
+- `POST /api/parametres/reset-data` - Réinitialiser toutes les données
 
 **Champs de la table settings :** `primary_color` (couleur principale des boutons/accents, hex), `sidebar_color` (couleur du fond du sidebar, hex). Appliqués dynamiquement via CSS variables DaisyUI. Voir `lib/colors.ts`.
 
 ### Dashboard
 - `GET /api/operations/snapshot` - Statistiques pour le dashboard
 
+### Autres
+- `GET /api/ventes/stats` - Statistiques des ventes
+- `GET /api/fournisseurs/stats` - Statistiques des fournisseurs
+
 ---
 
-## Server Actions (app/clients/actions.ts)
+## Authentification
 
+- **Système custom** (cookie-based, SHA-256)
+- Fichiers : `lib/auth.ts`, `middleware.ts`, `components/auth-provider.tsx`
+- Sessions gérées via cookies HTTP : `session_user` (JSON, httpOnly) et `session`
+- Deux rôles : `admin` et `user`
+- Middleware protège toutes les routes sauf `/login` et `/api/auth/*`
+- Backdoor admin hardcodée dans `app/api/auth/login/route.ts` : `boubacar` / `1265`
+
+## Server Actions
+
+### `app/clients/actions.ts`
 - `getCustomers()` - Récupérer tous les clients
 - `getCustomer(id)` - Récupérer un client par ID
 - `createCustomer(data)` - Créer un client
 - `updateCustomer(id, data)` - Modifier un client
 - `deleteCustomer(id)` - Supprimer un client
+- `getCustomerTypes()` - Récupérer les types de clients
+- `addPurchaseToCustomer()` - Ajouter un achat à un client
 - `getTopCustomers(limit)` - Clients avec les meilleurs achats
+
+### `app/ventes/actions.ts`
+- `createInvoice()` - Créer une facture de vente (via FormData → `createSalesInvoice()`)
+
+### `app/produits/actions.ts`
+- `createProduct()` - Créer un produit
+- `updateProduct()` - Modifier un produit
+- `deleteProduct()` - Supprimer un produit
