@@ -1681,14 +1681,10 @@ export async function createWalletTransaction(data: {
     const last = client.prepare('SELECT balance_after FROM wallet_transactions ORDER BY id DESC LIMIT 1').get() as { balance_after: number } | undefined;
     const lastBalance = last?.balance_after ?? 0;
 
-    // Calculer le nouveau solde
+    // Calculer le nouveau solde (peut être négatif)
     const newBalance = data.type === 'income'
       ? lastBalance + data.amount
       : lastBalance - data.amount;
-
-    if (newBalance < 0) {
-      throw new Error('Solde insuffisant pour effectuer cette opération');
-    }
 
     // Insérer la transaction
     const stmt = client.prepare(`

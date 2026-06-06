@@ -34,7 +34,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating wallet transaction:', error);
     const message = error instanceof Error ? error.message : 'Failed to create transaction';
-    const status = message === 'Solde insuffisant pour effectuer cette opération' ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
