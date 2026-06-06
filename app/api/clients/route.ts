@@ -1,41 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, schema } from '@/db';
-import { eq } from 'drizzle-orm';
+import { and, or, like, eq, sql } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search');
     const typeId = searchParams.get('typeId');
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '10', 10)));
 
-    let customers;
-    
-    if (search || typeId) {
-      const conditions = [];
-      if (search) {
-        conditions.push(
-          eq(schema.customers.name, `%${search}%`) as any
-        );
-      }
-      
-      // Note: For full-text search, we'd need raw SQL. 
-      // For simplicity, let's fetch all and filter in JS for now
-      customers = await db.select().from(schema.customers);
-      
-      if (search) {
-        const searchLower = search.toLowerCase();
-        customers = customers.filter(c => 
-          c.name.toLowerCase().includes(searchLower) ||
-          (c.phone && c.phone.includes(search))
-        );
-      }
-      
-      if (typeId) {
-        customers = customers.filter(c => c.typeId === parseInt(typeId));
-      }
-    } else {
-      customers = await db.select().from(schema.customers);
+    const conditions = [];
+    if (search) {
+      conditions.push(
+        or(
+          like(schema.customers.name, `%${search}%`),
+          like(schema.customers.phone, `%${search}%`),
+          like(schema.customers.email, `%${search}%`),
+          like(schema.customers.city, `%${search}%`),
+        )
+      );
     }
+    if (typeId) {
+      conditions.push(eq(schema.customers.typeId, parseInt(typeId)));
+    }
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const offset = (page - 1) * limit;
+
+    const [customers, totalResult] = await Promise.all([
+      db.select().from(schema.customers)
+        .where(where)
+        .orderBy(sql`id DESC`)
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`count(*)` })
+        .from(schema.customers)
+        .where(where),
+    ]);
 
     // Get customer types for the response
     const types = await db.select().from(schema.customerTypes);
@@ -46,7 +47,13 @@ export async function GET(request: NextRequest) {
       type: types.find(t => t.id === c.typeId) || null
     }));
 
-    return NextResponse.json(customersWithTypes);
+    return NextResponse.json({
+      data: customersWithTypes,
+      total: Number(totalResult[0].count),
+      page,
+      limit,
+      totalPages: Math.ceil(Number(totalResult[0].count) / limit),
+    });
   } catch (error) {
     console.error('Error fetching customers:', error);
     return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 });

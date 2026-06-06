@@ -51,7 +51,8 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 ## API Routes
 
 ### Clients
-- `GET /api/clients` - Liste tous les clients
+- `GET /api/clients` - Liste paginée des clients
+  - Query: `?search=&typeId=&page=1&limit=10`
 - `POST /api/clients` - Créer un client
 - `GET /api/clients/[id]` - Détail d'un client
 - `PUT /api/clients/[id]` - Modifier un client
@@ -64,7 +65,8 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 - `GET /api/clients/[id]/paiements` - Historique des achats d'un client
 
 ### Fournisseurs
-- `GET /api/fournisseurs` - Liste tous les fournisseurs
+- `GET /api/fournisseurs` - Liste paginée des fournisseurs
+  - Query: `?search=&page=1&limit=10`
 - `POST /api/fournisseurs` - Créer un fournisseur
 - `GET /api/fournisseurs/[id]` - Détail d'un fournisseur
 - `PUT /api/fournisseurs/[id]` - Modifier un fournisseur
@@ -72,21 +74,24 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 - `GET /api/fournisseurs/[id]/paiements` - Factures d'achat d'un fournisseur
 
 ### Produits
-- `GET /api/produits` - Liste tous les produits
+- `GET /api/produits` - Liste paginée des produits
+  - Query: `?all=true&search=&page=1&limit=10`
 - `POST /api/produits` - Créer un produit
 - `GET /api/produits/[id]` - Détail d'un produit
 - `PUT /api/produits/[id]` - Modifier un produit
 - `DELETE /api/produits/[id]` - Supprimer un produit
 
 ### Dépenses (Factures d'achat)
-- `GET /api/depenses` - Liste toutes les dépenses
+- `GET /api/depenses` - Liste paginée des dépenses
+  - Query: `?search=&page=1&limit=10&paid=true|false&supplierId=&from=&to=`
 - `POST /api/depenses` - Créer une dépense
 - `GET /api/depenses/[id]` - Détail d'une dépense
 - `PUT /api/depenses/[id]` - Modifier une dépense
 - `DELETE /api/depenses/[id]` - Supprimer une dépense
 
 ### Factures (Ventes)
-- `GET /api/factures` - Liste toutes les factures de vente
+- `GET /api/factures` - Liste paginée des factures de vente
+  - Query: `?search=&page=1&limit=10&type=paid|partial|pending&from=&to=`
 - `POST /api/factures` - Créer une facture de vente
 - `GET /api/factures/[id]` - Détail d'une facture
 - `PUT /api/factures/[id]` - Modifier une facture
@@ -141,6 +146,17 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 - Deux rôles : `admin` et `user`
 - Middleware protège toutes les routes sauf `/login` et `/api/auth/*`
 - Backdoor admin hardcodée dans `app/api/auth/login/route.ts` : `boubacar` / `1265`
+
+## `lib/operations.ts` — Fonctions paginées
+
+- `listPaginatedPurchaseInvoices(page, limit, { from, to, search, isPaid, supplierId })` → `{ data, total, page, limit, totalPages }`
+- `listPaginatedSalesInvoices(page, limit, { from, to, search, type })` → `{ data, total, page, limit, totalPages }`
+- `listWalletTransactions({ page, limit, search, type })` → `{ data, total, page, limit, totalPages }`
+
+**Toutes les API GET paginées retournent le format :**
+```json
+{ "data": [...], "total": 100, "page": 1, "limit": 10, "totalPages": 10 }
+```
 
 ## Server Actions
 
