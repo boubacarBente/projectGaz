@@ -16,8 +16,6 @@ import {
   purchaseInvoiceItems,
   salesInvoices,
   salesInvoiceItems,
-  stock,
-  stockMovements,
   settings,
   walletTransactions
 } from "../db/schema";
@@ -396,7 +394,7 @@ export async function createPurchaseInvoice(input: {
 
   const invoiceId = result[0].id;
 
-  // Insérer les items et mettre à jour le stock
+  // Insérer les items
   for (const item of items) {
     await db.insert(purchaseInvoiceItems).values({
       invoiceId,
@@ -406,15 +404,6 @@ export async function createPurchaseInvoice(input: {
       quantity: item.quantity,
       unitCost: item.unitCost,
       totalCost: item.totalCost,
-    });
-
-    // Ajouter un mouvement d'entrée en stock
-    await addStockMovement({
-      productId: item.productId,
-      type: 'entry',
-      quantity: item.quantity,
-      reference: `ACHAT-${input.reference}`,
-      notes: `Approvisionnement via facture ${input.reference}`,
     });
   }
 
@@ -618,48 +607,6 @@ export async function updatePurchaseInvoice(id: number, input: {
 
   // Si nouvelles lignes, supprimer les anciennes et insérer les nouvelles
   if (input.lines) {
-    // Récupérer les anciens items pour calculer les différences de stock
-    const oldItems = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
-
-    // Construire un map des nouvelles quantités par productId
-    const newQuantities = new Map<number, number>();
-    for (const item of items) {
-      newQuantities.set(item.productId, (newQuantities.get(item.productId) || 0) + item.quantity);
-    }
-
-    // Ajuster le stock pour chaque ancien item
-    for (const oldItem of oldItems) {
-      const oldQty = oldItem.quantity;
-      const newQty = newQuantities.get(oldItem.productId) ?? 0;
-      const diff = newQty - oldQty;
-
-      if (diff !== 0) {
-        await addStockMovement({
-          productId: oldItem.productId,
-          type: diff > 0 ? 'entry' : 'exit',
-          quantity: Math.abs(diff),
-          reference: `MODIF-ACHAT-${existing[0].reference}`,
-          notes: `Ajustement facture ${existing[0].reference} (${oldQty} → ${newQty})`,
-        });
-      }
-
-      // Retirer du map les items déjà traités
-      newQuantities.delete(oldItem.productId);
-    }
-
-    // Les produits restants dans newQuantities sont des nouveaux produits ajoutés
-    for (const [productId, qty] of newQuantities) {
-      if (qty > 0) {
-        await addStockMovement({
-          productId,
-          type: 'entry',
-          quantity: qty,
-          reference: `MODIF-ACHAT-${existing[0].reference}`,
-          notes: `Ajout produit dans facture ${existing[0].reference}`,
-        });
-      }
-    }
-
     await db.delete(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
     for (const item of items) {
       await db.insert(purchaseInvoiceItems).values({
@@ -725,20 +672,6 @@ export async function deletePurchaseInvoice(id: number) {
   const existing = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, id));
   if (existing.length === 0) {
     throw new Error('Invoice not found');
-  }
-
-  // Récupérer les items avant suppression pour annuler les mouvements de stock
-  const items = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
-
-  // Annuler les mouvements de stock (sortie)
-  for (const item of items) {
-    await addStockMovement({
-      productId: item.productId,
-      type: 'exit',
-      quantity: item.quantity,
-      reference: `ANNUL-ACHAT-${existing[0].reference}`,
-      notes: `Annulation facture ${existing[0].reference}`,
-    });
   }
 
   // Supprimer les items
@@ -1028,363 +961,12 @@ export async function getOperationsSnapshot() {
   };
 }
 
-// Stock Management Types
-export type StockMovementType = 'entry' | 'exit' | 'adjustment' | 'return';
-
-export type StockMovement = {
-  id: number;
-  productId: number;
-  productCode: string;
-  productName: string;
-  type: StockMovementType;
-  quantity: number;
-  reference: string;
-  notes: string;
-  createdAt: string;
-};
-
-export type StockItem = {
-  productId: number;
-  productCode: string;
-  productName: string;
-  capacity: string;
-  currentStock: number;
-  minStock: number;
-  lastEntry: string | null;
-  lastExit: string | null;
-};
-
 // --- CODE JSON (commenté - utilisation SQLite) ---
 
-// const stockFile = path.join(dataDirectory, "stock.json");
-// const stockMovementsFile = path.join(dataDirectory, "stock-movements.json");
-
-// async function readStockFile() {
-//   await ensureFile(stockFile);
-//   const content = await readFile(stockFile, "utf8");
-//   return JSON.parse(content) as StockItem[];
-// }
-
-// async function writeStockFile(items: StockItem[]) {
-//   await writeFile(stockFile, JSON.stringify(items, null, 2), "utf8");
-// }
-
-// async function readStockMovementsFile() {
-//   await ensureFile(stockMovementsFile);
-//   const content = await readFile(stockMovementsFile, "utf8");
-//   return JSON.parse(content) as StockMovement[];
-// }
-
-// async function writeStockMovementsFile(movements: StockMovement[]) {
-//   await writeFile(stockMovementsFile, JSON.stringify(movements, null, 2), "utf8");
-// }
-
-export async function initializeStock() {
-  // --- CODE JSON (commenté) ---
-  // const products = await listProducts();
-  // const stock = await readStockFile();
-  
-  // // Initialize stock for all products if not exists
-  // const existingProductIds = new Set(stock.map(s => s.productId));
-  // const newStockItems = products
-  //   .filter(p => !existingProductIds.has(p.id))
-  //   .map(p => ({
-  //     productId: p.id,
-  //     productCode: p.code,
-  //     productName: p.name,
-  //     capacity: p.capacity,
-  //     currentStock: 0,
-  //     minStock: 10, // Default min stock
-  //     lastEntry: null,
-  //     lastExit: null,
-  //   }));
-  
-  // if (newStockItems.length > 0) {
-  //   await writeStockFile([...stock, ...newStockItems]);
-  // }
-  
-  // return [...stock.filter(s => existingProductIds.has(s.productId)), ...newStockItems];
-
-  // --- CODE SQL ---
-  const products = await listProducts();
-  const existingStock = await db.select().from(stock);
-  const existingProductIds = new Set(existingStock.map(s => s.productId));
-  
-  const newStockItems = products
-    .filter(p => !existingProductIds.has(p.id))
-    .map(p => ({
-      productId: p.id,
-      productCode: p.code,
-      productName: p.name,
-      capacity: p.capacity,
-      currentStock: 0,
-      minStock: 10,
-    }));
-  
-  for (const item of newStockItems) {
-    await db.insert(stock).values(item);
-  }
-  
-  const allStock = await db.select().from(stock);
-  return allStock.map(s => ({
-    productId: s.productId,
-    productCode: s.productCode,
-    productName: s.productName,
-    capacity: s.capacity,
-    currentStock: s.currentStock,
-    minStock: s.minStock,
-    lastEntry: s.lastEntry,
-    lastExit: s.lastExit,
-  }));
-}
-
-export async function getStock() {
-  // --- CODE JSON (commenté) ---
-  // return readStockFile();
-
-  // --- CODE SQL ---
-  const allStock = await db.select().from(stock);
-  return allStock.map(s => ({
-    productId: s.productId,
-    productCode: s.productCode,
-    productName: s.productName,
-    capacity: s.capacity,
-    currentStock: s.currentStock,
-    minStock: s.minStock,
-    lastEntry: s.lastEntry,
-    lastExit: s.lastExit,
-  }));
-}
-
-export async function updateProductMinStock(productId: number, minStock: number) {
-  // --- CODE JSON (commenté) ---
-  // const stock = await readStockFile();
-  // const index = stock.findIndex(s => s.productId === productId);
-  
-  // if (index === -1) {
-  //   throw new Error('Product not found in stock');
-  // }
-  
-  // stock[index].minStock = minStock;
-  // await writeStockFile(stock);
-  // return stock[index];
-
-  // --- CODE SQL ---
-  const existing = await db.select().from(stock).where(eq(stock.productId, productId));
-  if (existing.length === 0) {
-    throw new Error('Product not found in stock');
-  }
-
-  await db.update(stock).set({ minStock }).where(eq(stock.productId, productId));
-
-  const updated = await db.select().from(stock).where(eq(stock.productId, productId));
-  return {
-    productId: updated[0].productId,
-    productCode: updated[0].productCode,
-    productName: updated[0].productName,
-    capacity: updated[0].capacity,
-    currentStock: updated[0].currentStock,
-    minStock: updated[0].minStock,
-    lastEntry: updated[0].lastEntry,
-    lastExit: updated[0].lastExit,
-  };
-}
-
-export async function addStockMovement(input: {
-  productId: number;
-  type: StockMovementType;
-  quantity: number;
-  reference: string;
-  notes?: string;
-}) {
-  // --- CODE JSON (commenté) ---
-  // const products = await listProducts();
-  // const product = products.find(p => p.id === input.productId);
-  
-  // if (!product) {
-  //   throw new Error('Product not found');
-  // }
-  
-  // const movements = await readStockMovementsFile();
-  // const stock = await readStockFile();
-  
-  // const movement: StockMovement = {
-  //   id: movements.length > 0 ? Math.max(...movements.map(m => m.id)) + 1 : 1,
-  //   productId: input.productId,
-  //   productCode: product.code,
-  //   productName: product.name,
-  //   type: input.type,
-  //   quantity: input.quantity,
-  //   reference: input.reference,
-  //   notes: input.notes || '',
-  //   createdAt: new Date().toISOString(),
-  // };
-  
-  // // Update stock
-  // const stockIndex = stock.findIndex(s => s.productId === input.productId);
-  // if (stockIndex === -1) {
-  //   throw new Error('Product not found in stock');
-  // }
-  
-  // if (input.type === 'entry' || input.type === 'return') {
-  //   stock[stockIndex].currentStock += input.quantity;
-  //   stock[stockIndex].lastEntry = movement.createdAt;
-  // } else if (input.type === 'exit') {
-  //   stock[stockIndex].currentStock -= input.quantity;
-  //   stock[stockIndex].lastExit = movement.createdAt;
-  // } else if (input.type === 'adjustment') {
-  //   stock[stockIndex].currentStock = input.quantity;
-  // }
-  
-  // await writeStockFile(stock);
-  // await writeStockMovementsFile([movement, ...movements]);
-  
-  // return { movement, stock: stock[stockIndex] };
-
-  // --- CODE SQL ---
-  const products = await listProducts();
-  const product = products.find(p => p.id === input.productId);
-  
-  if (!product) {
-    throw new Error('Product not found');
-  }
-
-  // Récupérer le stock actuel
-  let existingStock = await db.select().from(stock).where(eq(stock.productId, input.productId));
-  
-  // Si le produit n'a pas d'entrée en stock, l'initialiser (pour les entrées)
-  if (existingStock.length === 0) {
-    if (input.type === 'entry' || input.type === 'adjustment') {
-      await db.insert(stock).values({
-        productId: input.productId,
-        productCode: product.code,
-        productName: product.name,
-        capacity: product.capacity,
-        currentStock: 0,
-        minStock: 10,
-        lastEntry: null,
-        lastExit: null,
-      });
-      existingStock = await db.select().from(stock).where(eq(stock.productId, input.productId));
-    }
-    if (existingStock.length === 0) {
-      throw new Error('Product not found in stock');
-    }
-  }
-
-  const currentStock = existingStock[0];
-  let newStockAmount = currentStock.currentStock ?? 0;
-  let lastEntry = currentStock.lastEntry;
-  let lastExit = currentStock.lastExit;
-  const now = new Date().toISOString();
-
-  // Mettre à jour le stock selon le type de mouvement
-  const qty = Number(input.quantity) || 0;
-  if (input.type === 'entry' || input.type === 'return') {
-    newStockAmount += qty;
-    lastEntry = now;
-  } else if (input.type === 'exit') {
-    newStockAmount -= qty;
-    lastExit = now;
-  } else if (input.type === 'adjustment') {
-    newStockAmount = qty;
-  }
-
-  await db.update(stock).set({
-    currentStock: newStockAmount,
-    lastEntry,
-    lastExit,
-  }).where(eq(stock.productId, input.productId));
-
-  // Enregistrer le mouvement
-  const result = await db.insert(stockMovements).values({
-    productId: input.productId,
-    productCode: product.code,
-    productName: product.name,
-    type: input.type,
-    quantity: qty,
-    reference: input.reference,
-    notes: input.notes || '',
-  }).returning({ id: stockMovements.id });
-
-  const movement: StockMovement = {
-    id: result[0].id,
-    productId: input.productId,
-    productCode: product.code,
-    productName: product.name,
-    type: input.type,
-    quantity: qty,
-    reference: input.reference,
-    notes: input.notes || '',
-    createdAt: now,
-  };
-
-  const updatedStock = await db.select().from(stock).where(eq(stock.productId, input.productId));
-  return {
-    movement,
-    stock: {
-      productId: updatedStock[0].productId,
-      productCode: updatedStock[0].productCode,
-      productName: updatedStock[0].productName,
-      capacity: updatedStock[0].capacity,
-      currentStock: updatedStock[0].currentStock,
-      minStock: updatedStock[0].minStock,
-      lastEntry: updatedStock[0].lastEntry,
-      lastExit: updatedStock[0].lastExit,
-    },
-  };
-}
-
-export async function getStockMovements(limit = 50) {
-  // --- CODE JSON (commenté) ---
-  // const movements = await readStockMovementsFile();
-  // return movements.slice(0, limit);
-
-  // --- CODE SQL ---
-  const movements = await db.select()
-    .from(stockMovements)
-    .orderBy(desc(stockMovements.createdAt))
-    .limit(limit);
-  
-  return movements.map(m => ({
-    id: m.id,
-    productId: m.productId,
-    productCode: m.productCode,
-    productName: m.productName,
-    type: m.type as StockMovementType,
-    quantity: m.quantity,
-    reference: m.reference,
-    notes: m.notes || "",
-    createdAt: m.createdAt?.toISOString() || "",
-  }));
-}
-
-export async function getLowStockAlerts() {
-  // --- CODE JSON (commenté) ---
-  // const stock = await readStockFile();
-  // return stock.filter(s => s.currentStock <= s.minStock);
-
-  // --- CODE SQL ---
-  const allStock = await db.select().from(stock);
-  return allStock
-    .filter(s => (s.currentStock ?? 0) <= (s.minStock ?? 10))
-    .map(s => ({
-      productId: s.productId,
-      productCode: s.productCode,
-      productName: s.productName,
-      capacity: s.capacity,
-      currentStock: s.currentStock,
-      minStock: s.minStock,
-      lastEntry: s.lastEntry,
-      lastExit: s.lastExit,
-    }));
-}
-
 export async function getRapportData(from?: string, to?: string) {
-  const [purchases, sales, stock] = await Promise.all([
+  const [purchases, sales] = await Promise.all([
     listPurchaseInvoices(from, to),
     listSalesInvoices(from, to),
-    getStock(),
   ]);
 
   const { salesWithProfit, totalGrossProfit, monthlyProfit } = calculateSalesProfitMetrics(purchases, sales);
@@ -1453,7 +1035,6 @@ export async function getRapportData(from?: string, to?: string) {
     sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
   );
   const averageBasket = salesWithProfit.length > 0 ? totalSales / salesWithProfit.length : 0;
-  const totalBottlesInStock = stock.reduce((sum, s) => sum + (s.currentStock ?? 0), 0);
 
   return {
     summary: {
@@ -1462,7 +1043,6 @@ export async function getRapportData(from?: string, to?: string) {
       grossProfit,
       totalBottlesSold,
       averageBasket,
-      totalBottlesInStock,
       totalInvoices: purchases.length + salesWithProfit.length,
       totalCustomers: Object.keys(customersRevenue).length,
     },
@@ -1482,13 +1062,11 @@ export type Settings = {
   companyAddress: string;
   companyPhone: string;
   companyEmail: string;
-  defaultMinStock: number;
   currency: string;
   currencySymbol: string;
   dateFormat: string;
   invoicePrefix: string;
   purchasePrefix: string;
-  lowStockAlertEnabled: boolean;
   theme: 'light' | 'dark';
   primaryColor: string;
   sidebarColor: string;
@@ -1499,13 +1077,11 @@ const defaultSettings: Settings = {
   companyAddress: '',
   companyPhone: '',
   companyEmail: '',
-  defaultMinStock: 10,
   currency: 'GNF',
   currencySymbol: 'GNF',
   dateFormat: 'DD/MM/YYYY',
   invoicePrefix: 'FAC',
   purchasePrefix: 'ACH',
-  lowStockAlertEnabled: true,
   theme: 'light',
   primaryColor: '#1e40af',
   sidebarColor: '#1e293b',
@@ -1542,13 +1118,11 @@ export async function getSettings(): Promise<Settings> {
       companyAddress: r.companyAddress || '',
       companyPhone: r.companyPhone || '',
       companyEmail: r.companyEmail || '',
-      defaultMinStock: r.defaultMinStock ?? 10,
       currency: r.currency || 'GNF',
       currencySymbol: r.currencySymbol || 'GNF',
       dateFormat: r.dateFormat || 'DD/MM/YYYY',
       invoicePrefix: r.invoicePrefix || 'FAC',
       purchasePrefix: r.purchasePrefix || 'ACH',
-      lowStockAlertEnabled: r.lowStockAlertEnabled ?? true,
       theme: (r.theme || 'light') as 'light' | 'dark',
       primaryColor: r.primaryColor || '#1e40af',
       sidebarColor: r.sidebarColor || '#1e293b',
@@ -1561,13 +1135,11 @@ export async function getSettings(): Promise<Settings> {
     companyAddress: s.companyAddress || '',
     companyPhone: s.companyPhone || '',
     companyEmail: s.companyEmail || '',
-    defaultMinStock: s.defaultMinStock ?? 10,
     currency: s.currency || 'GNF',
     currencySymbol: s.currencySymbol || 'GNF',
     dateFormat: s.dateFormat || 'DD/MM/YYYY',
     invoicePrefix: s.invoicePrefix || 'FAC',
     purchasePrefix: s.purchasePrefix || 'ACH',
-    lowStockAlertEnabled: s.lowStockAlertEnabled ?? true,
     theme: (s.theme || 'light') as 'light' | 'dark',
     primaryColor: s.primaryColor || '#1e40af',
     sidebarColor: s.sidebarColor || '#1e293b',
@@ -1586,13 +1158,11 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
   if (updates.companyAddress !== undefined) updatesFiltered.companyAddress = updates.companyAddress;
   if (updates.companyPhone !== undefined) updatesFiltered.companyPhone = updates.companyPhone;
   if (updates.companyEmail !== undefined) updatesFiltered.companyEmail = updates.companyEmail;
-  if (updates.defaultMinStock !== undefined) updatesFiltered.defaultMinStock = updates.defaultMinStock;
   if (updates.currency !== undefined) updatesFiltered.currency = updates.currency;
   if (updates.currencySymbol !== undefined) updatesFiltered.currencySymbol = updates.currencySymbol;
   if (updates.dateFormat !== undefined) updatesFiltered.dateFormat = updates.dateFormat;
   if (updates.invoicePrefix !== undefined) updatesFiltered.invoicePrefix = updates.invoicePrefix;
   if (updates.purchasePrefix !== undefined) updatesFiltered.purchasePrefix = updates.purchasePrefix;
-  if (updates.lowStockAlertEnabled !== undefined) updatesFiltered.lowStockAlertEnabled = updates.lowStockAlertEnabled;
   if (updates.theme !== undefined) updatesFiltered.theme = updates.theme;
   if (updates.primaryColor !== undefined) updatesFiltered.primaryColor = updates.primaryColor;
   if (updates.sidebarColor !== undefined) updatesFiltered.sidebarColor = updates.sidebarColor;
@@ -1606,13 +1176,11 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
     companyAddress: s.companyAddress || '',
     companyPhone: s.companyPhone || '',
     companyEmail: s.companyEmail || '',
-    defaultMinStock: s.defaultMinStock ?? 10,
     currency: s.currency || 'GNF',
     currencySymbol: s.currencySymbol || 'GNF',
     dateFormat: s.dateFormat || 'DD/MM/YYYY',
     invoicePrefix: s.invoicePrefix || 'FAC',
     purchasePrefix: s.purchasePrefix || 'ACH',
-    lowStockAlertEnabled: s.lowStockAlertEnabled ?? true,
     theme: (s.theme || 'light') as 'light' | 'dark',
     primaryColor: s.primaryColor || '#1e40af',
     sidebarColor: s.sidebarColor || '#1e293b',
@@ -1626,13 +1194,9 @@ export async function resetDatabaseExceptProductsAndCustomers() {
     // Supprimer les items des factures
     client.prepare('DELETE FROM purchase_invoice_items').run();
     client.prepare('DELETE FROM sales_invoice_items').run();
-    // Supprimer les mouvements de stock
-    client.prepare('DELETE FROM stock_movements').run();
     // Supprimer les factures
     client.prepare('DELETE FROM purchase_invoices').run();
     client.prepare('DELETE FROM sales_invoices').run();
-    // Supprimer le stock
-    client.prepare('DELETE FROM stock').run();
     // Supprimer les fournisseurs
     client.prepare('DELETE FROM suppliers').run();
     // Supprimer les clients et leurs types (clients d'abord à cause de FK)
@@ -1641,15 +1205,15 @@ export async function resetDatabaseExceptProductsAndCustomers() {
     // Supprimer les produits
     client.prepare('DELETE FROM products').run();
     // Réinitialiser les séquences auto-increment
-    client.prepare("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'products', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'stock', 'stock_movements', 'suppliers', 'wallet_transactions')").run();
+    client.prepare("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'products', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'suppliers', 'wallet_transactions')").run();
     // Supprimer les transactions du portefeuille
     client.prepare('DELETE FROM wallet_transactions').run();
     // Supprimer les paramètres
     client.prepare('DELETE FROM settings').run();
 
     // Réinsérer les settings par défaut
-    client.prepare(`INSERT INTO settings (company_name, company_address, company_phone, company_email, default_min_stock, currency, currency_symbol, date_format, invoice_prefix, purchase_prefix, low_stock_alert_enabled, theme, primary_color, sidebar_color)
-      VALUES ('Mini-Centre Distribution', '', '', '', 10, 'GNF', 'GNF', 'DD/MM/YYYY', 'FAC', 'ACH', 1, 'light', '#1e40af', '#1e293b')`).run();
+    client.prepare(`INSERT INTO settings (company_name, company_address, company_phone, company_email, currency, currency_symbol, date_format, invoice_prefix, purchase_prefix, theme, primary_color, sidebar_color)
+      VALUES ('Mini-Centre Distribution', '', '', '', 'GNF', 'GNF', 'DD/MM/YYYY', 'FAC', 'ACH', 'light', '#1e40af', '#1e293b')`).run();
   })();
 
   return { success: true };

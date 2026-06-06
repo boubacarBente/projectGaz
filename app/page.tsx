@@ -212,7 +212,6 @@ export default function DashboardPage() {
   const { sales, purchases, totalSales, totalPurchases, grossProfit, salesCount, purchasesCount, soldByProduct } = filteredData;
   const totalBottlesSold = sales.reduce((sum, s) => sum + s.items.reduce((a, i) => a + i.quantity, 0), 0);
   const totalBottlesPurchased = purchases.reduce((sum, p) => sum + p.items.reduce((a, i) => a + i.quantity, 0), 0);
-  const stockTotal = snapshot.soldByProduct.reduce((s, p) => s + p.quantity, 0);
 
   // Données pour graphiques mensuels (toujours sur 12 mois glissants)
   const months = ['Jan', 'F\u00e9v', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Ao\u00fbt', 'Sep', 'Oct', 'Nov', 'D\u00e9c'];
@@ -272,16 +271,6 @@ export default function DashboardPage() {
       color: grossProfit >= 0 ? 'text-success' : 'text-error',
       bgColor: grossProfit >= 0 ? 'bg-success/10' : 'bg-error/10',
       borderColor: grossProfit >= 0 ? 'border-success/20' : 'border-error/20',
-    },
-    {
-      label: 'Stock total',
-      value: `${stockTotal}`,
-      hint: `Vendues: ${totalBottlesSold} sur la p\u00e9riode`,
-      icon: '🏪',
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-      borderColor: 'border-primary/20',
-      trend: purchasesCount > 0 && period !== 'total' ? `${totalBottlesPurchased} achet\u00e9es` : null,
     },
   ];
 

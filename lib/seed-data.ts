@@ -184,7 +184,7 @@ export async function seedDatabase() {
     results.push("→ Fournisseurs ignorés (déjà existants)");
   }
 
-  // ── Produits et stock ──
+  // ── Produits ──
   if (existingProducts.count === 0) {
     const insertProduct = client.prepare(
       "INSERT INTO products (code, name, capacity, unit_price, sale_price) VALUES (?, ?, ?, ?, ?)"
@@ -193,15 +193,6 @@ export async function seedDatabase() {
       insertProduct.run(p.code, p.name, p.capacity, p.unitPrice, p.salePrice);
     }
     results.push(`✓ ${seedProducts.length} produits créés`);
-
-    const products = client.prepare("SELECT id, code, name, capacity FROM products").all() as { id: number; code: string; name: string; capacity: string }[];
-    const insertStock = client.prepare(
-      "INSERT INTO stock (product_id, product_code, product_name, capacity, current_stock, min_stock) VALUES (?, ?, ?, ?, ?, ?)"
-    );
-    for (const prod of products) {
-      insertStock.run(prod.id, prod.code, prod.name, prod.capacity, 200, 10);
-    }
-    results.push(`✓ Stock initialisé (200 unités par produit, seuil min : 10)`);
   } else {
     results.push("→ Produits ignorés (déjà existants)");
   }
@@ -218,13 +209,6 @@ export async function seedDatabase() {
     const insertItem = client.prepare(
       `INSERT INTO purchase_invoice_items (invoice_id, product_id, product_code, product_name, quantity, unit_cost, total_cost)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    );
-    const insertMovement = client.prepare(
-      `INSERT INTO stock_movements (product_id, product_code, product_name, type, quantity, reference, notes, created_at)
-       VALUES (?, ?, ?, 'entry', ?, ?, ?, ?)`
-    );
-    const updateStock = client.prepare(
-      `UPDATE stock SET current_stock = current_stock + ?, last_entry = ? WHERE product_id = ?`
     );
     const updateSupplierTotal = client.prepare(
       `UPDATE suppliers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE id = ?`
@@ -262,8 +246,6 @@ export async function seedDatabase() {
 
         for (const item of itemRows) {
           insertItem.run(invoiceId, item.productId, item.code, item.name, item.qty, item.cost, item.total);
-          insertMovement.run(item.productId, item.code, item.name, item.qty, `ACHAT-${ref}`, `Approvisionnement via facture ${ref}`, ts);
-          updateStock.run(item.qty, seed.date, item.productId);
         }
 
         updateSupplierTotal.run(totalAmount, seed.supplierId);
@@ -271,7 +253,7 @@ export async function seedDatabase() {
     })();
 
     results.push(`✓ ${invoicesCount} factures d'achat créées`);
-    results.push(`✓ Mouvements de stock et totaux fournisseurs mis à jour`);
+    results.push(`✓ Totaux fournisseurs mis à jour`);
   } else {
     results.push("→ Factures d'achat ignorées (déjà existantes)");
   }
@@ -288,13 +270,6 @@ export async function seedDatabase() {
     const insertItem = client.prepare(
       `INSERT INTO sales_invoice_items (invoice_id, product_id, product_code, product_name, quantity, unit_price, total_price)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    );
-    const insertMovement = client.prepare(
-      `INSERT INTO stock_movements (product_id, product_code, product_name, type, quantity, reference, notes, created_at)
-       VALUES (?, ?, ?, 'exit', ?, ?, ?, ?)`
-    );
-    const updateStock = client.prepare(
-      `UPDATE stock SET current_stock = MAX(0, current_stock - ?), last_exit = ? WHERE product_id = ?`
     );
     const updateCustomerTotal = client.prepare(
       `UPDATE customers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE name = ?`
@@ -335,8 +310,6 @@ export async function seedDatabase() {
 
         for (const item of itemRows) {
           insertItem.run(invoiceId, item.productId, item.code, item.name, item.qty, item.price, item.total);
-          insertMovement.run(item.productId, item.code, item.name, item.qty, `FACT-${invoiceNum}`, `Vente via facture ${invoiceNum}`, ts);
-          updateStock.run(item.qty, seed.date, item.productId);
         }
 
         updateCustomerTotal.run(totalAmount, seed.customerName);
@@ -344,7 +317,7 @@ export async function seedDatabase() {
     })();
 
     results.push(`✓ ${totalSales} factures de vente créées`);
-    results.push(`✓ Mouvements de stock et totaux clients mis à jour`);
+    results.push(`✓ Totaux clients mis à jour`);
   } else {
     results.push("→ Factures de vente ignorées (déjà existantes)");
   }
