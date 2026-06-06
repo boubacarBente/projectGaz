@@ -1695,8 +1695,8 @@ export async function createWalletTransaction(data: {
       INSERT INTO wallet_transactions (amount, type, description, balance_after, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
-    const now = new Date();
-    const result = stmt.run(data.amount, data.type, data.description || null, newBalance, now.getTime(), now.getTime());
+    const now = Math.floor(Date.now() / 1000);
+    const result = stmt.run(data.amount, data.type, data.description || null, newBalance, now, now);
 
     return {
       id: result.lastInsertRowid as number,
@@ -1704,8 +1704,8 @@ export async function createWalletTransaction(data: {
       type: data.type,
       description: data.description || null,
       balanceAfter: newBalance,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: new Date(now * 1000),
+      updatedAt: new Date(now * 1000),
     };
   })();
 }
@@ -1720,7 +1720,7 @@ export async function updateWalletTransaction(
   const client: Database.Database = (db as any).$client;
 
   return client.transaction(() => {
-    const now = new Date();
+    const now = Math.floor(Date.now() / 1000);
     const amount = data.amount ?? existing.amount;
     const type = data.type ?? existing.type;
     const description = data.description !== undefined ? data.description : existing.description;
@@ -1730,7 +1730,7 @@ export async function updateWalletTransaction(
       UPDATE wallet_transactions
       SET amount = ?, type = ?, description = ?, updated_at = ?
       WHERE id = ?
-    `).run(amount, type, description, now.getTime(), id);
+    `).run(amount, type, description, now, id);
 
     // Recalculer les soldes à partir de cette transaction
     recalculateBalancesFrom(client, id);
@@ -1743,8 +1743,8 @@ export async function updateWalletTransaction(
       type: updated.type,
       description: updated.description,
       balanceAfter: updated.balance_after,
-      createdAt: new Date(updated.created_at),
-      updatedAt: new Date(updated.updated_at),
+      createdAt: new Date((updated.created_at as number) * 1000),
+      updatedAt: new Date((updated.updated_at as number) * 1000),
     };
   })();
 }
