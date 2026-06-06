@@ -52,7 +52,7 @@ export async function GET(request: Request) {
       'FROM suppliers s LEFT JOIN purchase_invoices pi ON pi.supplier_id = s.id' +
       supplierWhereClause +
       ' GROUP BY s.id, s.name ORDER BY total DESC'
-    ).get(...supplierParams);
+    ).all(...supplierParams);
 
     // Stats par période
     let periodSelect: string;

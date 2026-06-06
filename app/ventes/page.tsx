@@ -248,7 +248,7 @@ export default function FacturesPage() {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
     const dailyTotals = new Map<string, number>();
-    for (const inv of invoices) {
+    for (const inv of allPeriodInvoices) {
       const d = new Date(inv.date);
       if (d >= thirtyDaysAgo) {
         dailyTotals.set(inv.date, (dailyTotals.get(inv.date) || 0) + inv.totalAmount);
