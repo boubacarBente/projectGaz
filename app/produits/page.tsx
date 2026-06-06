@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -41,7 +41,7 @@ const initialFormData: ProductFormData = {
 
 export default function ProduitsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [produitsStats, setProduitsStats] = useState<{ total: number; activeCount: number; averageSalePrice: number } | null>(null);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,16 +59,11 @@ export default function ProduitsPage() {
   useEffect(() => {
     fetchProducts();
   }, [currentPage, search]);
-  useEffect(() => {
-    fetchAllProducts();
-  }, []);
+  useEffect(() => { fetchProduitsStats(); }, []);
 
-  const fetchAllProducts = async () => {
-    try {
-      const res = await fetch('/api/produits?all=true&limit=10000');
-      const data = await res.json();
-      setAllProducts(data.data || []);
-    } catch { /* silent */ }
+  const fetchProduitsStats = async () => {
+    try { const res = await fetch('/api/produits/stats'); const data = await res.json(); setProduitsStats(data); }
+    catch { /* silent */ }
   };
 
   const fetchProducts = async () => {
@@ -212,13 +207,8 @@ export default function ProduitsPage() {
       currency: 'GNF',
     }).format(amount);
 
-  const activeProducts = allProducts.filter((p) => p.isActive).length;
-  const averageSalePrice =
-    allProducts.length > 0
-      ? Math.round(
-          allProducts.reduce((sum, p) => sum + p.salePrice, 0) / allProducts.length
-        )
-      : 0;
+  const activeProducts = produitsStats?.activeCount ?? 0;
+  const averageSalePrice = produitsStats?.averageSalePrice ?? 0;
 
   return (
     <div className="space-y-6">

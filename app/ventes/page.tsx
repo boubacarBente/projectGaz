@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -144,7 +144,14 @@ export default function FacturesPage() {
   const [invoices, setInvoices] = useState<SalesInvoice[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [allPeriodInvoices, setAllPeriodInvoices] = useState<SalesInvoice[]>([]);
+  const [ventesStats, setVentesStats] = useState<{
+    total: { total: number; paid: number; remaining: number; count: number; paidCount: number };
+    byStatus: Array<{ status: string; count: number; total: number }>;
+    byCustomer: Array<{ name: string; count: number; total: number; paid: number }>;
+    byPeriod: Array<{ label: string; total: number; paid: number; count: number }> | null;
+    recentInvoices: Array<{ id: number; invoiceNumber: string; customerName: string; date: string; totalAmount: number; amountPaid: number; remainingAmount: number; paymentStatus: string }>;
+    dailyAvg: number;
+  } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,116 +180,14 @@ export default function FacturesPage() {
   );
   const ITEMS_PER_PAGE = 10;
 
-  // Stats calculées à partir de toutes les factures de la période
-  const stats = useMemo(() => {
-    const filtered = allPeriodInvoices;
-    const total = filtered.reduce((s, inv) => s + inv.totalAmount, 0);
-    const paid = filtered.reduce((s, inv) => s + inv.amountPaid, 0);
-    const remaining = filtered.reduce((s, inv) => s + inv.remainingAmount, 0);
-    const count = filtered.length;
-    const paidCount = filtered.filter(inv => inv.paymentStatus === 'Paye').length;
-
-    // Par statut
-    const statusMap = new Map<string, { count: number; total: number }>();
-    for (const inv of filtered) {
-      const s = statusMap.get(inv.paymentStatus) || { count: 0, total: 0 };
-      s.count++;
-      s.total += inv.totalAmount;
-      statusMap.set(inv.paymentStatus, s);
-    }
-    const byStatus = Array.from(statusMap.entries()).map(([status, data]) => ({
-      status, count: data.count, total: data.total,
-    }));
-
-    // Par client
-    const customerMap = new Map<string, { count: number; total: number; paid: number }>();
-    for (const inv of filtered) {
-      const c = customerMap.get(inv.customerName) || { count: 0, total: 0, paid: 0 };
-      c.count++;
-      c.total += inv.totalAmount;
-      c.paid += inv.amountPaid;
-      customerMap.set(inv.customerName, c);
-    }
-    const byCustomer = Array.from(customerMap.entries()).map(([name, data]) => ({
-      name, count: data.count, total: data.total, paid: data.paid,
-    })).sort((a, b) => b.total - a.total).slice(0, 10);
-
-    // Par période
-    let byPeriod: Array<{ label: string; total: number; paid: number; count: number }> | null = null;
-    if (period !== 'total' && period !== 'today') {
-      const periodMap = new Map<string, { total: number; paid: number; count: number }>();
-      for (const inv of filtered) {
-        let label: string;
-        const d = new Date(inv.date);
-        switch (period) {
-          case 'day':
-            label = inv.date;
-            break;
-          case 'week': {
-            const start = new Date(d);
-            start.setDate(d.getDate() - d.getDay());
-            label = `${start.getFullYear()}-W${String(Math.ceil((start.getTime() - new Date(start.getFullYear(), 0, 1).getTime()) / 604800000) + 1).padStart(2, '0')}`;
-            break;
-          }
-          case 'month':
-            label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            break;
-          case 'year':
-            label = `${d.getFullYear()}`;
-            break;
-          default:
-            label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        }
-        const p = periodMap.get(label) || { total: 0, paid: 0, count: 0 };
-        p.total += inv.totalAmount;
-        p.paid += inv.amountPaid;
-        p.count++;
-        periodMap.set(label, p);
-      }
-      byPeriod = Array.from(periodMap.entries()).map(([label, data]) => ({
-        label, total: data.total, paid: data.paid, count: data.count,
-      })).sort((a, b) => a.label.localeCompare(b.label));
-    }
-
-    // Moyenne par jour (30 derniers jours)
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-    const dailyTotals = new Map<string, number>();
-    for (const inv of invoices) {
-      const d = new Date(inv.date);
-      if (d >= thirtyDaysAgo) {
-        dailyTotals.set(inv.date, (dailyTotals.get(inv.date) || 0) + inv.totalAmount);
-      }
-    }
-    const dailyAvg = dailyTotals.size > 0
-      ? Math.round(Array.from(dailyTotals.values()).reduce((s, v) => s + v, 0) / dailyTotals.size)
-      : 0;
-
-    // Dernières factures (triées par date)
-    const recentInvoices = [...allPeriodInvoices]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 10)
-      .map(inv => ({
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        customerName: inv.customerName,
-        date: inv.date,
-        totalAmount: inv.totalAmount,
-        amountPaid: inv.amountPaid,
-        remainingAmount: inv.remainingAmount,
-        paymentStatus: inv.paymentStatus,
-        totalItems: inv.items.reduce((s, i) => s + i.quantity, 0),
-      }));
-
-    return {
-      total: { total, paid, remaining, count, paidCount },
-      byStatus,
-      byCustomer,
-      byPeriod,
-      recentInvoices,
-      dailyAvg,
-    };
-  }, [allPeriodInvoices, period]);
+  const stats = ventesStats ?? {
+    total: { total: 0, paid: 0, remaining: 0, count: 0, paidCount: 0 },
+    byStatus: [],
+    byCustomer: [],
+    byPeriod: null,
+    recentInvoices: [],
+    dailyAvg: 0,
+  };
   const getPeriodParams = () => {
     if (period === 'total') return { from: undefined, to: undefined };
     if (period === 'day' && selectedDay) return { from: selectedDay, to: selectedDay };
@@ -298,7 +203,7 @@ export default function FacturesPage() {
   // Re-fetch les stats quand la période change
   useEffect(() => {
     const { from, to } = getPeriodParams();
-    fetchPeriodData(from, to);
+    fetchVentesStats(from, to);
   }, [period, selectedDay, selectedMonth]);
 
   // Re-fetch la table paginée quand la période, la recherche, le filtre ou la page changent
@@ -307,15 +212,15 @@ export default function FacturesPage() {
     fetchInvoices(from, to);
   }, [period, selectedDay, selectedMonth, currentPage, search, filter]);
 
-  const fetchPeriodData = async (from?: string, to?: string) => {
+  const fetchVentesStats = async (from?: string, to?: string) => {
     try {
       const params = new URLSearchParams();
-      params.set('limit', '10000');
       if (from) params.set('from', from);
       if (to) params.set('to', to);
-      const res = await fetch(`/api/factures?${params}`);
+      params.set('period', period);
+      const res = await fetch(`/api/factures/stats?${params}`);
       const data = await res.json();
-      setAllPeriodInvoices(data.data || []);
+      setVentesStats(data);
     } catch {
       // stats silently fail
     }
@@ -395,7 +300,7 @@ export default function FacturesPage() {
       resetForm();
       const { from, to } = getPeriodParams();
       fetchInvoices(from, to);
-      fetchPeriodData(from, to);
+      fetchVentesStats(from, to);
     } catch {
       toast.error('Erreur lors de la création');
     } finally {
@@ -438,7 +343,7 @@ export default function FacturesPage() {
       resetForm();
       const { from, to } = getPeriodParams();
       fetchInvoices(from, to);
-      fetchPeriodData(from, to);
+      fetchVentesStats(from, to);
     } catch {
       toast.error('Erreur lors de la modification');
     } finally {
@@ -459,7 +364,7 @@ export default function FacturesPage() {
       setSelectedInvoice(null);
       const { from, to } = getPeriodParams();
       fetchInvoices(from, to);
-      fetchPeriodData(from, to);
+      fetchVentesStats(from, to);
     } catch {
       toast.error('Erreur lors de la suppression');
     } finally {

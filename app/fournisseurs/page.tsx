@@ -57,6 +57,7 @@ type StatsData = {
     id: number; reference: string; date: string; totalAmount: number;
     isPaid: number; supplierName: string; totalItems: number;
   }>;
+  activeCount: number;
   filters: { period: string; supplierId: number | null; from: string | null; to: string | null };
 };
 
@@ -93,7 +94,6 @@ function SparklineBar({ values, max, color }: { values: number[]; max: number; c
 
 export default function FournisseursPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -154,20 +154,8 @@ export default function FournisseursPage() {
   }, [currentPage, search]);
 
   useEffect(() => {
-    fetchAllSuppliers();
-  }, []);
-
-  useEffect(() => {
     fetchStats();
   }, [fetchStats]);
-
-  const fetchAllSuppliers = async () => {
-    try {
-      const res = await fetch('/api/fournisseurs?limit=10000');
-      const data = await res.json();
-      setAllSuppliers(Array.isArray(data.data) ? data.data : []);
-    } catch { /* silent */ }
-  };
 
   const fetchSuppliers = async () => {
     setIsLoading(true);
@@ -443,7 +431,7 @@ export default function FournisseursPage() {
                     <div className="stat bg-base-100 rounded-xl border border-base-300 shadow-sm">
                       <div className="stat-title text-xs font-semibold tracking-wider uppercase">Fournisseurs</div>
                       <div className="stat-value text-2xl lg:text-3xl tracking-tight">{total}</div>
-                      <div className="stat-desc">{allSuppliers.filter(s => s.isActive).length} actifs</div>
+                      <div className="stat-desc">{stats?.activeCount ?? 0} actifs</div>
                     </div>
                     <div className="stat bg-base-100 rounded-xl border border-base-300 shadow-sm">
                       <div className="stat-title text-xs font-semibold tracking-wider uppercase">Période</div>

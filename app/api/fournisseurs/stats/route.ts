@@ -52,7 +52,7 @@ export async function GET(request: Request) {
       'FROM suppliers s LEFT JOIN purchase_invoices pi ON pi.supplier_id = s.id' +
       supplierWhereClause +
       ' GROUP BY s.id, s.name ORDER BY total DESC'
-    ).get(...supplierParams);
+    ).all(...supplierParams);
 
     // Stats par période
     let periodSelect: string;
@@ -88,11 +88,15 @@ export async function GET(request: Request) {
       ' ORDER BY pi.created_at DESC LIMIT 10'
     ).all(...params);
 
+    // Active suppliers count (global, not filtered)
+    const activeRow = rawDb.prepare('SELECT COUNT(*) as count FROM suppliers WHERE is_active = 1').get() as { count: number };
+
     return NextResponse.json({
       total: totalRow,
       bySupplier,
       byPeriod,
       recentInvoices,
+      activeCount: Number(activeRow.count),
       filters: { period, supplierId: supplierId ? Number(supplierId) : null, from, to },
     });
   } catch (error) {

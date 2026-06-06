@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -99,7 +99,7 @@ export default function ClientsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+  const [clientsStats, setClientsStats] = useState<{ total: number; activeCount: number; totalPurchases: number; topCustomers: Customer[] } | null>(null);
   const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -123,9 +123,9 @@ export default function ClientsPage() {
 
   const fetchCustomersStats = async () => {
     try {
-      const res = await fetch('/api/clients?limit=10000');
+      const res = await fetch('/api/clients/stats');
       const data = await res.json();
-      setAllCustomers(data.data || []);
+      setClientsStats(data);
     } catch { /* silent */ }
   };
 
@@ -253,9 +253,9 @@ export default function ClientsPage() {
     }
   };
 
-  const topCustomers = [...allCustomers].sort((a, b) => b.totalPurchases - a.totalPurchases).slice(0, 5);
-  const totalAll = allCustomers.reduce((s, c) => s + c.totalPurchases, 0);
-  const activeCount = allCustomers.filter((c) => c.isActive).length;
+  const topCustomers = clientsStats?.topCustomers || [];
+  const totalAll = clientsStats?.totalPurchases ?? 0;
+  const activeCount = clientsStats?.activeCount ?? 0;
 
   return (
     <motion.div
