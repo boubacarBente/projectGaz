@@ -80,6 +80,8 @@ function formatCurrency(value: number) {
 
 export default function DepensesPage() {
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<{ id: number; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,60 +94,48 @@ export default function DepensesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [supplierFilter, setSupplierFilter] = useState('');
 
-  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage } = useSearchFilter(
     invoices,
-    ['reference', 'supplier', 'date'],
-    (item, filterValue) => {
-      if (filterValue === 'paid') return item.isPaid === true;
-      if (filterValue === 'unpaid') return item.isPaid === false;
-      return true;
-    }
+    ['reference', 'date'],
   );
-
-  // Appliquer aussi le filtre fournisseur
-  const filteredBySupplier = useMemo(() => {
-    if (!supplierFilter) return filtered;
-    return filtered.filter(inv =>
-      inv.supplierName.toLowerCase() === supplierFilter.toLowerCase()
-    );
-  }, [filtered, supplierFilter]);
 
   const ITEMS_PER_PAGE = 10;
 
-  // Trier par date (plus récente en premier) et paginer
-  const sorted = useMemo(() => {
-    return [...filteredBySupplier].sort((a, b) => b.date.localeCompare(a.date));
-  }, [filteredBySupplier]);
-
-  const paginatedInvoices = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return sorted.slice(start, start + ITEMS_PER_PAGE);
-  }, [sorted, currentPage]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / ITEMS_PER_PAGE));
-
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage, search, filter, supplierFilter]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('limit', String(ITEMS_PER_PAGE));
+      if (search) params.set('search', search);
+      if (filter === 'paid') params.set('paid', 'true');
+      if (filter === 'unpaid') params.set('paid', 'false');
+      if (supplierFilter) {
+        const supplier = suppliers.find(s => s.name.toLowerCase() === supplierFilter.toLowerCase());
+        if (supplier) params.set('supplierId', String(supplier.id));
+      }
       const [invoicesRes, productsRes, suppliersRes] = await Promise.all([
-        fetch('/api/depenses'),
-        fetch('/api/produits'),
-        fetch('/api/fournisseurs'),
+        fetch(`/api/depenses?${params}`),
+        fetch('/api/produits?all=true&limit=100'),
+        fetch('/api/fournisseurs?limit=100'),
       ]);
       const invoicesData = await invoicesRes.json();
       const productsData = await productsRes.json();
       const suppliersData = await suppliersRes.json();
-      setInvoices(invoicesData);
-      setProducts(productsData);
-      setSuppliers(suppliersData);
-      if (productsData.length > 0) {
+      setInvoices(invoicesData.data);
+      setTotal(invoicesData.total);
+      setTotalPages(invoicesData.totalPages);
+      setProducts(productsData.data || productsData);
+      setSuppliers(suppliersData.data || suppliersData);
+      const prodList = productsData.data || productsData;
+      if (prodList.length > 0) {
         setFormData(prev => ({
           ...prev,
-          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitCost: '' }]
+          lines: [{ productId: prodList[0].id.toString(), quantity: '1', unitCost: '' }]
         }));
       }
     } catch {
@@ -538,7 +528,7 @@ export default function DepensesPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div>
             <h3 className="font-semibold text-lg">Historique des factures</h3>
-            <p className="text-sm text-base-content/60">{filtered.length} facture(s) sur {invoices.length}</p>
+            <p className="text-sm text-base-content/60">{total} facture(s)</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <FilterSelect
@@ -567,7 +557,7 @@ export default function DepensesPage() {
           </div>
         </div>
 
-        {filteredBySupplier.length === 0 ? (
+        {invoices.length === 0 && !isLoading ? (
           <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -595,7 +585,7 @@ export default function DepensesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedInvoices.map((invoice) => (
+                  {invoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td className="font-medium">{invoice.reference}</td>
                       <td>{invoice.supplierName}</td>

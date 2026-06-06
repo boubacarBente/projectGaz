@@ -1,17 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, schema } from '@/db';
-import { eq } from 'drizzle-orm';
+import { eq, asc, and, or, like, sql } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const all = searchParams.get('all') === 'true';
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '10', 10)));
+    const search = searchParams.get('search') || undefined;
 
-    const products = all
-      ? await db.select().from(schema.products)
-      : await db.select().from(schema.products).where(eq(schema.products.isActive, true));
+    const conditions = [];
+    if (!all) conditions.push(eq(schema.products.isActive, true));
+    if (search) {
+      conditions.push(
+        or(
+          like(schema.products.code, `%${search}%`),
+          like(schema.products.name, `%${search}%`),
+          like(schema.products.capacity, `%${search}%`),
+        )
+      );
+    }
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const offset = (page - 1) * limit;
 
-    return NextResponse.json(products, {
+    const [data, totalResult] = await Promise.all([
+      db.select().from(schema.products)
+        .where(where)
+        .orderBy(asc(schema.products.id))
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`count(*)` })
+        .from(schema.products)
+        .where(where),
+    ]);
+
+    return NextResponse.json({
+      data,
+      total: Number(totalResult[0].count),
+      page,
+      limit,
+      totalPages: Math.ceil(Number(totalResult[0].count) / limit),
+    }, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',

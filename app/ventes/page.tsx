@@ -142,6 +142,9 @@ function getStatusColor(status: string) {
 
 export default function FacturesPage() {
   const [invoices, setInvoices] = useState<SalesInvoice[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [allPeriodInvoices, setAllPeriodInvoices] = useState<SalesInvoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -164,16 +167,15 @@ export default function FacturesPage() {
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 7);
   });
 
-  const periodFilter = useMemo(() => getPeriodFilter(period, selectedDay, selectedMonth), [period, selectedDay, selectedMonth]);
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage } = useSearchFilter(
+    invoices,
+    ['invoiceNumber', 'customerName', 'date'],
+  );
+  const ITEMS_PER_PAGE = 10;
 
-  // Filtrer les invoices par période
-  const periodFilteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => periodFilter(inv.date));
-  }, [invoices, periodFilter]);
-
-  // Stats calculées client-side (comme le dashboard)
+  // Stats calculées à partir de toutes les factures de la période
   const stats = useMemo(() => {
-    const filtered = periodFilteredInvoices;
+    const filtered = allPeriodInvoices;
     const total = filtered.reduce((s, inv) => s + inv.totalAmount, 0);
     const paid = filtered.reduce((s, inv) => s + inv.amountPaid, 0);
     const remaining = filtered.reduce((s, inv) => s + inv.remainingAmount, 0);
@@ -257,7 +259,7 @@ export default function FacturesPage() {
       : 0;
 
     // Dernières factures (triées par date)
-    const recentInvoices = [...filtered]
+    const recentInvoices = [...allPeriodInvoices]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10)
       .map(inv => ({
@@ -280,55 +282,74 @@ export default function FacturesPage() {
       recentInvoices,
       dailyAvg,
     };
-  }, [periodFilteredInvoices, period, invoices]);
-
-  // useSearchFilter reçoit les invoices déjà filtrées par période
-  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, filtered } = useSearchFilter(
-    periodFilteredInvoices,
-    ['invoiceNumber', 'customerName', 'date', 'paymentStatus'],
-    (item, filterValue) => {
-      if (filterValue === 'paid') return item.paymentStatus === 'Paye';
-      if (filterValue === 'partial') return item.paymentStatus === 'Partiel';
-      if (filterValue === 'pending') return item.paymentStatus === 'En attente';
-      return true;
+  }, [allPeriodInvoices, period]);
+  const getPeriodParams = () => {
+    if (period === 'total') return { from: undefined, to: undefined };
+    if (period === 'day' && selectedDay) return { from: selectedDay, to: selectedDay };
+    if (period === 'month' && selectedMonth) {
+      const year = parseInt(selectedMonth.slice(0, 4), 10);
+      const mon = parseInt(selectedMonth.slice(5), 10);
+      const lastDay = new Date(year, mon, 0).getDate();
+      return { from: selectedMonth + '-01', to: selectedMonth + '-' + String(lastDay).padStart(2, '0') };
     }
-  );
-  const ITEMS_PER_PAGE = 10;
+    return { from: undefined, to: undefined };
+  };
 
-  // Trier par date (plus récente en premier) et paginer
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => b.date.localeCompare(a.date));
-  }, [filtered]);
-
-  const paginatedInvoices = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return sorted.slice(start, start + ITEMS_PER_PAGE);
-  }, [sorted, currentPage]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / ITEMS_PER_PAGE));
-
+  // Re-fetch les stats quand la période change
   useEffect(() => {
-    fetchData();
-  }, []);
+    const { from, to } = getPeriodParams();
+    fetchPeriodData(from, to);
+  }, [period, selectedDay, selectedMonth]);
 
-  const fetchData = async () => {
+  // Re-fetch la table paginée quand la période, la recherche, le filtre ou la page changent
+  useEffect(() => {
+    const { from, to } = getPeriodParams();
+    fetchInvoices(from, to);
+  }, [period, selectedDay, selectedMonth, currentPage, search, filter]);
+
+  const fetchPeriodData = async (from?: string, to?: string) => {
+    try {
+      const params = new URLSearchParams();
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      const res = await fetch(`/api/factures?${params}`);
+      const data = await res.json();
+      setAllPeriodInvoices(data.data || []);
+    } catch {
+      // stats silently fail
+    }
+  };
+
+  const fetchInvoices = async (from?: string, to?: string) => {
     setIsLoading(true);
     try {
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('limit', String(ITEMS_PER_PAGE));
+      if (search) params.set('search', search);
+      if (filter === 'paid') params.set('type', 'paid');
+      if (filter === 'partial') params.set('type', 'partial');
+      if (filter === 'pending') params.set('type', 'pending');
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
       const [invoicesRes, productsRes, customersRes] = await Promise.all([
-        fetch('/api/factures'),
-        fetch('/api/produits'),
-        fetch('/api/clients'),
+        fetch(`/api/factures?${params}`),
+        fetch('/api/produits?all=true&limit=100'),
+        fetch('/api/clients?limit=100'),
       ]);
       const invoicesData = await invoicesRes.json();
       const productsData = await productsRes.json();
       const customersData = await customersRes.json();
-      setInvoices(invoicesData);
-      setProducts(productsData);
-      setCustomers(customersData);
-      if (productsData.length > 0) {
+      setInvoices(invoicesData.data);
+      setTotal(invoicesData.total);
+      setTotalPages(invoicesData.totalPages);
+      setProducts(productsData.data || productsData);
+      setCustomers(customersData.data || customersData);
+      const prodList = productsData.data || productsData;
+      if (prodList.length > 0) {
         setFormData(prev => ({
           ...prev,
-          lines: [{ productId: productsData[0].id.toString(), quantity: '1', unitPrice: productsData[0].salePrice.toString() }]
+          lines: [{ productId: prodList[0].id.toString(), quantity: '1', unitPrice: prodList[0].salePrice.toString() }]
         }));
       }
     } catch {
@@ -371,7 +392,9 @@ export default function FacturesPage() {
       toast.success('Facture créée avec succès!');
       setShowAddModal(false);
       resetForm();
-      fetchData();
+      const { from, to } = getPeriodParams();
+      fetchInvoices(from, to);
+      fetchPeriodData(from, to);
     } catch {
       toast.error('Erreur lors de la création');
     } finally {
@@ -412,7 +435,9 @@ export default function FacturesPage() {
       setShowEditModal(false);
       setSelectedInvoice(null);
       resetForm();
-      fetchData();
+      const { from, to } = getPeriodParams();
+      fetchInvoices(from, to);
+      fetchPeriodData(from, to);
     } catch {
       toast.error('Erreur lors de la modification');
     } finally {
@@ -431,7 +456,9 @@ export default function FacturesPage() {
       toast.success('Facture supprimée avec succès!');
       setShowDeleteModal(false);
       setSelectedInvoice(null);
-      fetchData();
+      const { from, to } = getPeriodParams();
+      fetchInvoices(from, to);
+      fetchPeriodData(from, to);
     } catch {
       toast.error('Erreur lors de la suppression');
     } finally {
@@ -1025,18 +1052,18 @@ export default function FacturesPage() {
           )}
         </div>
         <div className="overflow-x-auto">
-          {filtered.length === 0 ? (
+          {invoices.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-base-content/60">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p>{invoices.length === 0 ? 'Aucune vente enregistrée.' : 'Aucune facture ne correspond aux filtres.'}</p>
+              <p>{total === 0 && invoices.length === 0 ? 'Aucune vente enregistrée.' : 'Aucune facture ne correspond aux filtres.'}</p>
             </div>
           ) : (
             <table className="table">
               <thead><tr className="bg-base-200"><th className="font-semibold">N° Facture</th><th className="font-semibold">Client</th><th className="font-semibold">Date</th><th className="font-semibold text-right">Total</th><th className="font-semibold text-right">Encaisse</th><th className="font-semibold text-right">Reste</th><th className="font-semibold">Statut</th><th className="font-semibold text-right">Actions</th></tr></thead>
               <tbody>
-                {paginatedInvoices.map((invoice) => (
+                {invoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-base-200">
                     <td className="font-medium">{invoice.invoiceNumber}</td>
                     <td>{invoice.customerName}</td>

@@ -93,6 +93,8 @@ function SparklineBar({ values, max, color }: { values: number[]; max: number; c
 
 export default function FournisseursPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -102,7 +104,7 @@ export default function FournisseursPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
-  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(suppliers, ['name', 'phone', 'address']);
+  const { search, setSearch, currentPage, setCurrentPage } = useSearchFilter(suppliers, ['name', 'phone', 'address']);
   const ITEMS_PER_PAGE = 10;
 
   // Stats state
@@ -148,7 +150,7 @@ export default function FournisseursPage() {
 
   useEffect(() => {
     fetchSuppliers();
-  }, []);
+  }, [currentPage, search]);
 
   useEffect(() => {
     fetchStats();
@@ -157,10 +159,16 @@ export default function FournisseursPage() {
   const fetchSuppliers = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/fournisseurs');
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('limit', String(ITEMS_PER_PAGE));
+      if (search) params.set('search', search);
+      const res = await fetch(`/api/fournisseurs?${params}`);
       if (!res.ok) throw new Error('Erreur');
       const data = await res.json();
-      setSuppliers(Array.isArray(data) ? data : []);
+      setSuppliers(Array.isArray(data.data) ? data.data : []);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);
     } catch {
       toast.error('Erreur lors du chargement');
       setSuppliers([]);
@@ -586,7 +594,7 @@ export default function FournisseursPage() {
             <table className="table">
               <thead><tr className="bg-base-200"><th className="font-semibold">Fournisseur</th><th className="font-semibold">Contact</th><th className="font-semibold">Adresse</th><th className="font-semibold text-right">Achats</th><th className="font-semibold text-center">Actions</th></tr></thead>
               <tbody>
-                {filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((supplier) => (
+                {suppliers.map((supplier) => (
                   <tr key={supplier.id} className="hover:bg-base-200">
                     <td>
                       <div className="flex items-center gap-3">
@@ -632,7 +640,7 @@ export default function FournisseursPage() {
         </div>
         <Pagination
           currentPage={currentPage}
-          totalPages={Math.ceil(filtered.length / ITEMS_PER_PAGE)}
+          totalPages={totalPages}
           onPageChange={setCurrentPage}
         />
       </div>

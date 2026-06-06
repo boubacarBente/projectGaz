@@ -41,8 +41,10 @@ const initialFormData: ProductFormData = {
 
 export default function ProduitsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const { search, setSearch, currentPage, setCurrentPage, filtered } = useSearchFilter(products, ['code', 'name', 'capacity']);
+  const { search, setSearch, currentPage, setCurrentPage } = useSearchFilter(products, ['code', 'name', 'capacity']);
   const ITEMS_PER_PAGE = 10;
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -55,14 +57,21 @@ export default function ProduitsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [currentPage, search]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/produits?all=true');
+      const params = new URLSearchParams();
+      params.set('all', 'true');
+      params.set('page', String(currentPage));
+      params.set('limit', String(ITEMS_PER_PAGE));
+      if (search) params.set('search', search);
+      const res = await fetch(`/api/produits?${params}`);
       const data = await res.json();
-      setProducts(data);
+      setProducts(data.data);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);
     } catch {
       toast.error('Erreur lors du chargement des produits');
     } finally {
@@ -191,20 +200,6 @@ export default function ProduitsPage() {
       currency: 'GNF',
     }).format(amount);
 
-  const sortByDate = (a: { createdAt: string | null }, b: { createdAt: string | null }) => {
-    const dateA = a.createdAt || '';
-    const dateB = b.createdAt || '';
-    return dateB.localeCompare(dateA);
-  };
-
-  const sortedProducts = useMemo(() => {
-    return [...products].sort(sortByDate);
-  }, [products]);
-
-  const sortedFiltered = useMemo(() => {
-    return [...filtered].sort(sortByDate);
-  }, [filtered]);
-
   const activeProducts = products.filter((p) => p.isActive).length;
   const averageSalePrice =
     products.length > 0
@@ -318,7 +313,7 @@ export default function ProduitsPage() {
                 </tr>
               </thead>
               <tbody>
-                {(search === '' ? sortedProducts : sortedFiltered).slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((product) => (
+                {products.map((product) => (
                   <tr key={product.id} className="hover:bg-base-200">
                     <td>
                       <div className="font-semibold">{product.code}</div>
@@ -388,7 +383,7 @@ export default function ProduitsPage() {
         </div>
         <Pagination 
           currentPage={currentPage} 
-          totalPages={Math.ceil((search === '' ? sortedProducts.length : sortedFiltered.length) / ITEMS_PER_PAGE)} 
+          totalPages={totalPages} 
           onPageChange={setCurrentPage} 
         />
       </div>

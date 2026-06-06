@@ -97,6 +97,8 @@ function StatusBadge({ active }: { active: boolean }) {
 
 export default function ClientsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -114,7 +116,7 @@ export default function ClientsPage() {
   const [selectedType, setSelectedType] = useState('');
   const ITEMS_PER_PAGE = 10;
 
-  useEffect(() => { fetchCustomers(); }, [search]);
+  useEffect(() => { fetchCustomers(); }, [search, selectedType, currentPage]);
   useEffect(() => { fetchCustomerTypes(); }, []);
 
   const fetchCustomers = async () => {
@@ -123,9 +125,13 @@ export default function ClientsPage() {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (selectedType) params.set('typeId', selectedType);
+      params.set('page', String(currentPage));
+      params.set('limit', String(ITEMS_PER_PAGE));
       const res = await fetch(`/api/clients?${params}`);
       const data = await res.json();
-      setCustomers(data);
+      setCustomers(data.data);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);
     } catch { toast.error('Erreur lors du chargement des clients'); }
     finally { setIsLoading(false); }
   };
@@ -237,24 +243,6 @@ export default function ClientsPage() {
     }
   };
 
-  const filtered = search
-    ? customers.filter(
-        (c) =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          (c.phone && c.phone.includes(search)) ||
-          (c.email && c.email.toLowerCase().includes(search)) ||
-          (c.city && c.city.toLowerCase().includes(search))
-      )
-    : customers;
-
-  const sortedFiltered = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
-  }, [filtered]);
-
   const topCustomers = [...customers].sort((a, b) => b.totalPurchases - a.totalPurchases).slice(0, 5);
   const totalAll = customers.reduce((s, c) => s + c.totalPurchases, 0);
   const activeCount = customers.filter((c) => c.isActive).length;
@@ -346,7 +334,7 @@ export default function ClientsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedFiltered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((customer) => (
+                  {customers.map((customer) => (
                     <motion.tr
                       key={customer.id}
                       layout
@@ -404,7 +392,7 @@ export default function ClientsPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-base-200/50 px-4 py-3">
             <p className="text-xs text-base-content/40">
-              {filtered.length} client{filtered.length !== 1 ? 's' : ''}
+              {total} client{total !== 1 ? 's' : ''}
             </p>
             <div className="flex items-center gap-1.5">
               <button
@@ -414,8 +402,7 @@ export default function ClientsPage() {
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              {Array.from({ length: Math.min(5, Math.ceil(filtered.length / ITEMS_PER_PAGE)) }, (_, i) => {
-                const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let start = Math.max(0, currentPage - 3);
                 if (start + 5 > totalPages) start = Math.max(0, totalPages - 5);
                 const pageIndex = start + i;
@@ -435,8 +422,8 @@ export default function ClientsPage() {
                 );
               })}
               <button
-                onClick={() => setCurrentPage(Math.min(Math.ceil(filtered.length / ITEMS_PER_PAGE), currentPage + 1))}
-                disabled={currentPage >= Math.ceil(filtered.length / ITEMS_PER_PAGE)}
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage >= totalPages}
                 className="btn btn-ghost btn-xs btn-square rounded-lg disabled:opacity-20"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>

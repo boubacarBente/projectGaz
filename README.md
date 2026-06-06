@@ -246,10 +246,12 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 
 ## API REST
 
+> **Toutes les routes GET de listes (`/api/clients`, `/api/fournisseurs`, `/api/produits`, `/api/factures`, `/api/depenses`) supportent la pagination serveur** via les paramètres `?page=1&limit=10&search=...`. Réponse au format `{ data, total, page, limit, totalPages }`.
+
 ### Clients
 | Méthode | Route | Description |
 |---------|-------|-------------|
-| GET | `/api/clients` | Liste tous les clients |
+| GET | `/api/clients` | Liste paginée (`?search=&typeId=&page=1&limit=10`) |
 | POST | `/api/clients` | Créer un client |
 | GET | `/api/clients/[id]` | Détail d'un client |
 | PUT | `/api/clients/[id]` | Modifier un client |
@@ -263,7 +265,7 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 ### Fournisseurs
 | Méthode | Route | Description |
 |---------|-------|-------------|
-| GET | `/api/fournisseurs` | Liste tous les fournisseurs |
+| GET | `/api/fournisseurs` | Liste paginée (`?search=&page=1&limit=10`) |
 | POST | `/api/fournisseurs` | Créer un fournisseur |
 | GET | `/api/fournisseurs/[id]` | Détail + factures d'achat |
 | PUT | `/api/fournisseurs/[id]` | Modifier un fournisseur |
@@ -272,7 +274,7 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 ### Produits
 | Méthode | Route | Description |
 |---------|-------|-------------|
-| GET | `/api/produits` | Liste tous les produits |
+| GET | `/api/produits` | Liste paginée (`?all=true&search=&page=1&limit=10`) |
 | POST | `/api/produits` | Créer un produit |
 | PUT | `/api/produits/[id]` | Modifier un produit |
 | DELETE | `/api/produits/[id]` | Supprimer un produit |
@@ -280,7 +282,7 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 ### Factures de Vente
 | Méthode | Route | Description |
 |---------|-------|-------------|
-| GET | `/api/factures` | Liste toutes les factures |
+| GET | `/api/factures` | Liste paginée (`?search=&page=1&limit=10&type=paid\|partial\|pending`) |
 | POST | `/api/factures` | Créer une facture |
 | GET | `/api/factures/[id]` | Détail d'une facture |
 | PUT | `/api/factures/[id]` | Modifier une facture |
@@ -289,7 +291,7 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 ### Dépenses (Factures d'Achat)
 | Méthode | Route | Description |
 |---------|-------|-------------|
-| GET | `/api/depenses` | Liste toutes les dépenses |
+| GET | `/api/depenses` | Liste paginée (`?search=&page=1&limit=10&paid=bool&supplierId=`) |
 | POST | `/api/depenses` | Créer une dépense |
 | GET | `/api/depenses/[id]` | Détail d'une dépense |
 | PUT | `/api/depenses/[id]` | Modifier une dépense |

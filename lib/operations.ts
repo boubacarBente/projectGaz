@@ -224,7 +224,6 @@ export function calculateSalesProfitMetrics(
 // }
 
 export async function listPurchaseInvoices(from?: string, to?: string) {
-  // --- CODE SQL ---
   const conditions = [];
   if (from) conditions.push(gte(purchaseInvoices.date, from));
   if (to) conditions.push(lte(purchaseInvoices.date, to));
@@ -269,12 +268,67 @@ export async function listPurchaseInvoices(from?: string, to?: string) {
   return invoicesWithItems;
 }
 
-export async function listSalesInvoices(from?: string, to?: string) {
-  // --- CODE JSON (commenté) ---
-  // const invoices = await readJsonFile<SalesInvoice[]>(salesFile);
-  // return invoices.sort((a, b) => b.date.localeCompare(a.date));
+export async function listPaginatedPurchaseInvoices(
+  page: number,
+  limit: number,
+  { from, to, search, isPaid, supplierId }: { from?: string; to?: string; search?: string; isPaid?: boolean; supplierId?: number } = {}
+) {
+  const conditions = [];
+  if (from) conditions.push(gte(purchaseInvoices.date, from));
+  if (to) conditions.push(lte(purchaseInvoices.date, to));
+  if (search) conditions.push(like(purchaseInvoices.reference, `%${search}%`));
+  if (isPaid !== undefined) conditions.push(eq(purchaseInvoices.isPaid, isPaid));
+  if (supplierId) conditions.push(eq(purchaseInvoices.supplierId, supplierId));
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const offset = (page - 1) * limit;
 
-  // --- CODE SQL ---
+  const [invoices, totalResult] = await Promise.all([
+    db.query.purchaseInvoices.findMany({
+      where,
+      orderBy: [desc(purchaseInvoices.date)],
+      with: { supplier: true },
+      limit,
+      offset,
+    }),
+    db.select({ count: sql<number>`count(*)` })
+      .from(purchaseInvoices)
+      .where(where),
+  ]);
+
+  const data = await Promise.all(
+    invoices.map(async (inv) => {
+      const items = await db.select()
+        .from(purchaseInvoiceItems)
+        .where(eq(purchaseInvoiceItems.invoiceId, inv.id));
+
+      return {
+        id: inv.id,
+        supplierId: inv.supplierId,
+        reference: inv.reference,
+        supplier: inv.supplier?.name || '',
+        supplierName: inv.supplier?.name || '',
+        date: inv.date,
+        notes: inv.notes || "",
+        items: items.map(item => ({
+          productId: item.productId,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          totalCost: item.totalCost,
+        })),
+        totalAmount: inv.totalAmount ?? 0,
+        isPaid: inv.isPaid ?? false,
+        createdAt: inv.createdAt?.toISOString() || "",
+      };
+    })
+  );
+
+  const total = Number(totalResult[0].count);
+  return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+}
+
+export async function listSalesInvoices(from?: string, to?: string) {
   const conditions = [];
   if (from) conditions.push(gte(salesInvoices.date, from));
   if (to) conditions.push(lte(salesInvoices.date, to));
@@ -315,6 +369,75 @@ export async function listSalesInvoices(from?: string, to?: string) {
   );
   
   return invoicesWithItems;
+}
+
+export async function listPaginatedSalesInvoices(
+  page: number,
+  limit: number,
+  { from, to, search, type }: { from?: string; to?: string; search?: string; type?: 'paid' | 'partial' | 'pending' } = {}
+) {
+  const conditions = [];
+  if (from) conditions.push(gte(salesInvoices.date, from));
+  if (to) conditions.push(lte(salesInvoices.date, to));
+  if (search) {
+    conditions.push(
+      or(
+        like(salesInvoices.invoiceNumber, `%${search}%`),
+        like(salesInvoices.customerName, `%${search}%`),
+      )
+    );
+  }
+  if (type === 'paid') conditions.push(eq(salesInvoices.paymentStatus, 'Paye'));
+  if (type === 'partial') conditions.push(eq(salesInvoices.paymentStatus, 'Partiel'));
+  if (type === 'pending') conditions.push(eq(salesInvoices.paymentStatus, 'En attente'));
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const offset = (page - 1) * limit;
+
+  const [invoices, totalResult] = await Promise.all([
+    db.select().from(salesInvoices)
+      .where(where)
+      .orderBy(desc(salesInvoices.date))
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`count(*)` })
+      .from(salesInvoices)
+      .where(where),
+  ]);
+
+  const data: SalesInvoice[] = await Promise.all(
+    invoices.map(async (inv) => {
+      const items = await db.select()
+        .from(salesInvoiceItems)
+        .where(eq(salesInvoiceItems.invoiceId, inv.id));
+      
+      return {
+        id: inv.id,
+        customerId: inv.customerId,
+        invoiceNumber: inv.invoiceNumber,
+        customerName: inv.customerName,
+        date: inv.date,
+        paymentMethod: inv.paymentMethod || "Espèces",
+        notes: inv.notes || "",
+        items: items.map(item => ({
+          productId: item.productId,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        })),
+        totalAmount: inv.totalAmount ?? 0,
+        amountPaid: inv.amountPaid ?? 0,
+        remainingAmount: inv.remainingAmount ?? 0,
+        paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+        createdAt: inv.createdAt?.toISOString() || "",
+      };
+    })
+  );
+
+  const total = Number(totalResult[0].count);
+  return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
 type LineInput = {
