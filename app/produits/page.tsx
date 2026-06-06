@@ -41,6 +41,7 @@ const initialFormData: ProductFormData = {
 
 export default function ProduitsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,6 +59,17 @@ export default function ProduitsPage() {
   useEffect(() => {
     fetchProducts();
   }, [currentPage, search]);
+  useEffect(() => {
+    fetchAllProducts();
+  }, []);
+
+  const fetchAllProducts = async () => {
+    try {
+      const res = await fetch('/api/produits?all=true&limit=10000');
+      const data = await res.json();
+      setAllProducts(data.data || []);
+    } catch { /* silent */ }
+  };
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -200,11 +212,11 @@ export default function ProduitsPage() {
       currency: 'GNF',
     }).format(amount);
 
-  const activeProducts = products.filter((p) => p.isActive).length;
+  const activeProducts = allProducts.filter((p) => p.isActive).length;
   const averageSalePrice =
-    products.length > 0
+    allProducts.length > 0
       ? Math.round(
-          products.reduce((sum, p) => sum + p.salePrice, 0) / products.length
+          allProducts.reduce((sum, p) => sum + p.salePrice, 0) / allProducts.length
         )
       : 0;
 
@@ -247,7 +259,7 @@ export default function ProduitsPage() {
         <div className="stats shadow">
           <div className="stat">
             <div className="stat-title">Produits en base</div>
-            <div className="stat-value text-primary">{products.length}</div>
+            <div className="stat-value text-primary">{total}</div>
             <div className="stat-desc">Produits enregistrés</div>
           </div>
         </div>

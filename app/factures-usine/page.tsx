@@ -99,11 +99,29 @@ export default function DepensesPage() {
     ['reference', 'date'],
   );
 
+  const [allStatsInvoices, setAllStatsInvoices] = useState<PurchaseInvoice[]>([]);
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchData();
   }, [currentPage, search, filter, supplierFilter]);
+  useEffect(() => {
+    fetchAllStatsInvoices();
+  }, []);
+
+  const fetchAllStatsInvoices = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', '10000');
+      if (supplierFilter) {
+        const supplier = suppliers.find(s => s.name.toLowerCase() === supplierFilter.toLowerCase());
+        if (supplier) params.set('supplierId', String(supplier.id));
+      }
+      const res = await fetch(`/api/depenses?${params}`);
+      const data = await res.json();
+      setAllStatsInvoices(data.data || []);
+    } catch { /* silent */ }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -459,11 +477,11 @@ export default function DepensesPage() {
     `;
   }
 
-  const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const totalBottles = invoices.reduce((sum, inv) =>
+  const totalAmount = allStatsInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+  const totalBottles = allStatsInvoices.reduce((sum, inv) =>
     sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
   );
-  const averageCost = invoices.length > 0 ? totalAmount / invoices.length : 0;
+  const averageCost = allStatsInvoices.length > 0 ? totalAmount / allStatsInvoices.length : 0;
 
   if (isLoading) {
     return (
@@ -562,8 +580,8 @@ export default function DepensesPage() {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="text-base-content/70">{invoices.length === 0 ? "Aucune facture d'approvisionnement enregistrée." : "Aucune facture ne correspond aux filtres."}</p>
-            {invoices.length === 0 && (
+            <p className="text-base-content/70">{total === 0 && invoices.length === 0 ? "Aucune facture d'approvisionnement enregistrée." : "Aucune facture ne correspond aux filtres."}</p>
+            {total === 0 && invoices.length === 0 && (
               <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm mt-4">
                 Ajouter une première facture
               </button>
