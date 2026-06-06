@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '15', 10)));
+    const limit = Math.min(100000, Math.max(1, parseInt(searchParams.get('limit') ?? '15', 10)));
     const search = searchParams.get('search') || undefined;
     const type = searchParams.get('type') as 'income' | 'expense' | undefined;
     const result = await listWalletTransactions({ page, limit, search, type });
