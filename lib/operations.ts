@@ -19,7 +19,7 @@ import {
   settings,
   walletTransactions
 } from "../db/schema";
-import { eq, desc, asc, like, sql, and, or, gte, lte } from "drizzle-orm";
+import { eq, desc, asc, like, sql, and, or, gte, lte, inArray } from "drizzle-orm";
 import { listProducts } from "@/lib/products";
 
 export type PurchaseInvoiceItem = {
@@ -233,39 +233,30 @@ export async function listPurchaseInvoices(from?: string, to?: string) {
     orderBy: [desc(purchaseInvoices.date)],
     with: {
       supplier: true,
+      items: true,
     },
   });
 
-  const invoicesWithItems = await Promise.all(
-    invoices.map(async (inv) => {
-      const items = await db.select()
-        .from(purchaseInvoiceItems)
-        .where(eq(purchaseInvoiceItems.invoiceId, inv.id));
-
-      return {
-        id: inv.id,
-        supplierId: inv.supplierId,
-        reference: inv.reference,
-        supplier: inv.supplier?.name || '',
-        supplierName: inv.supplier?.name || '',
-        date: inv.date,
-        notes: inv.notes || "",
-        items: items.map(item => ({
-          productId: item.productId,
-          productCode: item.productCode,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitCost: item.unitCost,
-          totalCost: item.totalCost,
-        })),
-        totalAmount: inv.totalAmount ?? 0,
-        isPaid: inv.isPaid ?? false,
-        createdAt: inv.createdAt?.toISOString() || "",
-      };
-    })
-  );
-
-  return invoicesWithItems;
+  return invoices.map((inv) => ({
+    id: inv.id,
+    supplierId: inv.supplierId,
+    reference: inv.reference,
+    supplier: inv.supplier?.name || '',
+    supplierName: inv.supplier?.name || '',
+    date: inv.date,
+    notes: inv.notes || "",
+    items: (inv.items || []).map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      totalCost: item.totalCost,
+    })),
+    totalAmount: inv.totalAmount ?? 0,
+    isPaid: inv.isPaid ?? false,
+    createdAt: inv.createdAt?.toISOString() || "",
+  }));
 }
 
 export async function listPaginatedPurchaseInvoices(
@@ -286,7 +277,7 @@ export async function listPaginatedPurchaseInvoices(
     db.query.purchaseInvoices.findMany({
       where,
       orderBy: [desc(purchaseInvoices.date)],
-      with: { supplier: true },
+      with: { supplier: true, items: true },
       limit,
       offset,
     }),
@@ -295,34 +286,26 @@ export async function listPaginatedPurchaseInvoices(
       .where(where),
   ]);
 
-  const data = await Promise.all(
-    invoices.map(async (inv) => {
-      const items = await db.select()
-        .from(purchaseInvoiceItems)
-        .where(eq(purchaseInvoiceItems.invoiceId, inv.id));
-
-      return {
-        id: inv.id,
-        supplierId: inv.supplierId,
-        reference: inv.reference,
-        supplier: inv.supplier?.name || '',
-        supplierName: inv.supplier?.name || '',
-        date: inv.date,
-        notes: inv.notes || "",
-        items: items.map(item => ({
-          productId: item.productId,
-          productCode: item.productCode,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitCost: item.unitCost,
-          totalCost: item.totalCost,
-        })),
-        totalAmount: inv.totalAmount ?? 0,
-        isPaid: inv.isPaid ?? false,
-        createdAt: inv.createdAt?.toISOString() || "",
-      };
-    })
-  );
+  const data = invoices.map((inv) => ({
+    id: inv.id,
+    supplierId: inv.supplierId,
+    reference: inv.reference,
+    supplier: inv.supplier?.name || '',
+    supplierName: inv.supplier?.name || '',
+    date: inv.date,
+    notes: inv.notes || "",
+    items: (inv.items || []).map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      totalCost: item.totalCost,
+    })),
+    totalAmount: inv.totalAmount ?? 0,
+    isPaid: inv.isPaid ?? false,
+    createdAt: inv.createdAt?.toISOString() || "",
+  }));
 
   const total = Number(totalResult[0].count);
   return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -333,42 +316,34 @@ export async function listSalesInvoices(from?: string, to?: string) {
   if (from) conditions.push(gte(salesInvoices.date, from));
   if (to) conditions.push(lte(salesInvoices.date, to));
 
-  const invoices = await db.select().from(salesInvoices)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(salesInvoices.date));
-  
-  const invoicesWithItems: SalesInvoice[] = await Promise.all(
-    invoices.map(async (inv) => {
-      const items = await db.select()
-        .from(salesInvoiceItems)
-        .where(eq(salesInvoiceItems.invoiceId, inv.id));
-      
-      return {
-        id: inv.id,
-        customerId: inv.customerId,
-        invoiceNumber: inv.invoiceNumber,
-        customerName: inv.customerName,
-        date: inv.date,
-        paymentMethod: inv.paymentMethod || "Espèces",
-        notes: inv.notes || "",
-        items: items.map(item => ({
-          productId: item.productId,
-          productCode: item.productCode,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice,
-        })),
-        totalAmount: inv.totalAmount ?? 0,
-        amountPaid: inv.amountPaid ?? 0,
-        remainingAmount: inv.remainingAmount ?? 0,
-        paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
-        createdAt: inv.createdAt?.toISOString() || "",
-      };
-    })
-  );
-  
-  return invoicesWithItems;
+  const invoices = await db.query.salesInvoices.findMany({
+    where: conditions.length > 0 ? and(...conditions) : undefined,
+    orderBy: [desc(salesInvoices.date)],
+    with: { items: true },
+  });
+
+  return invoices.map((inv) => ({
+    id: inv.id,
+    customerId: inv.customerId,
+    invoiceNumber: inv.invoiceNumber,
+    customerName: inv.customerName,
+    date: inv.date,
+    paymentMethod: inv.paymentMethod || "Espèces",
+    notes: inv.notes || "",
+    items: (inv.items || []).map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    })),
+    totalAmount: inv.totalAmount ?? 0,
+    amountPaid: inv.amountPaid ?? 0,
+    remainingAmount: inv.remainingAmount ?? 0,
+    paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+    createdAt: inv.createdAt?.toISOString() || "",
+  }));
 }
 
 export async function listPaginatedSalesInvoices(
@@ -395,46 +370,40 @@ export async function listPaginatedSalesInvoices(
   const offset = (page - 1) * limit;
 
   const [invoices, totalResult] = await Promise.all([
-    db.select().from(salesInvoices)
-      .where(where)
-      .orderBy(desc(salesInvoices.date))
-      .limit(limit)
-      .offset(offset),
+    db.query.salesInvoices.findMany({
+      where,
+      orderBy: [desc(salesInvoices.date)],
+      with: { items: true },
+      limit,
+      offset,
+    }),
     db.select({ count: sql<number>`count(*)` })
       .from(salesInvoices)
       .where(where),
   ]);
 
-  const data: SalesInvoice[] = await Promise.all(
-    invoices.map(async (inv) => {
-      const items = await db.select()
-        .from(salesInvoiceItems)
-        .where(eq(salesInvoiceItems.invoiceId, inv.id));
-      
-      return {
-        id: inv.id,
-        customerId: inv.customerId,
-        invoiceNumber: inv.invoiceNumber,
-        customerName: inv.customerName,
-        date: inv.date,
-        paymentMethod: inv.paymentMethod || "Espèces",
-        notes: inv.notes || "",
-        items: items.map(item => ({
-          productId: item.productId,
-          productCode: item.productCode,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice,
-        })),
-        totalAmount: inv.totalAmount ?? 0,
-        amountPaid: inv.amountPaid ?? 0,
-        remainingAmount: inv.remainingAmount ?? 0,
-        paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
-        createdAt: inv.createdAt?.toISOString() || "",
-      };
-    })
-  );
+  const data: SalesInvoice[] = invoices.map((inv) => ({
+    id: inv.id,
+    customerId: inv.customerId,
+    invoiceNumber: inv.invoiceNumber,
+    customerName: inv.customerName,
+    date: inv.date,
+    paymentMethod: inv.paymentMethod || "Espèces",
+    notes: inv.notes || "",
+    items: (inv.items || []).map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    })),
+    totalAmount: inv.totalAmount ?? 0,
+    amountPaid: inv.amountPaid ?? 0,
+    remainingAmount: inv.remainingAmount ?? 0,
+    paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+    createdAt: inv.createdAt?.toISOString() || "",
+  }));
 
   const total = Number(totalResult[0].count);
   return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -518,8 +487,8 @@ export async function createPurchaseInvoice(input: {
   const invoiceId = result[0].id;
 
   // Insérer les items
-  for (const item of items) {
-    await db.insert(purchaseInvoiceItems).values({
+  await db.insert(purchaseInvoiceItems).values(
+    items.map(item => ({
       invoiceId,
       productId: item.productId,
       productCode: item.productCode,
@@ -527,8 +496,8 @@ export async function createPurchaseInvoice(input: {
       quantity: item.quantity,
       unitCost: item.unitCost,
       totalCost: item.totalCost,
-    });
-  }
+    }))
+  );
 
   // Mettre à jour le total des achats du fournisseur
   await recalculateSupplierTotalPurchases(input.supplierId);
@@ -618,8 +587,8 @@ export async function createSalesInvoice(input: {
   const invoiceId = result[0].id;
 
   // Insérer les items
-  for (const item of items) {
-    await db.insert(salesInvoiceItems).values({
+  await db.insert(salesInvoiceItems).values(
+    items.map(item => ({
       invoiceId,
       productId: item.productId,
       productCode: item.productCode,
@@ -627,8 +596,8 @@ export async function createSalesInvoice(input: {
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       totalPrice: item.totalPrice,
-    });
-  }
+    }))
+  );
 
   // Mettre à jour le total des achats du client
   const [existingCustomer] = await db.select()
@@ -672,11 +641,10 @@ export async function getPurchaseInvoice(id: number) {
     where: eq(purchaseInvoices.id, id),
     with: {
       supplier: true,
+      items: true,
     },
   });
   if (!result) return null;
-
-  const items = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
 
   return {
     id: result.id,
@@ -685,7 +653,7 @@ export async function getPurchaseInvoice(id: number) {
     supplierName: result.supplier?.name || '',
     date: result.date,
     notes: result.notes || "",
-    items: items.map(item => ({
+    items: (result.items || []).map(item => ({
       productId: item.productId,
       productCode: item.productCode,
       productName: item.productName,
@@ -811,17 +779,13 @@ export async function deletePurchaseInvoice(id: number) {
 }
 
 export async function getSalesInvoice(id: number) {
-  // --- CODE JSON (commenté) ---
-  // const invoices = await listSalesInvoices();
-  // return invoices.find((invoice) => invoice.id === id) || null;
-
   // --- CODE SQL ---
-  const invoices = await db.select().from(salesInvoices).where(eq(salesInvoices.id, id));
-  if (invoices.length === 0) return null;
-  
-  const inv = invoices[0];
-  const items = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
-  
+  const inv = await db.query.salesInvoices.findFirst({
+    where: eq(salesInvoices.id, id),
+    with: { items: true },
+  });
+  if (!inv) return null;
+
   const invoice = {
     id: inv.id,
     invoiceNumber: inv.invoiceNumber,
@@ -830,7 +794,7 @@ export async function getSalesInvoice(id: number) {
     date: inv.date,
     paymentMethod: inv.paymentMethod || "Espèces",
     notes: inv.notes || "",
-    items: items.map(item => ({
+    items: (inv.items || []).map(item => ({
       productId: item.productId,
       productCode: item.productCode,
       productName: item.productName,
@@ -847,11 +811,15 @@ export async function getSalesInvoice(id: number) {
 
   // Calculer le coût d'achat et le bénéfice par produit
   // (moyenne pondérée de tous les achats, indépendamment de la date)
-  const purchases = await listPurchaseInvoices();
-  const avgCostPerProduct = new Map<number, { qty: number; cost: number }>();
+  const productIds = invoice.items.map(item => item.productId);
+  let costOfGoodsSold = 0;
+  if (productIds.length > 0) {
+    const purchaseItemsData = await db.select()
+      .from(purchaseInvoiceItems)
+      .where(inArray(purchaseInvoiceItems.productId, productIds));
 
-  for (const p of purchases) {
-    for (const item of p.items) {
+    const avgCostPerProduct = new Map<number, { qty: number; cost: number }>();
+    for (const item of purchaseItemsData) {
       if (item.unitCost > 0 && item.quantity > 0) {
         const existing = avgCostPerProduct.get(item.productId) ?? { qty: 0, cost: 0 };
         existing.qty += item.quantity;
@@ -859,13 +827,12 @@ export async function getSalesInvoice(id: number) {
         avgCostPerProduct.set(item.productId, existing);
       }
     }
-  }
 
-  let costOfGoodsSold = 0;
-  for (const item of invoice.items) {
-    const avg = avgCostPerProduct.get(item.productId);
-    const unitCost = avg ? avg.cost / avg.qty : 0;
-    costOfGoodsSold += unitCost * item.quantity;
+    for (const item of invoice.items) {
+      const avg = avgCostPerProduct.get(item.productId);
+      const unitCost = avg ? avg.cost / avg.qty : 0;
+      costOfGoodsSold += unitCost * item.quantity;
+    }
   }
 
   const grossProfit = invoice.totalAmount - costOfGoodsSold;
@@ -958,8 +925,8 @@ export async function updateSalesInvoice(id: number, input: {
 
   if (input.lines) {
     await db.delete(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
-    for (const item of items) {
-      await db.insert(salesInvoiceItems).values({
+    await db.insert(salesInvoiceItems).values(
+      items.map(item => ({
         invoiceId: id,
         productId: item.productId,
         productCode: item.productCode,
@@ -967,8 +934,8 @@ export async function updateSalesInvoice(id: number, input: {
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         totalPrice: item.totalPrice,
-      });
-    }
+      }))
+    );
   }
 
   return {
