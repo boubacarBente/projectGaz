@@ -70,8 +70,20 @@ export default function FacturesPage() {
     dailyAvg: 0,
   }, [ventesStats]);
   const getPeriodParams = () => {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
     if (period === 'total') return { from: undefined, to: undefined };
+    if (period === 'today') return { from: todayStr, to: todayStr };
     if (period === 'day' && selectedDay) return { from: selectedDay, to: selectedDay };
+    if (period === 'week') {
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      return { from: weekStart.toISOString().slice(0, 10), to: todayStr };
+    }
+    if (period === 'year') {
+      const yearStart = today.getFullYear() + '-01-01';
+      return { from: yearStart, to: todayStr };
+    }
     if (period === 'month' && selectedMonth) {
       const year = parseInt(selectedMonth.slice(0, 4), 10);
       const mon = parseInt(selectedMonth.slice(5), 10);
@@ -85,7 +97,7 @@ export default function FacturesPage() {
   useEffect(() => {
     const ac = new AbortController();
     const { from, to } = getPeriodParams();
-    fetchVentesStats(from, to);
+    fetchVentesStats(from, to, ac.signal);
     return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, selectedDay, selectedMonth]);
@@ -94,18 +106,18 @@ export default function FacturesPage() {
   useEffect(() => {
     const ac = new AbortController();
     const { from, to } = getPeriodParams();
-    fetchInvoices(from, to);
+    fetchInvoices(from, to, ac.signal);
     return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, selectedDay, selectedMonth, currentPage, search, filter]);
 
-  const fetchVentesStats = async (from?: string, to?: string) => {
+  const fetchVentesStats = async (from?: string, to?: string, signal?: AbortSignal) => {
     try {
       const params = new URLSearchParams();
       if (from) params.set('from', from);
       if (to) params.set('to', to);
       params.set('period', period);
-      const res = await fetch(`/api/factures/stats?${params}`);
+      const res = await fetch(`/api/factures/stats?${params}`, { signal });
       const data = await res.json();
       setVentesStats(data);
     } catch {
@@ -130,7 +142,7 @@ export default function FacturesPage() {
     return () => ac.abort();
   }, []);
 
-  const fetchInvoices = async (from?: string, to?: string) => {
+  const fetchInvoices = async (from?: string, to?: string, signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -142,7 +154,7 @@ export default function FacturesPage() {
       if (filter === 'pending') params.set('type', 'pending');
       if (from) params.set('from', from);
       if (to) params.set('to', to);
-      const invoicesRes = await fetch('/api/factures?' + params);
+      const invoicesRes = await fetch('/api/factures?' + params, { signal });
       const invoicesData = await invoicesRes.json();
       setInvoices(invoicesData.data);
       setTotal(invoicesData.total);
