@@ -1236,6 +1236,7 @@ export async function getSettings(): Promise<Settings> {
   };
 }
 
+
 export async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
   const current = await db.select().from(settings);
   if (current.length === 0) {

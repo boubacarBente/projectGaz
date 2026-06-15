@@ -18,6 +18,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { div } from 'framer-motion/client';
 
 ChartJS.register(
   CategoryScale,
@@ -264,7 +265,7 @@ export default function DashboardPage() {
       borderColor: 'border-warning/20',
     },
     {
-      label: 'B\u00e9n\u00e9fice brut',
+      label: 'Bénéfice brut',
       value: `${formatCurrency(grossProfit)} GNF`,
       hint: grossProfit >= 0 ? 'Positif \u2713' : 'N\u00e9gatif',
       icon: grossProfit >= 0 ? '📈' : '📉',
