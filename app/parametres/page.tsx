@@ -531,6 +531,37 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         </div>
       </SettingsCard>
 
+      {/* Backup Card */}
+      <SettingsCard
+        title="Sauvegarde"
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+        }
+        iconBg="bg-info/10 text-info"
+      >
+        <div className="rounded-2xl border border-info/20 bg-info/5 p-5">
+          <h4 className="mb-2 font-semibold text-info">Télécharger une sauvegarde de la base</h4>
+          <p className="text-sm leading-6 text-base-content/70">
+            Télécharge l&apos;intégralité de la base de données SQLite (<code>database2.db</code>).
+            La sauvegarde contient toutes les données : clients, fournisseurs, produits, factures, transactions et paramètres.
+          </p>
+          <div className="mt-4 flex justify-end">
+            <a
+              href="/api/parametres/backup"
+              className="btn btn-info gap-2"
+              download
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Télécharger la base
+            </a>
+          </div>
+        </div>
+      </SettingsCard>
+
       {/* Seed Data Card */}
       <SettingsCard
         title="Préremplir les données"
