@@ -144,12 +144,12 @@ export default function DepensesPage() {
       const invoicesData = await invoicesRes.json();
       const productsData = await productsRes.json();
       const suppliersData = await suppliersRes.json();
-      setInvoices(invoicesData.data);
+      setInvoices(Array.isArray(invoicesData.data) ? invoicesData.data : []);
       setTotal(invoicesData.total);
       setTotalPages(invoicesData.totalPages);
-      setProducts(productsData.data || productsData);
-      setSuppliers(suppliersData.data || suppliersData);
-      const prodList = productsData.data || productsData;
+      setProducts(Array.isArray(productsData.data) ? productsData.data : []);
+      setSuppliers(Array.isArray(suppliersData.data) ? suppliersData.data : []);
+      const prodList = Array.isArray(productsData.data) ? productsData.data : [];
       if (prodList.length > 0) {
         setFormData(prev => ({
           ...prev,
