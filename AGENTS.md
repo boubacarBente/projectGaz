@@ -177,3 +177,36 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 - `createProduct()` - Créer un produit
 - `updateProduct()` - Modifier un produit
 - `deleteProduct()` - Supprimer un produit
+
+---
+
+## Responsive Design
+
+Toutes les pages sont responsives (breakpoints `sm`, `md`, `lg`). Patterns utilisés :
+- **Grilles** : `grid-cols-1 sm:grid-cols-3 lg:grid-cols-4` — colonne unique sur mobile
+- **Boutons groupés** : `flex flex-wrap` pour les sélecteurs de période
+- **Graphiques Chart.js** : `h-56 sm:h-64` — moins haut sur mobile
+- **Tableaux** : wrapper `<div className="overflow-x-auto">` pour scroll horizontal
+- **Padding** : `px-4 sm:px-8` — plus serré sur mobile
+- **Texte** : `text-lg sm:text-xl` — taille adaptative
+- **Modals** : Grilles de stats en `grid-cols-1 sm:grid-cols-3`
+
+## Export et Partage
+
+### `components/export-dropdown.tsx`
+Composant dropdown réutilisable avec 3 options : PDF, Image, WhatsApp.
+
+**Props :**
+- `onExportPDF: () => void` — Génération du PDF
+- `onExportImage: () => void` — Téléchargement de l'image
+- `onShareWhatsApp?: () => void` — Partage WhatsApp (optionnel)
+- `compact?: boolean` — Mode compact pour tableau (`btn-square`)
+
+**Fonctions utilitaires exportées :**
+- `generateInvoiceBlob(invoiceHTML: string): Promise<Blob | null>` — Génère un PNG Blob à partir du HTML de la facture via html2canvas
+- `shareOnWhatsApp(invoiceHTML: string, textMessage: string): Promise<void>` — Partage via Web Share API (mobile) ou fallback WhatsApp Web (desktop)
+
+### Pages utilisatrices
+- `app/ventes/page.tsx` — `handleShareWhatsApp` pour les factures de vente
+- `app/factures-usine/page.tsx` — `handleShareWhatsApp` pour les factures d'achat
+- `components/ventes/ventes-table.tsx` — Passe `onShareWhatsApp` au dropdown
