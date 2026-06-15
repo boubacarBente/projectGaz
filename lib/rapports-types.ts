@@ -7,7 +7,8 @@ export type RapportData = {
     grossProfit: number;
     totalBottlesSold: number;
     averageBasket: number;
-    totalInvoices: number;
+    totalPurchaseInvoices: number;
+    totalSalesInvoices: number;
     totalCustomers: number;
   };
   monthlyData: { month: string; purchases: number; sales: number; profit: number }[];

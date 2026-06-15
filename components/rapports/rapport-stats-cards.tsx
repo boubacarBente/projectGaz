@@ -64,14 +64,18 @@ function RapportStatsCardsInner({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
           <p className="text-xs text-base-content/60">Panier moyen</p>
           <p className="text-lg font-bold">{formatCurrency(summary.averageBasket)} GNF</p>
         </div>
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
-          <p className="text-xs text-base-content/60">Factures</p>
-          <p className="text-lg font-bold">{summary.totalInvoices}</p>
+          <p className="text-xs text-base-content/60">Factures d&apos;achat</p>
+          <p className="text-lg font-bold">{summary.totalPurchaseInvoices}</p>
+        </div>
+        <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
+          <p className="text-xs text-base-content/60">Factures de vente</p>
+          <p className="text-lg font-bold">{summary.totalSalesInvoices}</p>
         </div>
         <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-4 shadow-lg shadow-black/5 backdrop-blur">
           <p className="text-xs text-base-content/60">Clients actifs</p>

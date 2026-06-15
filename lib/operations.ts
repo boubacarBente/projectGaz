@@ -1233,7 +1233,8 @@ export async function getRapportData(from?: string, to?: string) {
       grossProfit,
       totalBottlesSold,
       averageBasket,
-      totalInvoices: purchases.length + salesWithProfit.length,
+      totalPurchaseInvoices: purchases.length,
+      totalSalesInvoices: salesWithProfit.length,
       totalCustomers: Object.keys(customersRevenue).length,
     },
     monthlyData: Object.entries(months).map(([month, data]) => ({
