@@ -94,8 +94,8 @@ function VentesChartSectionInner({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium truncate">{inv.invoiceNumber}</span>
-                    <span className={`badge badge-xs ${inv.paymentStatus === 'Paye' ? 'badge-success' : inv.paymentStatus === 'Partiel' ? 'badge-warning' : 'badge-ghost'}`}>
-                      {inv.paymentStatus}
+                    <span className={`badge badge-xs ${inv.paymentStatus === 'Paye' || inv.paymentStatus === 'Payée' ? 'badge-success' : inv.paymentStatus === 'Partiel' ? 'badge-warning' : 'badge-ghost'}`}>
+                      {inv.paymentStatus === 'Paye' ? 'Payée' : inv.paymentStatus}
                     </span>
                   </div>
                   <div className="text-xs text-base-content/50 truncate">{inv.customerName}</div>
@@ -124,10 +124,11 @@ function VentesChartSectionInner({
               {stats.byStatus.map((item) => {
                 const maxVal = Math.max(...stats.byStatus.map(s => s.total));
                 const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
-                const statusColor = item.status === 'Paye' ? 'bg-success' : item.status === 'Partiel' ? 'bg-warning' : 'bg-base-300';
+                const statusColor = item.status === 'Paye' || item.status === 'Payée' ? 'bg-success' : item.status === 'Partiel' ? 'bg-warning' : 'bg-base-300';
+                const statusLabel: Record<string, string> = { Paye: 'Payée', Payée: 'Payée', Partiel: 'Partiel', 'En attente': 'En attente' };
                 return (
                   <div key={item.status} className="flex items-center gap-3">
-                    <span className="text-xs font-medium w-24">{item.status}</span>
+                    <span className="text-xs font-medium w-24">{statusLabel[item.status] ?? item.status}</span>
                     <div className="flex-1 h-6 bg-base-200 rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}

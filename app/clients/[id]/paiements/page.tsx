@@ -35,6 +35,7 @@ const fCF = (v: number) => new Intl.NumberFormat('fr-FR').format(v);
 
 const statusCfg: Record<string, { label: string; cls: string }> = {
   Paye:     { label: 'Payée',      cls: 'badge-soft badge-success' },
+  Payée:    { label: 'Payée',      cls: 'badge-soft badge-success' },
   Partiel:  { label: 'Partielle',  cls: 'badge-soft badge-warning' },
   'En attente': { label: 'En attente', cls: 'badge-soft badge-error' },
 };
