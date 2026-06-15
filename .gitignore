@@ -40,9 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# database files (ne pas decommiter)
- *.db
- db/*
+# database files
+*.db
+db/*
 
 # logs
 server.log
