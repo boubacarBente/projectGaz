@@ -41,7 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # database files (ne pas decommiter)
-# *.db
+ *.db
 # db/*.db
 
 # logs
