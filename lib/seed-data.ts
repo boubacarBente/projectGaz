@@ -302,7 +302,7 @@ export async function seedDatabase() {
         }
 
         const remainingAmount = Math.max(totalAmount - seed.amountPaid, 0);
-        const paymentStatus = seed.amountPaid <= 0 ? 'En attente' : remainingAmount > 0 ? 'Partiel' : 'Paye';
+        const paymentStatus = seed.amountPaid <= 0 ? 'En attente' : remainingAmount > 0 ? 'Partiel' : 'Payée';
 
         insertInvoice.run(invoiceNum, customer?.id ?? null, seed.customerName, seed.date, seed.paymentMethod, '', totalAmount, seed.amountPaid, remainingAmount, paymentStatus, ts, ts);
 

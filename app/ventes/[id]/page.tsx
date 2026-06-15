@@ -12,6 +12,7 @@ function formatCurrency(value: number) {
 }
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
+  'Payée': { label: 'Payée', cls: 'badge-soft badge-success' },
   'Paye': { label: 'Payée', cls: 'badge-soft badge-success' },
   'Partiel': { label: 'Partielle', cls: 'badge-soft badge-warning' },
   'En attente': { label: 'En attente', cls: 'badge-soft badge-error' },

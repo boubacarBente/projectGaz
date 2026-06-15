@@ -22,7 +22,7 @@ export type SalesInvoice = {
   remainingAmount: number;
   costOfGoodsSold?: number;
   grossProfit?: number;
-  paymentStatus: 'Paye' | 'Partiel' | 'En attente';
+  paymentStatus: 'Payée' | 'Partiel' | 'En attente';
   createdAt: string;
 };
 

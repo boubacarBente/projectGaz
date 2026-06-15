@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const params: unknown[] = [];
     if (from) { conditions.push('date >= ?'); params.push(from); }
     if (to) { conditions.push('date <= ?'); params.push(to); }
-    if (type === 'paid') conditions.push("payment_status = 'Paye'");
+    if (type === 'paid') conditions.push("payment_status = 'Payée'");
     else if (type === 'partial') conditions.push("payment_status = 'Partiel'");
     else if (type === 'pending') conditions.push("payment_status = 'En attente'");
 
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         COALESCE(SUM(amount_paid), 0) as paid,
         COALESCE(SUM(remaining_amount), 0) as remaining,
         COUNT(*) as count,
-        SUM(CASE WHEN payment_status = 'Paye' THEN 1 ELSE 0 END) as paidCount
+        SUM(CASE WHEN payment_status = 'Payée' THEN 1 ELSE 0 END) as paidCount
       FROM sales_invoices
       ${whereClause}
     `).get(...params) as { total: number; paid: number; remaining: number; count: number; paidCount: number };

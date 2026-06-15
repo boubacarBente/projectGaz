@@ -11,7 +11,7 @@ function formatCurrency(value: number) {
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'Paye': return 'badge-primary';
+    case 'Payée': return 'badge-primary';
     case 'Partiel': return 'badge-error';
     case 'En attente': return 'badge-primary';
     default: return 'badge-primary';

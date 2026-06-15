@@ -66,7 +66,7 @@ export type SalesInvoice = {
   totalAmount: number;
   amountPaid: number;
   remainingAmount: number;
-  paymentStatus: "Paye" | "Partiel" | "En attente";
+  paymentStatus: "Payée" | "Partiel" | "En attente";
   createdAt: string;
   costOfGoodsSold?: number;
   grossProfit?: number;
@@ -343,7 +343,7 @@ export async function listSalesInvoices(from?: string, to?: string) {
     totalAmount: inv.totalAmount ?? 0,
     amountPaid: inv.amountPaid ?? 0,
     remainingAmount: inv.remainingAmount ?? 0,
-    paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+    paymentStatus: (inv.paymentStatus as "Payée" | "Partiel" | "En attente") || "En attente",
     createdAt: inv.createdAt?.toISOString() || "",
   }));
 }
@@ -364,7 +364,7 @@ export async function listPaginatedSalesInvoices(
       )
     );
   }
-  if (type === 'paid') conditions.push(eq(salesInvoices.paymentStatus, 'Paye'));
+  if (type === 'paid') conditions.push(eq(salesInvoices.paymentStatus, 'Payée'));
   if (type === 'partial') conditions.push(eq(salesInvoices.paymentStatus, 'Partiel'));
   if (type === 'pending') conditions.push(eq(salesInvoices.paymentStatus, 'En attente'));
 
@@ -403,7 +403,7 @@ export async function listPaginatedSalesInvoices(
     totalAmount: inv.totalAmount ?? 0,
     amountPaid: inv.amountPaid ?? 0,
     remainingAmount: inv.remainingAmount ?? 0,
-    paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+    paymentStatus: (inv.paymentStatus as "Payée" | "Partiel" | "En attente") || "En attente",
     createdAt: inv.createdAt?.toISOString() || "",
   }));
 
@@ -546,7 +546,7 @@ export async function createSalesInvoice(input: {
   //     ? "En attente"
   //     : remainingAmount > 0
   //       ? "Partiel"
-  //       : "Paye";
+  //       : "Payée";
 
   // const invoice: SalesInvoice = {
   //   id: invoices.reduce((max, item) => Math.max(max, item.id), 0) + 1,
@@ -576,7 +576,7 @@ export async function createSalesInvoice(input: {
       ? "En attente"
       : remainingAmount > 0
         ? "Partiel"
-        : "Paye";
+        : "Payée";
 
   // Compter les factures
   const countResult = await db.select({ count: sql<number>`count(*)` }).from(salesInvoices);
@@ -865,7 +865,7 @@ export async function getSalesInvoice(id: number) {
     totalAmount: inv.totalAmount ?? 0,
     amountPaid: inv.amountPaid ?? 0,
     remainingAmount: inv.remainingAmount ?? 0,
-    paymentStatus: (inv.paymentStatus as "Paye" | "Partiel" | "En attente") || "En attente",
+    paymentStatus: (inv.paymentStatus as "Payée" | "Partiel" | "En attente") || "En attente",
     createdAt: inv.createdAt?.toISOString() || "",
   };
 
@@ -933,7 +933,7 @@ export async function updateSalesInvoice(id: number, input: {
   //     ? "En attente"
   //     : remainingAmount > 0
   //       ? "Partiel"
-  //       : "Paye";
+  //       : "Payée";
 
   // const updatedInvoice: SalesInvoice = {
   //   ...existingInvoice,
@@ -970,7 +970,7 @@ export async function updateSalesInvoice(id: number, input: {
       ? "En attente"
       : remainingAmount > 0
         ? "Partiel"
-        : "Paye";
+        : "Payée";
 
   await db.update(salesInvoices).set({
     customerName: input.customerName,

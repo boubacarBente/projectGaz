@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 
-// GET /api/ventes/stats?period=day|week|month|total&customerName=X&status=Paye|Partiel|En attente&from=2026-01-01&to=2026-12-31
+// GET /api/ventes/stats?period=day|week|month|total&customerName=X&status=Payée|Partiel|En attente&from=2026-01-01&to=2026-12-31
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       'COALESCE(SUM(si.amount_paid), 0) as paid, ' +
       'COALESCE(SUM(si.remaining_amount), 0) as remaining, ' +
       'COUNT(si.id) as count, ' +
-      "SUM(CASE WHEN si.payment_status = 'Paye' THEN 1 ELSE 0 END) as paidCount " +
+      "SUM(CASE WHEN si.payment_status = 'Payée' THEN 1 ELSE 0 END) as paidCount " +
       'FROM sales_invoices si' + whereClause
     ).get(...params) as { total: number; paid: number; remaining: number; count: number; paidCount: number };
 
