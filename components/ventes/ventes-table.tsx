@@ -9,8 +9,16 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
 }
 
+const statusLabels: Record<string, string> = {
+  Paye: 'Payée',
+  Payée: 'Payée',
+  Partiel: 'Partiel',
+  'En attente': 'En attente',
+};
+
 function getStatusColor(status: string) {
   switch (status) {
+    case 'Paye':
     case 'Payée': return 'badge-primary';
     case 'Partiel': return 'badge-error';
     case 'En attente': return 'badge-primary';
@@ -74,7 +82,7 @@ function VentesTableInner({
               </td>
               <td>
                 <span className={`badge ${getStatusColor(invoice.paymentStatus)} badge-sm`}>
-                  {invoice.paymentStatus}
+                  {statusLabels[invoice.paymentStatus] ?? invoice.paymentStatus}
                 </span>
               </td>
               <td>
