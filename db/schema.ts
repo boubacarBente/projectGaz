@@ -47,6 +47,8 @@ export const products = sqliteTable('products', {
   capacity: text('capacity').notNull(),
   unitPrice: real('unit_price').notNull(),
   salePrice: real('sale_price').notNull().default(0),
+  stock: integer('stock').default(0),
+  stockMin: integer('stock_min').default(0),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
@@ -76,6 +78,27 @@ export const purchaseInvoiceItems = sqliteTable('purchase_invoice_items', {
   unitCost: real('unit_cost').notNull(),
   totalCost: real('total_cost').notNull(),
 });
+
+// Table des mouvements de stock
+export const stockMovements = sqliteTable('stock_movements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  productId: integer('product_id').references(() => products.id).notNull(),
+  type: text('type', { enum: ['entry', 'exit', 'adjustment', 'initial'] }).notNull(),
+  quantity: integer('quantity').notNull(),
+  stockBefore: integer('stock_before').notNull(),
+  stockAfter: integer('stock_after').notNull(),
+  referenceType: text('reference_type'),
+  referenceId: integer('reference_id'),
+  note: text('note'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
+
+export const stockMovementRelations = relations(stockMovements, ({ one }) => ({
+  product: one(products, {
+    fields: [stockMovements.productId],
+    references: [products.id],
+  }),
+}));
 
 // Table des factures de vente
 export const salesInvoices = sqliteTable('sales_invoices', {
@@ -207,6 +230,8 @@ export type PurchaseInvoice = typeof purchaseInvoices.$inferSelect;
 export type NewPurchaseInvoice = typeof purchaseInvoices.$inferInsert;
 export type PurchaseInvoiceItem = typeof purchaseInvoiceItems.$inferSelect;
 export type NewPurchaseInvoiceItem = typeof purchaseInvoiceItems.$inferInsert;
+export type StockMovement = typeof stockMovements.$inferSelect;
+export type NewStockMovement = typeof stockMovements.$inferInsert;
 export type SalesInvoice = typeof salesInvoices.$inferSelect;
 export type NewSalesInvoice = typeof salesInvoices.$inferInsert;
 export type SalesInvoiceItem = typeof salesInvoiceItems.$inferSelect;
