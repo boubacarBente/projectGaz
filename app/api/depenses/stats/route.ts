@@ -21,22 +21,30 @@ export async function GET(request: NextRequest) {
 
     const rawDb: import('better-sqlite3').Database = (db as any).$client;
 
-    const row = rawDb.prepare(`
+    // On sépare les agrégations pour éviter le double-comptage de pi.total_amount
+    // causé par le LEFT JOIN avec purchase_invoice_items (1 facture → N items → N lignes)
+    const totalRow = rawDb.prepare(`
+      SELECT COALESCE(SUM(total_amount), 0) as totalAmount
+      FROM purchase_invoices pi
+      ${whereClause}
+    `).get(...params) as { totalAmount: number };
+
+    const statsRow = rawDb.prepare(`
       SELECT
-        COALESCE(SUM(pi.total_amount), 0) as totalAmount,
         COALESCE(SUM(pii.quantity), 0) as totalBottles,
         COUNT(DISTINCT pi.id) as count
       FROM purchase_invoices pi
       LEFT JOIN purchase_invoice_items pii ON pii.invoice_id = pi.id
       ${whereClause}
-    `).get(...params) as { totalAmount: number; totalBottles: number; count: number };
+    `).get(...params) as { totalBottles: number; count: number };
 
-    const totalAmountNum = Number(row.totalAmount);
-    const countNum = Number(row.count);
+    const totalAmountNum = Number(totalRow.totalAmount);
+    const totalBottlesNum = Number(statsRow.totalBottles);
+    const countNum = Number(statsRow.count);
 
     return NextResponse.json({
       totalAmount: totalAmountNum,
-      totalBottles: Number(row.totalBottles),
+      totalBottles: totalBottlesNum,
       averageCost: countNum > 0 ? Math.round(totalAmountNum / countNum) : 0,
     });
   } catch (error) {
