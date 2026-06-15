@@ -140,6 +140,12 @@ function getPeriodFilter(period: Period, selectedDay?: string, selectedMonth?: s
 
 export default function DashboardPage() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [stockSummary, setStockSummary] = useState<{
+    totalStock: number;
+    totalStockValue: number;
+    lowStockCount: number;
+    outOfStockCount: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>('total');
   const [selectedDay, setSelectedDay] = useState(() => {
@@ -156,9 +162,14 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch('/api/operations/snapshot');
-        const data = await res.json();
-        setSnapshot(data);
+        const [snapRes, stockRes] = await Promise.all([
+          fetch('/api/operations/snapshot'),
+          fetch('/api/stocks/summary'),
+        ]);
+        const snapData = await snapRes.json();
+        const stockData = await stockRes.json();
+        setSnapshot(snapData);
+        setStockSummary(stockData);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -243,6 +254,38 @@ export default function DashboardPage() {
 
   // Stats cards
   const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
+
+  // Stock summary cards
+  const stockCards = stockSummary ? [
+    {
+      label: 'Stock total',
+      value: `${stockSummary.totalStock} unités`,
+      hint: `${formatCurrency(stockSummary.totalStockValue)} GNF`,
+      icon: '📦',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+      borderColor: 'border-primary/20',
+    },
+    {
+      label: 'Alertes stock',
+      value: `${stockSummary.lowStockCount} produit(s)`,
+      hint: `${stockSummary.outOfStockCount} en rupture`,
+      icon: stockSummary.lowStockCount > 0 ? '⚠️' : '✅',
+      color: stockSummary.lowStockCount > 0 ? 'text-warning' : 'text-success',
+      bgColor: stockSummary.lowStockCount > 0 ? 'bg-warning/10' : 'bg-success/10',
+      borderColor: stockSummary.lowStockCount > 0 ? 'border-warning/20' : 'border-success/20',
+    },
+    {
+      label: 'Valeur stock',
+      value: `${formatCurrency(stockSummary.totalStockValue)} GNF`,
+      hint: 'Prix d\'achat',
+      icon: '💰',
+      color: 'text-info',
+      bgColor: 'bg-info/10',
+      borderColor: 'border-info/20',
+    },
+  ] : [];
+
   const statsCards = [
     {
       label: 'Ventes',
@@ -412,6 +455,23 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
+      {/* Stock Cards */}
+      {stockCards.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+          {stockCards.map((stat) => (
+            <div key={stat.label}
+              className={`rounded-xl border ${stat.borderColor} ${stat.bgColor} p-4 transition-all hover:shadow-md`}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-2xl">{stat.icon}</span>
+              </div>
+              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+              <p className="text-xs text-base-content/60 mt-1">{stat.hint}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statsCards.map((stat) => (
           <div

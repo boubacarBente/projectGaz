@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import type { RapportData } from '@/lib/rapports-types';
 
 function formatCurrency(value: number) {
@@ -14,6 +14,19 @@ function RapportStatsCardsInner({
   summary: RapportData['summary'];
   periodLabel: string;
 }) {
+  const [stockSummary, setStockSummary] = useState<{
+    totalStock: number;
+    totalStockValue: number;
+    lowStockCount: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/stocks/summary')
+      .then(res => res.json())
+      .then(setStockSummary)
+      .catch(() => {});
+  }, []);
+
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -69,6 +82,26 @@ function RapportStatsCardsInner({
           <p className="text-lg font-bold">{periodLabel}</p>
         </div>
       </div>
+
+      {/* Stock summary row */}
+      {stockSummary && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
+            <p className="text-xs text-base-content/60">Stock total (unites)</p>
+            <p className="text-lg font-bold text-primary">{stockSummary.totalStock}</p>
+          </div>
+          <div className="rounded-2xl border border-info/20 bg-info/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
+            <p className="text-xs text-base-content/60">Valeur du stock</p>
+            <p className="text-lg font-bold text-info">{formatCurrency(stockSummary.totalStockValue)} GNF</p>
+          </div>
+          <div className="rounded-2xl border border-warning/20 bg-warning/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
+            <p className="text-xs text-base-content/60">Alertes stock</p>
+            <p className={`text-lg font-bold ${stockSummary.lowStockCount > 0 ? 'text-warning' : 'text-success'}`}>
+              {stockSummary.lowStockCount > 0 ? `${stockSummary.lowStockCount} produit(s)` : 'Aucune'}
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
