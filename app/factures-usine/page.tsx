@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
-import { ExportDropdown } from '@/components/export-dropdown';
+import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
 // DatePicker removed
 
 // Dynamic import for PDF/image generation
@@ -422,6 +422,13 @@ export default function DepensesPage() {
       console.error('Image export error:', err);
       toast.error('Erreur lors de la génération de l\'image');
     }
+  };
+
+  const handleShareWhatsApp = async (invoice: PurchaseInvoice) => {
+    toast.info('Préparation du partage WhatsApp...');
+    const fmt = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
+    const textMessage = `Facture d'achat - ${invoice.reference}\nFournisseur: ${invoice.supplierName}\nTotal: ${fmt(invoice.totalAmount)} GNF\nStatut: ${invoice.paymentStatus}`;
+    await shareOnWhatsApp(buildPurchaseInvoiceHTML(invoice), textMessage);
   };
 
   function buildPurchaseInvoiceHTML(invoice: PurchaseInvoice): string {
@@ -1213,6 +1220,7 @@ export default function DepensesPage() {
               <ExportDropdown
                 onExportPDF={() => handleExportPDF(selectedInvoice!)}
                 onExportImage={() => handleExportImage(selectedInvoice!)}
+                onShareWhatsApp={() => handleShareWhatsApp(selectedInvoice!)}
                 label="Télécharger"
               />
             </div>

@@ -7,6 +7,7 @@ import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/componen
 import { VentesStatsCards } from '@/components/ventes/ventes-stats-cards';
 import { VentesChartSection } from '@/components/ventes/ventes-chart-section';
 import { VentesTable } from '@/components/ventes/ventes-table';
+import { shareOnWhatsApp } from '@/components/export-dropdown';
 import {
   AddInvoiceModal,
   EditInvoiceModal,
@@ -447,6 +448,13 @@ export default function FacturesPage() {
     }
   };
 
+  const handleShareWhatsApp = async (invoice: SalesInvoice) => {
+    toast.info('Preparation du partage WhatsApp...');
+    const fmt = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
+    const textMessage = `Facture N° ${invoice.invoiceNumber} - ${invoice.customerName}\nTotal: ${fmt(invoice.totalAmount)} GNF\nStatut: ${invoice.paymentStatus}`;
+    await shareOnWhatsApp(buildExportHTML(invoice), textMessage);
+  };
+
   const addLine = () => {
     setFormData(prev => ({
       ...prev,
@@ -631,6 +639,7 @@ export default function FacturesPage() {
           total={total}
           onExportPDF={handleExportPDF}
           onExportImage={handleExportImage}
+          onShareWhatsApp={handleShareWhatsApp}
           onEdit={openEditModal}
           onDelete={openDeleteModal}
         />
