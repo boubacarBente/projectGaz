@@ -136,8 +136,8 @@ export default function FacturesPage() {
       .then(async ([prodRes, custRes]) => {
         const productsData = await prodRes.json();
         const customersData = await custRes.json();
-        setProducts(productsData.data || productsData);
-        setCustomers(customersData.data || customersData);
+        setProducts(Array.isArray(productsData.data) ? productsData.data : []);
+        setCustomers(Array.isArray(customersData.data) ? customersData.data : []);
       })
       .catch(() => {});
     return () => ac.abort();
