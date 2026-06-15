@@ -52,13 +52,13 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Modes de paiement (Espèces, Mobile Money, Virement)
 - Statuts de paiement (Payé, Partiel, En attente)
 - Gestion des avances et reste à payer
-- Génération PDF et export image
+- **Export** : PDF, Image, partage WhatsApp direct
 - Filtres par statut de paiement
 
 ### 🚚 Dépenses / Achats Usine
 - Factures d'approvisionnement multi-produits
 - Filtres par fournisseur et statut de paiement
-- Génération de reçu PDF et image
+- **Export** : PDF, Image, partage WhatsApp direct
 - Suivi du coût moyen par facture
 
 ### 📈 Rapports et Analyses
@@ -80,6 +80,7 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Thème clair/sombre
 - Devise et format de date
 - Préfixes de numérotation (factures, achats)
+- **Sauvegarde** : Téléchargement complet de la base SQLite
 
 ## Stack Technique
 
@@ -91,6 +92,7 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 | Styling | Tailwind CSS 4 + DaisyUI 5.5 |
 | Graphiques | Chart.js 4 (react-chartjs-2) |
 | Génération PDF/Image | jsPDF + html2canvas |
+| Partage mobile | Web Share API |
 | Animations | Framer Motion |
 | Notifications | React Toastify |
 | Authentification | Système custom (cookies + SHA-256) |
@@ -158,6 +160,7 @@ projectGaz/
 │   ├── app-shell.tsx             #   Sidebar + menu mobile + user menu
 │   ├── auth-provider.tsx         #   Contexte d'authentification
 │   ├── date-picker.tsx           #   Sélecteur de date
+│   ├── export-dropdown.tsx       #   Dropdown export PDF/Image/WhatsApp
 │   ├── metric-card.tsx           #   Carte de métrique dashboard
 │   ├── modal.tsx                 #   Modal animée (framer-motion)
 │   ├── module-page.tsx           #   Template de page module
@@ -323,6 +326,7 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | PUT | `/api/parametres` | Mettre à jour les paramètres |
 | POST | `/api/parametres/seed-data` | Insérer les données de démonstration |
 | POST | `/api/parametres/reset-data` | Réinitialiser toutes les données |
+| GET | `/api/parametres/backup` | Télécharger la base de données complète |
 | GET | `/api/ventes/stats` | Statistiques des ventes |
 | GET | `/api/fournisseurs/stats` | Statistiques des fournisseurs |
 
@@ -384,6 +388,30 @@ Les couleurs de l'application sont **configurables dynamiquement** depuis la pag
 - **Desktop** : Sidebar fixe avec navigation complète + menu utilisateur + lien rapide vers les paramètres
 - **Mobile** : Header fixe avec menu hamburger → drawer coulissant animé
 
+### Responsive Design
+- **Adaptatif** : Toutes les pages sont responsives (breakpoints Tailwind `sm`, `md`, `lg`)
+- **Graphiques** : Hauteur réduite sur mobile (`h-56` → `h-64` sur desktop)
+- **Tableaux** : `overflow-x-auto` pour le défilement horizontal sur mobile
+- **Boutons de période** : `flex-wrap` pour éviter le débordement des groupes de boutons
+- **Modals** : Les grilles de statistiques passent en colonne unique (`grid-cols-1 sm:grid-cols-3`)
+- **Dropdowns** : Utilisation de `z-50` + clic outside pour la compatibilité mobile
+- **Texte** : Tailles réduites sur mobile (`text-lg` → `text-xl` sur desktop)
+
+## Export et Partage
+
+### ExportDropdown (`components/export-dropdown.tsx`)
+Composant dropdown réutilisable regroupant les options d'export :
+- **PDF** : Génération via jsPDF + html2canvas
+- **Image** : Téléchargement PNG via html2canvas
+- **WhatsApp** : Partage direct avec image de la facture
+
+### Partage WhatsApp
+- **Mobile** : Utilise l'API Web Share (`navigator.share()`) pour partager l'image de la facture via les applications natives (WhatsApp, etc.)
+- **Desktop** : Fallback vers WhatsApp Web avec un message texte pré-formaté contenant les informations clés de la facture
+- **Fonctions utilitaires** :
+  - `generateInvoiceBlob(html)` : Génère un Blob PNG à partir du HTML de la facture
+  - `shareOnWhatsApp(html, text)` : Partage via Web Share API ou fallback WhatsApp Web
+
 ---
 
-*Dernière mise à jour : 06/06/2026*
+*Dernière mise à jour : 15/06/2026*

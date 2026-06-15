@@ -253,8 +253,8 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
 
-          <div className='flex justify-center gap-4'>
-            <div className="form-control w-full">
+          <div className='flex flex-wrap justify-center gap-4'>
+            <div className="form-control flex-1 min-w-[200px]">
               <label className="label block">
                 <span className="label-text font-medium text-sm">Nom de l'entreprise</span>
               </label>
@@ -262,11 +262,11 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => updateField('companyName', e.target.value)}
-                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
+                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full"
                 placeholder="Mini-Centre Distribution"
               />
             </div>
-            <div className="form-control w-full">
+            <div className="form-control flex-1 min-w-[200px]">
               <label className="label block">
                 <span className="label-text font-medium text-sm">Téléphone</span>
               </label>
@@ -274,7 +274,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
                 type="tel"
                 value={formData.companyPhone}
                 onChange={(e) => updateField('companyPhone', e.target.value)}
-                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
+                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full"
                 placeholder="+224 6XX XXX XXX"
               />
             </div>
@@ -527,6 +527,37 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               )}
               Réinitialiser la base
             </button>
+          </div>
+        </div>
+      </SettingsCard>
+
+      {/* Backup Card */}
+      <SettingsCard
+        title="Sauvegarde"
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+        }
+        iconBg="bg-info/10 text-info"
+      >
+        <div className="rounded-2xl border border-info/20 bg-info/5 p-5">
+          <h4 className="mb-2 font-semibold text-info">Télécharger une sauvegarde de la base</h4>
+          <p className="text-sm leading-6 text-base-content/70">
+            Télécharge l&apos;intégralité de la base de données SQLite (<code>database2.db</code>).
+            La sauvegarde contient toutes les données : clients, fournisseurs, produits, factures, transactions et paramètres.
+          </p>
+          <div className="mt-4 flex justify-end">
+            <a
+              href="/api/parametres/backup"
+              className="btn btn-info gap-2"
+              download
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Télécharger la base
+            </a>
           </div>
         </div>
       </SettingsCard>

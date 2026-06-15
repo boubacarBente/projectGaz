@@ -438,7 +438,7 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-lg">Ventes vs Achats</h3>
             <p className="text-sm text-base-content/60">12 derniers mois</p>
           </div>
-          <div className="h-64">
+          <div className="h-56 sm:h-64">
             <Line data={lineChartData} options={chartOptions} />
           </div>
         </div>
@@ -448,7 +448,7 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-lg">Top produits vendus</h3>
             <p className="text-sm text-base-content/60">Période actuelle</p>
           </div>
-          <div className="h-64 flex items-center justify-center">
+          <div className="h-56 sm:h-64 flex items-center justify-center">
             {doughnutChartData ? (
               <Doughnut data={doughnutChartData} options={doughnutOptions} />
             ) : (
@@ -465,7 +465,7 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-lg">Bénéfice mensuel</h3>
             <p className="text-sm text-base-content/60">12 derniers mois</p>
           </div>
-          <div className="h-64">
+          <div className="h-56 sm:h-64">
             <Bar data={barChartData} options={chartOptions} />
           </div>
         </div>

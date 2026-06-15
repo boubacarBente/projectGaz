@@ -319,27 +319,27 @@ export default function FournisseursPage() {
             {/* Period + Filter Controls */}
             <div className="flex flex-wrap items-center gap-3">
               {/* Period selector */}
-              <div className="flex rounded-xl border border-base-300 overflow-hidden bg-base-100 shadow-sm">
+              <div className="flex flex-wrap rounded-xl border border-base-300 overflow-hidden bg-base-100 shadow-sm">
                 {(['today', 'total', 'month', 'week', 'day'] as const).map((p) => (
                   <button
                     key={p}
                     onClick={() => setStatsPeriod(p)}
-                    className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
+                    className={`px-3 md:px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
                       statsPeriod === p
                         ? 'bg-primary text-primary-content shadow-inner'
                         : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
                     }`}
                   >
-                    {p === 'today' ? 'Aujourd\'hui' : p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : ' Jour'}
+                    {p === 'today' ? 'Aujourd\'hui' : p === 'total' ? 'Total' : p === 'month' ? 'Mois' : p === 'week' ? 'Semaine' : 'Jour'}
                   </button>
                 ))}
               </div>
 
               {/* Date range */}
-              <div className="flex items-center gap-2">
-                <input type="date" value={statsFrom} onChange={e => setStatsFrom(e.target.value)} className="w-36" />
+              <div className="flex flex-wrap items-center gap-2">
+                <input type="date" value={statsFrom} onChange={e => setStatsFrom(e.target.value)} className="w-36 max-w-[130px]" />
                 <span className="text-xs text-base-content/40">—</span>
-                <input type="date" value={statsTo} onChange={e => setStatsTo(e.target.value)} className="w-36" />
+                <input type="date" value={statsTo} onChange={e => setStatsTo(e.target.value)} className="w-36 max-w-[130px]" />
                 {(statsFrom || statsTo) && (
                   <button
                     onClick={() => { setStatsFrom(''); setStatsTo(''); }}

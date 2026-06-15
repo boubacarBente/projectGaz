@@ -19,7 +19,7 @@ export function PageHeader({
             {eyebrow}
           </p>
           <div className="space-y-2">
-            <h2 className="text-3xl font-semibold tracking-tight text-base-content md:text-4xl">
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-base-content md:text-4xl">
               {title}
             </h2>
             <p className="max-w-3xl text-sm leading-7 text-base-content/60 md:text-base">

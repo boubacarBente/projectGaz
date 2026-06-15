@@ -603,20 +603,20 @@ export default function ClientsPage() {
         {!selectedCustomer ? null : (
           <div className="space-y-6">
             {/* Stats cards */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="rounded-xl border border-base-200/60 bg-base-100 p-4">
                 <p className="text-xs uppercase tracking-wider text-base-content/40">Achats totaux</p>
-                <p className="mt-1 text-xl font-bold text-emerald-700 dark:text-emerald-400">{fCF(selectedCustomer.totalPurchases)} F</p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400 break-words">{fCF(selectedCustomer.totalPurchases)} F</p>
               </div>
               <div className="rounded-xl border border-base-200/60 bg-base-100 p-4">
                 <p className="text-xs uppercase tracking-wider text-base-content/40">Factures</p>
-                <p className="mt-1 text-xl font-bold text-base-content">
+                <p className="mt-1 text-lg sm:text-xl font-bold text-base-content">
                   {isDetailLoading ? <span className="loading loading-spinner loading-xs"></span> : customerInvoices?.count ?? '—'}
                 </p>
               </div>
               <div className="rounded-xl border border-base-200/60 bg-base-100 p-4">
                 <p className="text-xs uppercase tracking-wider text-base-content/40">Total facturé</p>
-                <p className="mt-1 text-xl font-bold text-base-content">
+                <p className="mt-1 text-lg sm:text-xl font-bold text-base-content">
                   {isDetailLoading ? <span className="loading loading-spinner loading-xs"></span> : customerInvoices ? fCF(customerInvoices.total) + ' F' : '—'}
                 </p>
               </div>
