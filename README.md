@@ -80,6 +80,7 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Thème clair/sombre
 - Devise et format de date
 - Préfixes de numérotation (factures, achats)
+- **Sauvegarde** : Téléchargement complet de la base SQLite
 
 ## Stack Technique
 
@@ -325,6 +326,7 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | PUT | `/api/parametres` | Mettre à jour les paramètres |
 | POST | `/api/parametres/seed-data` | Insérer les données de démonstration |
 | POST | `/api/parametres/reset-data` | Réinitialiser toutes les données |
+| GET | `/api/parametres/backup` | Télécharger la base de données complète |
 | GET | `/api/ventes/stats` | Statistiques des ventes |
 | GET | `/api/fournisseurs/stats` | Statistiques des fournisseurs |
 

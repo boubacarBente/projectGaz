@@ -118,6 +118,7 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 - `PUT /api/parametres` - Mettre à jour les paramètres
 - `POST /api/parametres/seed-data` - Insérer les données de démonstration
 - `POST /api/parametres/reset-data` - Réinitialiser toutes les données
+- `GET /api/parametres/backup` - Télécharger la base SQLite complète (fichier `.db`)
 
 **Champs de la table settings :** `primary_color` (couleur principale des boutons/accents, hex), `sidebar_color` (couleur du fond du sidebar, hex). Appliqués dynamiquement via CSS variables DaisyUI. Voir `lib/colors.ts`.
 
