@@ -551,12 +551,12 @@ export default function FacturesPage() {
           <div className="p-4 lg:p-6 space-y-4">
             {/* Period + Filter Controls */}
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex rounded-xl border border-base-300 overflow-hidden bg-base-100 shadow-sm">
+              <div className="flex flex-wrap rounded-xl border border-base-300 overflow-hidden bg-base-100 shadow-sm">
                 {(['today', 'total', 'year', 'month', 'week', 'day'] as const).map((p) => (
                   <button
                     key={p}
                     onClick={() => { setPeriod(p); setCurrentPage(1); }}
-                    className={`px-4 cursor-pointer py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
+                    className={`px-3 md:px-4 cursor-pointer py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
                       period === p
                         ? 'bg-primary text-primary-content shadow-inner'
                         : 'text-base-content/60 hover:text-base-content hover:bg-base-200'
@@ -594,12 +594,12 @@ export default function FacturesPage() {
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur">
         <div className="border-b border-base-200 p-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-semibold text-lg">Historique des ventes</h3>
-          <div className="flex rounded-lg border border-base-300 overflow-hidden bg-base-200/50 shadow-xs">
+          <div className="flex flex-wrap rounded-lg border border-base-300 overflow-hidden bg-base-200/50 shadow-xs">
             {(['today', 'total', 'year', 'month', 'week', 'day'] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => { setPeriod(p); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
+                className={`px-2 md:px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
                   period === p
                     ? 'bg-primary text-primary-content shadow-xs'
                     : 'text-base-content/60 hover:text-base-content hover:bg-base-200'

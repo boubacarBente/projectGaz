@@ -97,12 +97,12 @@ export default function RapportsPage() {
       {/* Period Selector */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium text-base-content/60 mr-1">Periode :</span>
-        <div className="join">
+        <div className="flex flex-wrap gap-1">
           {PERIODS.map((p) => (
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
-              className={'join-item btn btn-sm ' + (period === p.key ? 'btn-primary' : 'btn-ghost')}
+              className={'btn btn-sm ' + (period === p.key ? 'btn-primary' : 'btn-ghost')}
             >
               {p.label}
             </button>

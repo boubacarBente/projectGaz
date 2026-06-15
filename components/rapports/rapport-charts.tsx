@@ -42,7 +42,7 @@ const doughnutOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'right' as const,
+      position: 'bottom' as const,
       labels: { padding: 15, usePointStyle: true, pointStyle: 'circle' },
     },
   },
@@ -126,7 +126,7 @@ function RapportChartsInner({
             <h3 className="font-semibold text-lg">Ventes vs Achats</h3>
             <p className="text-sm text-base-content/60">12 derniers mois</p>
           </div>
-          <div className="h-64">
+          <div className="h-56 sm:h-64">
             <Line data={lineChartData} options={chartOptions} />
           </div>
         </div>
@@ -136,7 +136,7 @@ function RapportChartsInner({
             <h3 className="font-semibold text-lg">Benefice mensuel</h3>
             <p className="text-sm text-base-content/60">Par mois</p>
           </div>
-          <div className="h-64">
+          <div className="h-56 sm:h-64">
             <Bar data={barChartData} options={chartOptions} />
           </div>
         </div>
@@ -147,7 +147,7 @@ function RapportChartsInner({
           <h3 className="font-semibold text-lg">Top produits vendus</h3>
           <p className="text-sm text-base-content/60">Par quantite</p>
         </div>
-        <div className="h-64 flex items-center justify-center">
+        <div className="h-56 sm:h-64 flex items-center justify-center">
           {soldByProduct.length > 0 ? (
             <Doughnut data={productChartData} options={doughnutOptions} />
           ) : (

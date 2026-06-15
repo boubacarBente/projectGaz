@@ -253,8 +253,8 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
 
-          <div className='flex justify-center gap-4'>
-            <div className="form-control w-full">
+          <div className='flex flex-wrap justify-center gap-4'>
+            <div className="form-control flex-1 min-w-[200px]">
               <label className="label block">
                 <span className="label-text font-medium text-sm">Nom de l'entreprise</span>
               </label>
@@ -262,11 +262,11 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => updateField('companyName', e.target.value)}
-                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
+                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full"
                 placeholder="Mini-Centre Distribution"
               />
             </div>
-            <div className="form-control w-full">
+            <div className="form-control flex-1 min-w-[200px]">
               <label className="label block">
                 <span className="label-text font-medium text-sm">Téléphone</span>
               </label>
@@ -274,7 +274,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
                 type="tel"
                 value={formData.companyPhone}
                 onChange={(e) => updateField('companyPhone', e.target.value)}
-                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors"
+                className="input input-bordered bg-base-200/30 focus:bg-base-200/50 transition-colors w-full"
                 placeholder="+224 6XX XXX XXX"
               />
             </div>
