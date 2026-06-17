@@ -428,7 +428,7 @@ export default function DepensesPage() {
   const handleShareWhatsApp = async (invoice: PurchaseInvoice) => {
     toast.info('Préparation du partage WhatsApp...');
     const fmt = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
-    const textMessage = `Facture d'achat - ${invoice.reference}\nFournisseur: ${invoice.supplierName}\nTotal: ${fmt(invoice.totalAmount)} GNF\nStatut: ${invoice.paymentStatus}`;
+    const textMessage = `Facture d'achat - ${invoice.reference}\nFournisseur: ${invoice.supplierName}\nTotal: ${fmt(invoice.totalAmount)} GNF\nStatut: ${invoice.isPaid ? 'Payée' : 'En attente'}`;
     await shareOnWhatsApp(buildPurchaseInvoiceHTML(invoice), textMessage);
   };
 

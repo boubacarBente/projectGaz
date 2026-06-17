@@ -47,3 +47,6 @@ db/*
 
 # logs
 server.log
+
+# electron build output
+/release
