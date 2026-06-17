@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
+import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { useTheme } from '@/components/theme-provider';
 import {
   Chart as ChartJS,
@@ -572,34 +573,21 @@ export default function DashboardPage() {
             Aucune vente pour cette période.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table table-zebra">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Produits</th>
-                  <th className="text-right">Montant</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sales.slice(0, 5).map((sale) => (
-                  <tr key={sale.id}>
-                    <td className="text-sm">{new Date(sale.date).toLocaleDateString('fr-MA')}</td>
-                    <td>
-                      <div className="flex gap-1 flex-wrap">
-                        {sale.items.map((item, i) => (
-                          <span key={i} className="badge badge-outline badge-xs">
-                            {item.productName} x{item.quantity}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="text-right font-medium">{formatCurrency(sale.totalAmount)} GNF</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable<SaleInvoice>
+            columns={[
+              { key: 'date', label: 'Date', render: (s) => new Date(s.date).toLocaleDateString('fr-MA'), primary: true },
+              { key: 'products', label: 'Produits', render: (s) => (
+                <div className="flex gap-1 flex-wrap">
+                  {s.items.map((item, i) => (
+                    <span key={i} className="badge badge-outline badge-xs">{item.productName} x{item.quantity}</span>
+                  ))}
+                </div>
+              )},
+              { key: 'amount', label: 'Montant', render: (s) => <span className="font-medium">{formatCurrency(s.totalAmount)} GNF</span>, className: 'text-right' },
+            ]}
+            data={sales.slice(0, 5)}
+            getRowKey={(s) => s.id}
+          />
         )}
       </div>
 
@@ -622,34 +610,21 @@ export default function DashboardPage() {
             Aucun approvisionnement pour cette période.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table table-zebra">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Produits</th>
-                  <th className="text-right">Montant</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchases.slice(0, 5).map((purchase) => (
-                  <tr key={purchase.id}>
-                    <td className="text-sm">{new Date(purchase.date).toLocaleDateString('fr-MA')}</td>
-                    <td>
-                      <div className="flex gap-1 flex-wrap">
-                        {purchase.items.map((item, i) => (
-                          <span key={i} className="badge badge-outline badge-xs">
-                            {item.productName} x{item.quantity}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="text-right font-medium">{formatCurrency(purchase.totalAmount)} GNF</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable<PurchaseInvoice>
+            columns={[
+              { key: 'date', label: 'Date', render: (p) => new Date(p.date).toLocaleDateString('fr-MA'), primary: true },
+              { key: 'products', label: 'Produits', render: (p) => (
+                <div className="flex gap-1 flex-wrap">
+                  {p.items.map((item, i) => (
+                    <span key={i} className="badge badge-outline badge-xs">{item.productName} x{item.quantity}</span>
+                  ))}
+                </div>
+              )},
+              { key: 'amount', label: 'Montant', render: (p) => <span className="font-medium">{formatCurrency(p.totalAmount)} GNF</span>, className: 'text-right' },
+            ]}
+            data={purchases.slice(0, 5)}
+            getRowKey={(p) => p.id}
+          />
         )}
       </div>
     </div>

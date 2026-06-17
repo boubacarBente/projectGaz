@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
+import { ResponsiveTable, type Column } from '@/components/responsive-table';
 
 interface Product {
   id: number;
@@ -278,109 +279,41 @@ export default function ProduitsPage() {
         <div className="p-4">
           <SearchBar value={search} onChange={setSearch} onClear={() => setSearch('')} placeholder="Rechercher par code, nom ou capacité..." />
         </div>
-        <div className="overflow-x-auto">
+        <div>
           {isLoading ? (
             <div className="flex items-center justify-center p-8">
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
-          ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-base-content/60">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-16 w-16 mb-4 opacity-50"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10m-8 4l-8 4m8-4l-8-4m-4 10V7"
-                />
-              </svg>
-              <p>Aucun produit trouvé</p>
-            </div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr className="bg-base-200">
-                  <th className="font-semibold">Code</th>
-                  <th className="font-semibold">Désignation</th>
-                  <th className="font-semibold">Capacité</th>
-                  <th className="font-semibold text-right">Prix achat</th>
-                  <th className="font-semibold text-right">Prix vente</th>
-                  <th className="font-semibold text-center">Statut</th>
-                  <th className="font-semibold text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id} className="hover:bg-base-200">
-                    <td>
-                      <div className="font-semibold">{product.code}</div>
-                    </td>
-                    <td>
-                      <div className="font-medium">{product.name}</div>
-                    </td>
-                    <td>
-                      <span className="badge badge-outline">
-                        {product.capacity}
-                      </span>
-                    </td>
-                    <td className="text-right font-semibold text-primary">
-                      {formatCurrency(product.unitPrice)}
-                    </td>
-                    <td className="text-right font-semibold text-info">
-                      {formatCurrency(product.salePrice)}
-                    </td>
-                    <td className="text-center">
-                      {product.isActive ? (
-                        <span className="badge badge-primary p-3 badge-xs">
-                          Actif
-                        </span>
-                      ) : (
-                        <span className="badge bg-amber-600 p-3 badge-xs">
-                          Inactif
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex justify-center gap-1">
-                        <button
-                          onClick={() => openDetailModal(product)}
-                          className="btn btn-ghost btn-sm btn-square"
-                          title="Détails"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => openEditModal(product)}
-                          className="btn btn-ghost btn-sm btn-square"
-                          title="Modifier"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => openDeleteModal(product)}
-                          className="btn btn-ghost btn-sm btn-square"
-                          title="Supprimer"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ResponsiveTable
+              columns={[
+                { key: 'code', label: 'Code', primary: true, render: (p) => <span className="font-semibold">{p.code}</span> },
+                { key: 'name', label: 'Désignation', render: (p) => <span className="font-medium">{p.name}</span> },
+                { key: 'capacity', label: 'Capacité', hideOnMobile: true, render: (p) => <span className="badge badge-outline">{p.capacity}</span> },
+                { key: 'unitPrice', label: 'Prix achat', className: 'text-right font-semibold text-primary', render: (p) => formatCurrency(p.unitPrice) },
+                { key: 'salePrice', label: 'Prix vente', className: 'text-right font-semibold text-info', render: (p) => formatCurrency(p.salePrice) },
+                { key: 'isActive', label: 'Statut', render: (p) => p.isActive
+                  ? <span className="badge badge-primary p-3 badge-xs">Actif</span>
+                  : <span className="badge bg-amber-600 p-3 badge-xs">Inactif</span>
+                },
+              ]}
+              data={products}
+              getRowKey={(p) => p.id}
+              actions={(p) => (
+                <>
+                  <button onClick={() => openDetailModal(p)} className="btn btn-ghost btn-sm btn-square" title="Détails">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  </button>
+                  <button onClick={() => openEditModal(p)} className="btn btn-ghost btn-sm btn-square" title="Modifier">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button onClick={() => openDeleteModal(p)} className="btn btn-ghost btn-sm btn-square" title="Supprimer">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </>
+              )}
+              emptyMessage="Aucun produit trouvé"
+            />
           )}
         </div>
         <Pagination 
