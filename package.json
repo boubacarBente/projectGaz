@@ -1,11 +1,19 @@
 {
-  "name": "projectgaz",
+  "name": "gestion-gaz",
   "version": "0.1.0",
+  "description": "Application de gestion pour une entreprise de distribution de bouteilles de gaz",
+  "author": "boubacarBente",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
+    "dev:desktop": "concurrently \"next dev --port 12000\" \"wait-on http://localhost:12000 && electron .\"",
     "build": "next build",
     "start": "next start",
+    "build:desktop": "npm run build && electron-builder",
+    "build:desktop:win": "npm run build && electron-builder --win",
+    "build:desktop:mac": "npm run build && electron-builder --mac",
+    "build:desktop:linux": "npm run build && electron-builder --linux",
     "db:push": "npx drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
     "db:studio": "npx drizzle-kit studio"
@@ -26,16 +34,69 @@
     "react-toastify": "^11.0.5"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-datepicker": "^6.2.0",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.10",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "electron-updater": "^6.8.9",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4.2.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.gestiongaz.app",
+    "productName": "Gestion Gaz",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      ".next/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "electron/**/*",
+      "db/**/*",
+      "public/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "public/icon.png",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "public/icon.png",
+      "category": "Office"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "boubacarBente",
+      "repo": "projectGaz"
+    }
   }
 }

@@ -1,0 +1,124 @@
+name: Build & Release Desktop App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build for'
+        required: true
+        type: choice
+        options:
+          - all
+          - win
+          - mac
+          - linux
+
+jobs:
+  # ── Build Windows ──────────────────────────────────────────────────
+  build-windows:
+    if: ${{ github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'win' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Rebuild better-sqlite3 for Electron
+      - run: npx @electron/rebuild -f -w better-sqlite3
+
+      - run: npm run build
+
+      - run: npm run build:desktop:win
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GestionGaz-Windows
+          path: release/*.exe
+
+  # ── Build macOS ────────────────────────────────────────────────────
+  build-mac:
+    if: ${{ github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'mac' }}
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx @electron/rebuild -f -w better-sqlite3
+
+      - run: npm run build
+
+      - run: npm run build:desktop:mac
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GestionGaz-macOS
+          path: release/*.dmg
+
+  # ── Build Linux ────────────────────────────────────────────────────
+  build-linux:
+    if: ${{ github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'linux' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx @electron/rebuild -f -w better-sqlite3
+
+      - run: npm run build
+
+      - run: npm run build:desktop:linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GestionGaz-Linux
+          path: release/*.AppImage
+
+  # ── Create GitHub Release ──────────────────────────────────────────
+  create-release:
+    if: github.event_name == 'push'
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: GestionGaz-*
+          merge-multiple: true
+          path: artifacts
+
+      - run: ls -la artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false

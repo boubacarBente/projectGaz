@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nom ou mot de passe incorrect' }, { status: 401 });
     }
 
-    return await createSessionResponse({ id: user.id, name: user.name, role: user.role });
+    return await createSessionResponse({ id: user.id, name: user.name, role: user.role ?? 'user' });
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

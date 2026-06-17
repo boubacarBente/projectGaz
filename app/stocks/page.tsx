@@ -226,8 +226,8 @@ export default function StocksPage() {
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <SearchBar
-            search={search}
-            setSearch={setSearch}
+            value={search}
+            onChange={setSearch}
             placeholder="Rechercher un produit..."
           />
         </div>
