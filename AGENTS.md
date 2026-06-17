@@ -184,13 +184,14 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 ## Responsive Design
 
 Toutes les pages sont responsives (breakpoints `sm`, `md`, `lg`). Patterns utilisés :
+- **Composant `ResponsiveTable`** (`components/responsive-table.tsx`) : rendu conditionnel `<table>` sur desktop, **cards empilées** sur mobile — **plus aucun `overflow-x-auto`** parasite sur les listings principaux
+- **Colonnes configurables** : `primary: true` (titre de la card mobile), `hideOnMobile: true` (masqué), `actions` (boutons en bas de card / droite du tableau)
 - **Grilles** : `grid-cols-1 sm:grid-cols-3 lg:grid-cols-4` — colonne unique sur mobile
 - **Boutons groupés** : `flex flex-wrap` pour les sélecteurs de période
 - **Graphiques Chart.js** : `h-56 sm:h-64` — moins haut sur mobile
-- **Tableaux** : wrapper `<div className="overflow-x-auto">` pour scroll horizontal
 - **Padding** : `px-4 sm:px-8` — plus serré sur mobile
 - **Texte** : `text-lg sm:text-xl` — taille adaptative
-- **Modals** : Grilles de stats en `grid-cols-1 sm:grid-cols-3`
+- **Modals** : Full-screen sur mobile (`fullScreenMobile`), grilles de stats en `grid-cols-1 sm:grid-cols-3`, formulaire en colonne sur mobile
 
 ## Export et Partage
 
@@ -211,3 +212,57 @@ Composant dropdown réutilisable avec 3 options : PDF, Image, WhatsApp.
 - `app/ventes/page.tsx` — `handleShareWhatsApp` pour les factures de vente
 - `app/factures-usine/page.tsx` — `handleShareWhatsApp` pour les factures d'achat
 - `components/ventes/ventes-table.tsx` — Passe `onShareWhatsApp` au dropdown
+
+---
+
+## ResponsiveTable (`components/responsive-table.tsx`)
+
+Composant générique qui remplace tous les `<table>` + `overflow-x-auto`. Rendu adaptatif :
+
+| Écran | Rendu |
+|---|---|
+| Desktop (`sm+`) | Tableau DaisyUI standard |
+| Mobile | Cards empilées avec `grid grid-cols-2` label/valeur |
+
+**Type Column :**
+```typescript
+type Column<T> = {
+  key: string;
+  header: string;
+  render: (item: T) => React.ReactNode;
+  primary?: boolean;     // Affiche en titre de card mobile
+  hideOnMobile?: boolean; // Masque la colonne sur mobile
+  actions?: boolean;      // Colonne d'actions (boutons en bas de card)
+};
+```
+
+**Props :**
+- `columns: Column<T>[]` — Définition des colonnes
+- `data: T[]` — Données à afficher
+- `keyField?: string` — Champ utilisé comme clé React (défaut: `id`)
+- `emptyMessage?: string` — Message si données vides
+
+**Pages utilisatrices** : Toutes les pages de liste (ventes, clients, produits, fournisseurs, stocks, factures-usine, portefeuille, utilisateurs, dashboard).
+
+---
+
+## Application Desktop (Electron)
+
+### Fichiers
+- `electron/main.js` — Processus principal : lance Next.js, crée la fenêtre BrowserWindow, gère l'auto-update via `electron-updater`
+- `electron/preload.js` — Bridge IPC sécurisé (contextIsolation)
+- `.github/workflows/release.yml` — Build multi-plateforme (Windows/macOS/Linux) sur chaque tag `v*`, upload en Release GitHub
+
+### Commandes
+- `npm run dev:desktop` — Mode dev (Next.js + Electron)
+- `npm run build:desktop` — Build Electron plateforme courante
+- `npm run build:desktop:win` — Build Windows (.exe NSIS)
+- `npm run build:desktop:mac` — Build macOS (.dmg)
+- `npm run build:desktop:linux` — Build Linux (.AppImage)
+- `npx @electron/rebuild -f -w better-sqlite3` — Recompiler SQLite pour Electron (obligatoire avant le 1er build)
+
+### Auto-update
+- `electron-updater` vérifie les Releases GitHub au lancement
+- Si version plus récente → popup → téléchargement → installation
+- Configuré dans `package.json` → `build.publish` (GitHub provider)
+- Pour publier : modifier la version → `git tag vX.Y.Z` → `git push origin vX.Y.Z`
