@@ -188,7 +188,7 @@ export default function StocksPage() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div className="stat bg-base-100 rounded-xl shadow-sm border border-base-200 p-3">
             <div className="stat-title text-xs">Produits</div>
             <div className="stat-value text-2xl">{summary.totalProducts}</div>

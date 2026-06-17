@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { Modal } from '@/components/modal';
+import { PageHeader } from '@/components/page-header';
 
 // ============================================
 // Types
@@ -15,59 +17,6 @@ type UserRow = {
   isActive: boolean | null;
   createdAt: Date | null;
 };
-
-// ============================================
-// PageHeader Component
-// ============================================
-function PageHeader({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold text-base-content">{title}</h1>
-      <p className="text-base-content/60 text-sm mt-1">{description}</p>
-    </div>
-  );
-}
-
-// ============================================
-// Modal Component
-// ============================================
-function Modal({
-  isOpen,
-  onClose,
-  title,
-  children,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative bg-base-100 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-base-200"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-base-200">
-          <h3 className="font-semibold text-lg text-base-content">{title}</h3>
-          <button
-            onClick={onClose}
-            className="btn btn-ghost btn-sm btn-square rounded-xl"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="px-6 py-4">{children}</div>
-      </motion.div>
-    </div>
-  );
-}
 
 // ============================================
 // User Management Page
@@ -277,6 +226,7 @@ export default function UtilisateursPage() {
       className="space-y-6 max-w-5xl mx-auto"
     >
       <PageHeader
+        eyebrow="Administration"
         title="Utilisateurs"
         description="Gérez les comptes utilisateurs de l'application"
       />
@@ -492,7 +442,7 @@ export default function UtilisateursPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-base-content/40 uppercase tracking-wider font-medium">Rôle</p>
                 <span className={`badge badge-sm mt-1 ${showDetailModal.role === 'admin' ? 'badge-primary' : 'badge-ghost'}`}>

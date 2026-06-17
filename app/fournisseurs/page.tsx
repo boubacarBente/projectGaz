@@ -733,7 +733,7 @@ export default function FournisseursPage() {
         ) : (
           <div className="space-y-6">
             {/* Stats cards */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="stats shadow-sm">
                 <div className="stat py-3">
                   <div className="stat-title text-xs">Achats totaux</div>

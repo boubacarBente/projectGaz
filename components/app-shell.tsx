@@ -262,7 +262,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 border-b border-base-200 bg-base-100 shadow-sm">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 border-b border-base-200 bg-base-100/95 backdrop-blur shadow-sm">
         <Link href="/" className="flex items-center gap-2">
           <Image src={'/logo.jpeg'} alt="" width={32} height={32} className="rounded" />
           <span className="font-bold text-sm">{companyName}</span>
@@ -311,7 +311,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', duration: 0.4, bounce: 0.1 }}
-              className="fixed top-0 right-0 z-50 h-full w-72 shadow-2xl lg:hidden overflow-y-auto"
+              className="fixed top-0 right-0 z-50 h-full w-80 sm:w-96 shadow-2xl lg:hidden overflow-y-auto"
               style={{ backgroundColor: 'var(--sidebar-color)' }}
             >
               <div className="p-4 border-b flex items-center justify-between"
@@ -388,7 +388,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <main className={`flex-1 ${contentBg} min-h-screen lg:pt-0 pt-16`}>
-        <div className="max-w-7xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>
