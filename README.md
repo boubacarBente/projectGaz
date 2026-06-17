@@ -2,18 +2,22 @@
 
 Application web complète pour la gestion d'une entreprise de vente et distribution de bouteilles de gaz. Ce système permet de gérer l'ensemble des opérations commerciales : facturation, suivi des clients et fournisseurs, tableaux de bord analytiques, avec authentification et gestion des utilisateurs.
 
+**🖥️ Nouveau : Application desktop exécutable (Windows, macOS, Linux) avec mise à jour automatique depuis GitHub !** → [Voir le guide](#application-desktop-electron)
+
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat&logo=next.js)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat&logo=sqlite)
 ![Drizzle ORM](https://img.shields.io/badge/Drizzle-ORM-FFFFFF?style=flat&logo=drizzle)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38BDF8?style=flat&logo=tailwind-css)
 ![DaisyUI](https://img.shields.io/badge/DaisyUI-5.5-5B23E0?style=flat&logo=daisyui)
 ![Chart.js](https://img.shields.io/badge/Chart.js-4-FF6384?style=flat&logo=chart.js)
+![Electron](https://img.shields.io/badge/Electron-42-47848F?style=flat&logo=electron)
 
 ## Table des Matières
 
 - [Fonctionnalités](#fonctionnalités)
 - [Stack Technique](#stack-technique)
 - [Installation](#installation)
+- [Application Desktop (Electron)](#application-desktop-electron)
 - [Structure du Projet](#structure-du-projet)
 - [Base de Données](#base-de-données)
 - [Pages](#pages)
@@ -128,6 +132,55 @@ npm run dev
 
 L'application sera disponible sur [http://localhost:3000](http://localhost:3000)
 
+## Application Desktop (Electron)
+
+L'application peut être empaquetée en exécutable desktop natif (`.exe` Windows, `.dmg` macOS, `.AppImage` Linux) avec **mise à jour automatique** depuis GitHub Releases.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────┐
+│  Electron (fenêtre desktop native)       │
+│  └── Next.js (serveur local)             │
+│       └── Gestion Gaz (React + API + DB) │
+│            └── electron-updater → GitHub  │
+└──────────────────────────────────────────┘
+```
+
+### Builder l'application
+
+```bash
+# Prérequis : reconstruction du module natif SQLite pour Electron
+npx @electron/rebuild -f -w better-sqlite3
+
+# Windows → .exe (NSIS installer)
+npm run build:desktop:win
+
+# macOS → .dmg
+npm run build:desktop:mac
+
+# Linux → .AppImage + .deb
+npm run build:desktop:linux
+```
+
+L'exécutable sera dans le dossier `release/`.
+
+### Publier une mise à jour
+
+```bash
+# 1. Modifier la version dans package.json → "0.2.0"
+# 2. git commit && git push
+# 3. Créer le tag → GitHub Actions build tout automatiquement
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+👉 À chaque tag `v*`, GitHub Actions compile pour **Windows, macOS et Linux**,
+crée une Release GitHub, et les apps installées détectent la mise à jour
+automatiquement au lancement.
+
+📖 **Guide complet** : voir le fichier [`TUTO.md`](TUTO.md) à la racine du projet.
+
 ## Structure du Projet
 
 ```
@@ -165,10 +218,16 @@ projectGaz/
 │   ├── modal.tsx                 #   Modal animée (framer-motion)
 │   ├── module-page.tsx           #   Template de page module
 │   ├── page-header.tsx           #   En-tête de page
+│   ├── responsive-table.tsx      #   Tableau adaptatif (desktop/mobile)
 │   ├── search-filter.tsx         #   Recherche + filtre + pagination
 │   ├── surface-card.tsx          #   Carte générique
 │   ├── theme-provider.tsx        #   Contexte thème clair/sombre + couleurs
 │   └── theme-toggle.tsx          #   Bouton de bascule thème
+├── electron/                      # Application desktop Electron
+│   ├── main.js                    #   Processus principal Electron
+│   └── preload.js                 #   Bridge sécurisé
+├── .github/workflows/
+│   └── release.yml                #   CI/CD build multi-plateforme
 ├── db/                           # Base de données
 │   ├── schema.ts                 # Définition des tables Drizzle
 │   ├── helpers.ts                #   Requêtes avec relations (JOIN auto)
@@ -182,6 +241,7 @@ projectGaz/
 │   ├── products.ts               # Fonctions produits
 │   └── seed-data.ts              # Données de démonstration
 ├── data/                         # Anciennes données JSON (archivé)
+├── TUTO.md                       # Guide complet pour l'app desktop
 └── middleware.ts                 # Protection des routes (auth)
 ```
 
@@ -334,7 +394,12 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 
 ```bash
 npm run dev              # Démarrer le serveur de développement
-npm run build            # Builder pour production
+npm run dev:desktop      # Next.js + Electron en mode dev
+npm run build            # Builder Next.js pour production
+npm run build:desktop    # Builder l'app Electron (plateforme courante)
+npm run build:desktop:win # Builder pour Windows (.exe)
+npm run build:desktop:mac # Builder pour macOS (.dmg)
+npm run build:desktop:linux # Builder pour Linux (.AppImage)
 npm run lint             # Linter le code
 npm run db:generate      # Générer les migrations Drizzle
 npm run db:push          # Pousser le schéma vers la DB
@@ -389,13 +454,15 @@ Les couleurs de l'application sont **configurables dynamiquement** depuis la pag
 - **Mobile** : Header fixe avec menu hamburger → drawer coulissant animé
 
 ### Responsive Design
-- **Adaptatif** : Toutes les pages sont responsives (breakpoints Tailwind `sm`, `md`, `lg`)
+- **Composant `ResponsiveTable`** : Tous les tableaux de données utilisent un rendu adaptatif — `<table>` DaisyUI sur desktop, **cards empilées** avec label/valeur sur mobile (`sm:` breakpoint)
+- **Aucun `overflow-x-auto`** parasite sur les listings principaux
+- **Grilles** : `grid-cols-1 sm:grid-cols-3 lg:grid-cols-4` — colonne unique sur mobile
 - **Graphiques** : Hauteur réduite sur mobile (`h-56` → `h-64` sur desktop)
-- **Tableaux** : `overflow-x-auto` pour le défilement horizontal sur mobile
 - **Boutons de période** : `flex-wrap` pour éviter le débordement des groupes de boutons
-- **Modals** : Les grilles de statistiques passent en colonne unique (`grid-cols-1 sm:grid-cols-3`)
-- **Dropdowns** : Utilisation de `z-50` + clic outside pour la compatibilité mobile
-- **Texte** : Tailles réduites sur mobile (`text-lg` → `text-xl` sur desktop)
+- **Modals** : Full-screen sur mobile (`fullScreenMobile`), grilles de stats en `grid-cols-1 sm:grid-cols-3`, formulaire en colonne sur mobile
+- **Navigation** : Header fixe + drawer coulissant sur mobile, sidebar fixe sur desktop
+- **Padding** : `px-4 sm:px-8` — plus serré sur mobile
+- **Texte** : `text-lg sm:text-xl` — taille adaptative
 
 ## Export et Partage
 
@@ -414,4 +481,4 @@ Composant dropdown réutilisable regroupant les options d'export :
 
 ---
 
-*Dernière mise à jour : 15/06/2026*
+*Dernière mise à jour : 17/06/2026*
