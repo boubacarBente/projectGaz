@@ -278,9 +278,18 @@ export default function LoginPage() {
                   <span>/setup-admin</span>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <span className="text-white/40 font-mono w-20 shrink-0">login:</span>
-                  <span className="text-white/70 font-mono">{name || 'admin'}</span>
+                <div>
+                  <label className="block text-xs text-white/30 font-mono mb-1.5 tracking-wider uppercase">nom d'utilisateur</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      className="w-full bg-transparent border border-white/12 rounded-xl px-4 py-3 text-sm text-white/70 font-mono placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/2"
+                      placeholder="Nom d'utilisateur"
+                      autoFocus
+                    />
+                  </div>
                 </div>
 
                 {(['password', 'confirm'] as const).map(field => (
