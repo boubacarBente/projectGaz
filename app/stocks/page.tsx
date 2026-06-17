@@ -284,7 +284,7 @@ export default function StocksPage() {
                       ) : isLow ? (
                         <span className="badge badge-warning badge-sm">Stock faible</span>
                       ) : (
-                        <span className="badge badge-success badge-sm">OK</span>
+                        <span className="badge badge-success bg-success badge-sm">OK</span>
                       )}
                     </td>
                     <td className="text-center">

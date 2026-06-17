@@ -3,6 +3,11 @@ import { hasAdminUser, createUser } from '@/lib/auth';
 
 // Route pour créer le premier admin (uniquement si aucun admin n'existe)
 export async function POST(request: Request) {
+  // const encoder = new TextEncoder();
+  // const data = encoder.encode('1234');
+  // const hash = await crypto.subtle.digest('SHA-256', data);
+  // const passwordHash = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  // return NextResponse.json({passwordHash: passwordHash});
   try {
     const existing = await hasAdminUser();
     if (existing) {
