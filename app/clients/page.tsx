@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from '@/components/modal';
+import { ResponsiveTable, type Column } from '@/components/responsive-table';
 
 type Customer = {
   id: number;
@@ -321,81 +322,55 @@ export default function ClientsPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <div className="p-4">
             {isLoading ? (
               <div className="flex items-center justify-center p-12">
                 <span className="loading loading-dots loading-md text-emerald-500" />
               </div>
-            ) : customers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-12 text-base-content/40 gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                <p className="text-sm">Aucun client trouvé</p>
-              </div>
             ) : (
-              <table className="table text-sm">
-                <thead>
-                  <tr className="bg-base-200/40 text-xs uppercase tracking-wider text-base-content/50">
-                    <th className="font-semibold py-3 pl-4">Client</th>
-                    <th className="font-semibold py-3">Contact</th>
-                    <th className="font-semibold py-3">Ville</th>
-                    <th className="font-semibold py-3">Type</th>
-                    <th className="font-semibold py-3 text-right pr-4">Achats</th>
-                    <th className="font-semibold py-3 text-center pr-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customers.map((customer) => (
-                    <motion.tr
-                      key={customer.id}
-                      layout
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="group hover:bg-base-200/30 transition-colors"
-                    >
-                      <td className="pl-4">
-                        <div className="flex items-center gap-3">
-                          <div className="avatar placeholder">
-                            <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 w-9 rounded-xl text-sm font-bold">
-                              {customer.name.charAt(0).toUpperCase()}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="font-medium text-sm">{customer.name}</div>
-                            <StatusBadge active={customer.isActive} />
-                          </div>
+              <ResponsiveTable
+                columns={[
+                  { key: 'name', label: 'Client', primary: true, render: (c) => (
+                    <div className="flex items-center gap-3">
+                      <div className="avatar placeholder">
+                        <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 w-9 rounded-xl text-sm font-bold">
+                          {c.name.charAt(0).toUpperCase()}
                         </div>
-                      </td>
-                      <td>
-                        <div className="text-sm text-base-content/60">
-                          {customer.phone || <span className="text-base-content/20">—</span>}
-                        </div>
-                      </td>
-                      <td className="text-base-content/60">{customer.city || <span className="text-base-content/20">—</span>}</td>
-                      <td>
-                        {customer.type ? (
-                          <span className="inline-flex items-center rounded-full bg-base-200/70 px-2.5 py-0.5 text-[11px] font-medium text-base-content/60">
-                            {customer.type.name}
-                          </span>
-                        ) : <span className="text-base-content/20">—</span>}
-                      </td>
-                      <td className="text-right font-semibold tabular-nums pr-4">{fCF(customer.totalPurchases)} F</td>
-                      <td className="text-center pr-4">
-                        <div className="flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openDetailModal(customer)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Détails">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                          </button>
-                          <button onClick={() => openEditModal(customer)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Modifier">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                          </button>
-                          <button onClick={() => openDeleteModal(customer)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Supprimer">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400/60 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{c.name}</div>
+                        <StatusBadge active={c.isActive} />
+                      </div>
+                    </div>
+                  )},
+                  { key: 'phone', label: 'Contact', hideOnMobile: true, render: (c) => (
+                    <span className="text-sm text-base-content/60">{c.phone || '—'}</span>
+                  )},
+                  { key: 'city', label: 'Ville', hideOnMobile: true, render: (c) => (
+                    <span className="text-base-content/60">{c.city || '—'}</span>
+                  )},
+                  { key: 'type', label: 'Type', render: (c) => c.type ? (
+                    <span className="inline-flex items-center rounded-full bg-base-200/70 px-2.5 py-0.5 text-[11px] font-medium text-base-content/60">{c.type.name}</span>
+                  ) : <span className="text-base-content/20">—</span> },
+                  { key: 'totalPurchases', label: 'Achats', className: 'text-right font-semibold tabular-nums', render: (c) => `${fCF(c.totalPurchases)} F` },
+                ]}
+                data={customers}
+                getRowKey={(c) => c.id}
+                actions={(c) => (
+                  <div className="flex items-center gap-0.5">
+                    <button onClick={() => openDetailModal(c)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Détails">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    </button>
+                    <button onClick={() => openEditModal(c)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Modifier">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    </button>
+                    <button onClick={() => openDeleteModal(c)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Supprimer">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400/60 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
+                )}
+                emptyMessage="Aucun client trouvé"
+              />
             )}
           </div>
 

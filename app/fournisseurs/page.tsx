@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
+import { ResponsiveTable, type Column } from '@/components/responsive-table';
 // DatePicker removed
 
 type Supplier = {
@@ -583,62 +584,53 @@ export default function FournisseursPage() {
       {/* Suppliers Table */}
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur">
         <div className="border-b border-base-200 p-4"><h3 className="font-semibold text-lg">Liste des fournisseurs</h3></div>
-        <div className="overflow-x-auto">
           {isLoading ? (
             <div className="flex items-center justify-center p-8"><span className="loading loading-spinner loading-lg text-primary"></span></div>
-          ) : suppliers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-base-content/60">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0v2m0-2v-2m0 2H9m2 2v-2m0 2h6" /></svg>
-              <p>Aucun fournisseur trouvé. Ajoutez votre premier fournisseur.</p>
-            </div>
           ) : (
-            <table className="table">
-              <thead><tr className="bg-base-200"><th className="font-semibold">Fournisseur</th><th className="font-semibold">Contact</th><th className="font-semibold">Adresse</th><th className="font-semibold text-right">Achats</th><th className="font-semibold text-center">Actions</th></tr></thead>
-              <tbody>
-                {suppliers.map((supplier) => (
-                  <tr key={supplier.id} className="hover:bg-base-200">
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="avatar placeholder">
-                          <div className="bg-primary text-primary-content w-10 rounded-full text-center">
-                            <span className="text-lg">{supplier.name.charAt(0).toUpperCase()}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <div className="font-semibold">{supplier.name}</div>
-                          <div className="text-xs text-base-content/60">
-                            {supplier.isActive ? <span className="badge badge-primary badge-xs">Actif</span> : <span className="badge badge-ghost badge-xs">Inactif</span>}
-                          </div>
-                        </div>
+            <ResponsiveTable<Supplier>
+              columns={[
+                { key: 'name', label: 'Fournisseur', render: (s) => (
+                  <div className="flex items-center gap-3">
+                    <div className="avatar placeholder">
+                      <div className="bg-primary text-primary-content w-10 rounded-full text-center">
+                        <span className="text-lg">{s.name.charAt(0).toUpperCase()}</span>
                       </div>
-                    </td>
-                    <td>
-                      <div className="text-sm">
-                        {supplier.phone && <div className="flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>{supplier.phone}</div>}
-                        {!supplier.phone && <span className="text-base-content/40">—</span>}
+                    </div>
+                    <div>
+                      <div className="font-semibold">{s.name}</div>
+                      <div className="text-xs text-base-content/60">
+                        {s.isActive ? <span className="badge badge-primary badge-xs">Actif</span> : <span className="badge badge-ghost badge-xs">Inactif</span>}
                       </div>
-                    </td>
-                    <td className="text-sm text-base-content/70">{supplier.address || <span className="text-base-content/40">—</span>}</td>
-                    <td className="text-right font-semibold text-primary">{formatCurrency(supplier.totalPurchases)} GNF</td>
-                    <td>
-                      <div className="flex justify-center gap-1">
-                        <button onClick={() => openDetailModal(supplier)} className="btn btn-ghost btn-sm btn-square" title="Détails">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        </button>
-                        <button onClick={() => openEditModal(supplier)} className="btn btn-ghost btn-sm btn-square" title="Modifier">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                        </button>
-                        <button onClick={() => openDeleteModal(supplier)} className="btn btn-ghost btn-sm btn-square" title="Supprimer">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                ), primary: true },
+                { key: 'contact', label: 'Contact', render: (s) => (
+                  <div className="text-sm">
+                    {s.phone && <div className="flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>{s.phone}</div>}
+                    {!s.phone && <span className="text-base-content/40">—</span>}
+                  </div>
+                ), hideOnMobile: true },
+                { key: 'address', label: 'Adresse', render: (s) => <span className="text-sm text-base-content/70">{s.address || <span className="text-base-content/40">—</span>}</span>, hideOnMobile: true },
+                { key: 'purchases', label: 'Achats', render: (s) => <span className="font-semibold text-primary">{formatCurrency(s.totalPurchases)} GNF</span>, className: 'text-right' },
+              ]}
+              data={suppliers}
+              getRowKey={(s) => s.id}
+              emptyMessage="Aucun fournisseur trouvé. Ajoutez votre premier fournisseur."
+              actions={(s) => (
+                <>
+                  <button onClick={() => openDetailModal(s)} className="btn btn-ghost btn-sm btn-square" title="Détails">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  </button>
+                  <button onClick={() => openEditModal(s)} className="btn btn-ghost btn-sm btn-square" title="Modifier">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button onClick={() => openDeleteModal(s)} className="btn btn-ghost btn-sm btn-square" title="Supprimer">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </>
+              )}
+            />
           )}
-        </div>
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

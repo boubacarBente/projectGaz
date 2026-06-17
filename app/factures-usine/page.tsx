@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
+import { ResponsiveTable, type Column } from '@/components/responsive-table';
 // DatePicker removed
 
 // Dynamic import for PDF/image generation
@@ -594,67 +595,52 @@ export default function DepensesPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="table table-zebra">
-                <thead>
-                  <tr>
-                    <th>Référence</th>
-                    <th>Fournisseur</th>
-                    <th>Date</th>
-                    <th>Produits</th>
-                    <th>Total</th>
-                    <th>Statut</th>
-                    <th className="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map((invoice) => (
-                    <tr key={invoice.id}>
-                      <td className="font-medium">{invoice.reference}</td>
-                      <td>{invoice.supplierName}</td>
-                      <td>{new Date(invoice.date).toLocaleDateString('fr-MA')}</td>
-                      <td>
-                        <div className="text-sm">
-                          {invoice.items.map((item, idx) => (
-                            <span key={idx} className="badge badge-outline badge-sm mr-1">
-                              {item.productCode} x{item.quantity}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="font-semibold text-warning">{formatCurrency(invoice.totalAmount)} GNF</td>
-                      <td>
-                        {invoice.isPaid ? (
-                          <span className="badge badge-primary">Payée</span>
-                        ) : (
-                          <span className="badge bg-danger">Non payée</span>
-                        )}
-                      </td>
-                      <td className="text-right">
-                        <div className="flex gap-1 justify-end">
-                          <Link href={`/factures-usine/${invoice.id}`} className="btn btn-ghost btn-xs" title="Voir détail">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </Link>
-                          <button onClick={() => openEditModal(invoice)} className="btn btn-ghost btn-xs" title="Modifier">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button onClick={() => openDeleteModal(invoice)} className="btn btn-ghost btn-xs" title="Supprimer">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveTable<PurchaseInvoice>
+              columns={[
+                { key: 'reference', label: 'Référence', render: (inv) => <span className="font-medium">{inv.reference}</span>, primary: true },
+                { key: 'supplier', label: 'Fournisseur', render: (inv) => inv.supplierName },
+                { key: 'date', label: 'Date', render: (inv) => new Date(inv.date).toLocaleDateString('fr-MA'), hideOnMobile: true },
+                { key: 'products', label: 'Produits', render: (inv) => (
+                  <div className="text-sm">
+                    {inv.items.map((item, idx) => (
+                      <span key={idx} className="badge badge-outline badge-sm mr-1">
+                        {item.productCode} x{item.quantity}
+                      </span>
+                    ))}
+                  </div>
+                )},
+                { key: 'total', label: 'Total', render: (inv) => <span className="font-semibold text-warning">{formatCurrency(inv.totalAmount)} GNF</span> },
+                { key: 'status', label: 'Statut', render: (inv) => (
+                  inv.isPaid ? (
+                    <span className="badge badge-primary">Payée</span>
+                  ) : (
+                    <span className="badge bg-danger">Non payée</span>
+                  )
+                )},
+              ]}
+              data={invoices}
+              getRowKey={(inv) => inv.id}
+              actions={(inv) => (
+                <>
+                  <Link href={`/factures-usine/${inv.id}`} className="btn btn-ghost btn-xs" title="Voir détail">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </Link>
+                  <button onClick={() => openEditModal(inv)} className="btn btn-ghost btn-xs" title="Modifier">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button onClick={() => openDeleteModal(inv)} className="btn btn-ghost btn-xs" title="Supprimer">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </>
+              )}
+            />
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

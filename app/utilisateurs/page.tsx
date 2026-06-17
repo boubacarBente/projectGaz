@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { Modal } from '@/components/modal';
 import { PageHeader } from '@/components/page-header';
+import { ResponsiveTable, type Column } from '@/components/responsive-table';
 
 // ============================================
 // Types
@@ -260,111 +261,95 @@ export default function UtilisateursPage() {
           {users.length === 0 ? (
             <p className="text-center py-8 text-base-content/40">Aucun utilisateur</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="table table-sm">
-                <thead>
-                  <tr className="text-base-content/60 text-xs uppercase tracking-wider">
-                    <th>Nom</th>
-                    <th>Rôle</th>
-                    <th>Statut</th>
-                    <th>Créé le</th>
-                    <th className="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => (
-                    <tr key={u.id} className="hover:bg-base-200/30 transition-colors">
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                            {u.name.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="font-medium">{u.name}</span>
-                          {u.id === currentUserId && (
-                            <span className="badge badge-xs badge-ghost">Vous</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`badge badge-sm ${u.role === 'admin' ? 'badge-primary' : 'badge-ghost'}`}>
-                          {u.role === 'admin' ? 'Admin' : 'Utilisateur'}
-                        </span>
-                      </td>
-                      <td>
-                        {u.isActive ? (
-                          <span className="text-xs text-success font-medium">Actif</span>
-                        ) : (
-                          <span className="text-xs text-error font-medium">Inactif</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className="text-xs text-base-content/40">
-                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr-FR') : '-'}
-                        </span>
-                      </td>
-                      <td className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {/* Detail button */}
-                          <button
-                            type="button"
-                            onClick={() => setShowDetailModal(u)}
-                            className="btn btn-xs btn-ghost"
-                            title="Détails"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </button>
-                          {/* Edit button */}
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(u)}
-                            className="btn btn-xs btn-ghost text-info"
-                            title="Modifier"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          {/* Delete button — not for self */}
-                          {u.id !== currentUserId && (
-                            deleteConfirm === u.id ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(u.id)}
-                                  className="btn btn-xs btn-error gap-1"
-                                >
-                                  Confirmer
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDeleteConfirm(null)}
-                                  className="btn btn-xs btn-ghost"
-                                >
-                                  Annuler
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setDeleteConfirm(u.id)}
-                                className="btn btn-xs btn-ghost text-error"
-                                title="Supprimer"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            )
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveTable<UserRow>
+              columns={[
+                { key: 'name', label: 'Nom', render: (u) => (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                      {u.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-medium">{u.name}</span>
+                    {u.id === currentUserId && (
+                      <span className="badge badge-xs badge-ghost">Vous</span>
+                    )}
+                  </div>
+                ), primary: true },
+                { key: 'role', label: 'Rôle', render: (u) => (
+                  <span className={`badge badge-sm ${u.role === 'admin' ? 'badge-primary' : 'badge-ghost'}`}>
+                    {u.role === 'admin' ? 'Admin' : 'Utilisateur'}
+                  </span>
+                )},
+                { key: 'status', label: 'Statut', render: (u) => (
+                  u.isActive ? (
+                    <span className="text-xs text-success font-medium">Actif</span>
+                  ) : (
+                    <span className="text-xs text-error font-medium">Inactif</span>
+                  )
+                )},
+                { key: 'created', label: 'Créé le', render: (u) => (
+                  <span className="text-xs text-base-content/40">
+                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr-FR') : '-'}
+                  </span>
+                ), hideOnMobile: true },
+              ]}
+              data={users}
+              getRowKey={(u) => u.id}
+              actions={(u) => (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowDetailModal(u)}
+                    className="btn btn-xs btn-ghost"
+                    title="Détails"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(u)}
+                    className="btn btn-xs btn-ghost text-info"
+                    title="Modifier"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  {u.id !== currentUserId && (
+                    deleteConfirm === u.id ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(u.id)}
+                          className="btn btn-xs btn-error gap-1"
+                        >
+                          Confirmer
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirm(null)}
+                          className="btn btn-xs btn-ghost"
+                        >
+                          Annuler
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirm(u.id)}
+                        className="btn btn-xs btn-ghost text-error"
+                        title="Supprimer"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )
+                  )}
+                </>
+              )}
+            />
           )}
         </div>
       </div>

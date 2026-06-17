@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
+import { ResponsiveTable, type Column } from '@/components/responsive-table';
 
 interface StockProduct {
   id: number;
@@ -233,89 +234,62 @@ export default function StocksPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="table table-zebra w-full">
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Produit</th>
-              <th>Capacité</th>
-              <th className="text-center">Stock</th>
-              <th className="text-center">Seuil min</th>
-              <th className="text-right">Valeur stock</th>
-              <th className="text-center">Statut</th>
-              <th className="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className="text-center py-8">
-                  <span className="loading loading-spinner loading-md text-primary"></span>
-                </td>
-              </tr>
-            ) : paginatedProducts.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center py-8 text-base-content/50">
-                  Aucun produit trouvé
-                </td>
-              </tr>
-            ) : (
-              paginatedProducts.map((product) => {
-                const isOutOfStock = product.stock === 0;
-                const isLow = product.isLow || (product.stockMin > 0 && product.stock <= product.stockMin);
-                return (
-                  <tr key={product.id} className={isOutOfStock ? 'bg-red-50/50' : isLow ? 'bg-amber-50/50' : ''}>
-                    <td className="font-mono font-bold">{product.code}</td>
-                    <td>{product.name}</td>
-                    <td>{product.capacity}</td>
-                    <td className="text-center">
-                      <span className={`font-bold text-lg ${
-                        isOutOfStock ? 'text-error' : isLow ? 'text-warning' : 'text-success'
-                      }`}>
-                        {product.stock}
-                      </span>
-                    </td>
-                    <td className="text-center">{product.stockMin}</td>
-                    <td className="text-right font-mono">{formatCurrency(product.stockValue)} GNF</td>
-                    <td className="text-center">
-                      {isOutOfStock ? (
-                        <span className="badge badge-error badge-sm">Rupture</span>
-                      ) : isLow ? (
-                        <span className="badge badge-warning badge-sm">Stock faible</span>
-                      ) : (
-                        <span className="badge badge-success bg-success badge-sm">OK</span>
-                      )}
-                    </td>
-                    <td className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => openMovementsModal(product)}
-                          className="btn btn-ghost btn-xs btn-square"
-                          title="Historique"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => openAdjustModal(product)}
-                          className="btn btn-ghost btn-xs btn-square"
-                          title="Ajuster le stock"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <span className="loading loading-spinner loading-md text-primary"></span>
+        </div>
+      ) : (
+        <ResponsiveTable<StockProduct>
+          columns={[
+            { key: 'code', label: 'Code', render: (p) => <span className="font-mono font-bold">{p.code}</span>, primary: true },
+            { key: 'name', label: 'Produit', render: (p) => p.name },
+            { key: 'capacity', label: 'Capacité', render: (p) => p.capacity, hideOnMobile: true },
+            { key: 'stock', label: 'Stock', render: (p) => {
+              const isOut = p.stock === 0;
+              const isLow = p.isLow || (p.stockMin > 0 && p.stock <= p.stockMin);
+              return (
+                <span className={`font-bold text-lg ${isOut ? 'text-error' : isLow ? 'text-warning' : 'text-success'}`}>
+                  {p.stock}
+                </span>
+              );
+            }, className: 'text-center' },
+            { key: 'stockMin', label: 'Seuil min', render: (p) => p.stockMin, className: 'text-center', hideOnMobile: true },
+            { key: 'stockValue', label: 'Valeur stock', render: (p) => <span className="font-mono">{formatCurrency(p.stockValue)} GNF</span>, className: 'text-right' },
+            { key: 'status', label: 'Statut', render: (p) => {
+              const isOut = p.stock === 0;
+              const isLow = p.isLow || (p.stockMin > 0 && p.stock <= p.stockMin);
+              if (isOut) return <span className="badge badge-error badge-sm">Rupture</span>;
+              if (isLow) return <span className="badge badge-warning badge-sm">Stock faible</span>;
+              return <span className="badge badge-success bg-success badge-sm">OK</span>;
+            }, className: 'text-center' },
+          ]}
+          data={paginatedProducts}
+          getRowKey={(p) => p.id}
+          emptyMessage="Aucun produit trouvé"
+          actions={(product) => (
+            <>
+              <button
+                onClick={() => openMovementsModal(product)}
+                className="btn btn-ghost btn-xs btn-square"
+                title="Historique"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => openAdjustModal(product)}
+                className="btn btn-ghost btn-xs btn-square"
+                title="Ajuster le stock"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            </>
+          )}
+        />
+      )}
 
       {totalPages > 1 && (
         <div className="flex justify-center">
