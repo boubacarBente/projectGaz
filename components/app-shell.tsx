@@ -143,10 +143,22 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-xs font-bold uppercase tracking-wider mb-3 px-3"
-            style={{ color: 'var(--sidebar-text-muted)' }}>
-            Navigation
-          </h2>
+          <div className="flex items-center justify-between mb-3 px-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider"
+              style={{ color: 'var(--sidebar-text-muted)' }}>
+              Navigation
+            </h2>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn btn-ghost btn-xs btn-square"
+              style={{ color: 'var(--sidebar-text-muted)' }}
+              title="Recharger la page"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
           <ul className="space-y-1">
             {navigation.map((item) => (
               <li key={item.href}>
@@ -218,19 +230,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Thème</span>
               <ThemeToggle />
             </div>
-
-            {/* Refresh button */}
-            <button
-              onClick={() => window.location.reload()}
-              className="btn btn-sm w-full btn-ghost mb-2"
-              style={{ color: 'var(--sidebar-text-muted)' }}
-              title="Recharger la page"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Recharger
-            </button>
 
             {/* Settings link */}
             <Link 
