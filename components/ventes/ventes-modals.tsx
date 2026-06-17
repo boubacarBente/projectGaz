@@ -396,7 +396,7 @@ export function DetailInvoiceModal({
     <Modal isOpen={isOpen} onClose={onClose} title={`Facture ${invoice?.invoiceNumber}`} size="lg">
       {invoice && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-base-content/60">Client:</span>
               <p className="font-medium">{invoice.customerName}</p>

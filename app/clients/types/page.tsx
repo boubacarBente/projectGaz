@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { SurfaceCard } from '@/components/surface-card';
+import { Modal } from '@/components/modal';
 
 type CustomerType = {
   id: number;
@@ -36,7 +37,7 @@ export default function ClientTypesPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce type ?')) return;
-    
+
     try {
       const res = await fetch(`/api/clients/types/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -50,6 +51,8 @@ export default function ClientTypesPage() {
     }
   };
 
+  const isModalOpen = showAddModal || editingType !== null;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -59,9 +62,12 @@ export default function ClientTypesPage() {
         actions={
           <button
             onClick={() => setShowAddModal(true)}
-            className="rounded-full bg-sky-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-800"
+            className="btn btn-primary gap-2"
           >
-            + Nouveau types
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Nouveau type
           </button>
         }
       />
@@ -76,7 +82,7 @@ export default function ClientTypesPage() {
             {types.map((type) => (
               <div
                 key={type.id}
-                className="rounded-lg border border-base-200 p-4 hover:border-sky-300"
+                className="rounded-lg border border-base-200 p-4 hover:border-sky-300 transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -89,12 +95,14 @@ export default function ClientTypesPage() {
                     <button
                       onClick={() => setEditingType(type)}
                       className="text-base-content/50 hover:text-sky-600"
+                      title="Modifier"
                     >
                       ✏️
                     </button>
                     <button
                       onClick={() => handleDelete(type.id)}
                       className="text-base-content/50 hover:text-red-600"
+                      title="Supprimer"
                     >
                       🗑️
                     </button>
@@ -106,39 +114,34 @@ export default function ClientTypesPage() {
         )}
       </SurfaceCard>
 
-      {/* Add Modal */}
-      {showAddModal && (
-        <TypeModal
-          onClose={() => setShowAddModal(false)}
+      {/* Add / Edit Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingType(null);
+        }}
+        title={editingType ? 'Modifier le type' : 'Nouveau type de client'}
+        size="sm"
+      >
+        <TypeForm
+          type={editingType ?? undefined}
           onSuccess={() => {
             setShowAddModal(false);
-            fetchTypes();
-          }}
-        />
-      )}
-
-      {/* Edit Modal */}
-      {editingType && (
-        <TypeModal
-          type={editingType}
-          onClose={() => setEditingType(null)}
-          onSuccess={() => {
             setEditingType(null);
             fetchTypes();
           }}
         />
-      )}
+      </Modal>
     </div>
   );
 }
 
-function TypeModal({
+function TypeForm({
   type,
-  onClose,
   onSuccess,
 }: {
   type?: CustomerType;
-  onClose: () => void;
   onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
@@ -156,7 +159,7 @@ function TypeModal({
     try {
       const url = type ? `/api/clients/types/${type.id}` : '/api/clients/types';
       const method = type ? 'PUT' : 'POST';
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -169,7 +172,7 @@ function TypeModal({
       if (!res.ok) throw new Error('Erreur lors de la sauvegarde');
 
       onSuccess();
-    } catch (err) {
+    } catch {
       setError('Erreur lors de la sauvegarde du type');
     } finally {
       setIsSubmitting(false);
@@ -177,68 +180,45 @@ function TypeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-xl bg-base-100 p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {type ? 'Modifier le type' : 'Nouveau type de client'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-base-content/50 hover:text-base-content/70"
-          >
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-base-content/80">
-              Nom *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
-              placeholder="Ex: Particulier, Entreprise"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-base-content/80">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full rounded-lg border border-base-200 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
-              rows={2}
-              placeholder="Description optionnelle..."
-            />
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-lg border border-base-200 px-4 py-2 text-sm font-medium text-base-content/80 hover:bg-base-200"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 rounded-lg bg-sky-700 px-4 py-2 text-sm font-medium text-white hover:bg-sky-800 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}
-            </button>
-          </div>
-        </form>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="mb-1 block text-sm font-medium text-base-content/80">
+          Nom *
+        </label>
+        <input
+          type="text"
+          required
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className="input input-bordered w-full rounded-xl"
+          placeholder="Ex: Particulier, Entreprise"
+          autoFocus
+        />
       </div>
-    </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-base-content/80">
+          Description
+        </label>
+        <textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="textarea textarea-bordered w-full rounded-xl"
+          rows={2}
+          placeholder="Description optionnelle..."
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="flex justify-end gap-3 pt-2 border-t border-base-200">
+        <button type="button" onClick={onSuccess} className="btn btn-ghost rounded-xl">
+          Annuler
+        </button>
+        <button type="submit" disabled={isSubmitting} className="btn btn-primary rounded-xl">
+          {isSubmitting ? <span className="loading loading-spinner loading-sm" /> : 'Sauvegarder'}
+        </button>
+      </div>
+    </form>
   );
 }
