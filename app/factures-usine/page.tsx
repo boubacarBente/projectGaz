@@ -1180,14 +1180,14 @@ export default function DepensesPage() {
               </div>
             </div>
 
-            <div className="border rounded-lg overflow-hidden">
-              <table className="table table-xs">
+            <div className="border rounded-lg overflow-x-auto">
+              <table className="table table-xs w-full">
                 <thead className="bg-base-200">
                   <tr>
                     <th>Code</th>
                     <th className="text-center">Qté</th>
-                    <th className="text-right">Coût</th>
-                    <th className="text-right">Total</th>
+                    <th className="text-right whitespace-nowrap">Coût unit.</th>
+                    <th className="text-right whitespace-nowrap">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1195,8 +1195,8 @@ export default function DepensesPage() {
                     <tr key={idx}>
                       <td>{item.productCode}</td>
                       <td className="text-center">{item.quantity}</td>
-                      <td className="text-right">{formatCurrency(item.unitCost)}</td>
-                      <td className="text-right">{formatCurrency(item.totalCost)}</td>
+                      <td className="text-right whitespace-nowrap">{formatCurrency(item.unitCost)}</td>
+                      <td className="text-right whitespace-nowrap">{formatCurrency(item.totalCost)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -824,15 +824,15 @@ export default function FournisseursPage() {
                           </div>
                         </div>
                       </summary>
-                      <div className="px-8 pb-4">
-                        <table className="table table-xs">
+                      <div className="px-4 sm:px-8 pb-4 overflow-x-auto">
+                        <table className="table table-xs w-full">
                           <thead>
                             <tr className="text-xs text-base-content/50">
                               <th>Code</th>
                               <th>Produit</th>
                               <th className="text-center">Qté</th>
-                              <th className="text-right">Prix unit.</th>
-                              <th className="text-right">Total</th>
+                              <th className="text-right whitespace-nowrap">Prix unit.</th>
+                              <th className="text-right whitespace-nowrap">Total</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -841,8 +841,8 @@ export default function FournisseursPage() {
                                 <td className="font-mono text-xs">{item.productCode}</td>
                                 <td>{item.productName}</td>
                                 <td className="text-center">{item.quantity}</td>
-                                <td className="text-right">{formatCurrency(item.unitCost)} GNF</td>
-                                <td className="text-right font-medium">{formatCurrency(item.totalCost)} GNF</td>
+                                <td className="text-right whitespace-nowrap">{formatCurrency(item.unitCost)} GNF</td>
+                                <td className="text-right font-medium whitespace-nowrap">{formatCurrency(item.totalCost)} GNF</td>
                               </tr>
                             ))}
                           </tbody>

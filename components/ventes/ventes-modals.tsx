@@ -419,26 +419,28 @@ export function DetailInvoiceModal({
 
           <div className="border-t border-b border-base-200 py-4">
             <h4 className="font-medium mb-3">Articles</h4>
-            <table className="table table-xs">
-              <thead>
-                <tr>
-                  <th>Produit</th>
-                  <th className="text-right">Qté</th>
-                  <th className="text-right">Prix</th>
-                  <th className="text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>{item.productName}</td>
-                    <td className="text-right">{item.quantity}</td>
-                    <td className="text-right">{formatCurrency(item.unitPrice)}</td>
-                    <td className="text-right font-medium">{formatCurrency(item.totalPrice)}</td>
+            <div className="overflow-x-auto">
+              <table className="table table-xs w-full">
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th className="text-right">Qté</th>
+                    <th className="text-right">Prix</th>
+                    <th className="text-right">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {invoice.items.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>{item.productName}</td>
+                      <td className="text-right whitespace-nowrap">{item.quantity}</td>
+                      <td className="text-right whitespace-nowrap">{formatCurrency(item.unitPrice)}</td>
+                      <td className="text-right font-medium whitespace-nowrap">{formatCurrency(item.totalPrice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
