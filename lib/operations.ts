@@ -456,7 +456,7 @@ async function buildSalesItems(lines: LineInput[]) {
 
     if (quantity > currentStock) {
       stockErrors.push(
-        `• ${product.name} : stock insuffisant (disponible: ${currentStock}, demandé: ${quantity})`
+        `• ${product.code} ${product.name} : stock insuffisant (disponible: ${currentStock}, demandé: ${quantity})`
       );
     }
   }
