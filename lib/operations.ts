@@ -441,12 +441,35 @@ async function buildPurchaseItems(lines: LineInput[]) {
 async function buildSalesItems(lines: LineInput[]) {
   const products = await listProducts();
 
-  return lines.map((line) => {
+  // Vérifier le stock disponible pour chaque ligne
+  const stockErrors: string[] = [];
+
+  for (const line of lines) {
     const product = products.find((item) => item.id === line.productId);
 
     if (!product) {
-      throw new Error("Produit introuvable pour la facture vente.");
+      throw new Error(`Produit introuvable pour la facture vente (ID: ${line.productId}).`);
     }
+
+    const quantity = Number(line.quantity) || 0;
+    const currentStock = product.stock ?? 0;
+
+    if (quantity > currentStock) {
+      stockErrors.push(
+        `• ${product.code} ${product.name} : stock insuffisant (disponible: ${currentStock}, demandé: ${quantity})`
+      );
+    }
+  }
+
+  if (stockErrors.length > 0) {
+    const errorDetails = stockErrors.join('\n');
+    throw new Error(
+      `Stock insuffisant pour créer la vente :\n\n${errorDetails}\n\nVeuillez ajuster les quantités ou réapprovisionner le stock.`
+    );
+  }
+
+  return lines.map((line) => {
+    const product = products.find((item) => item.id === line.productId)!;
 
     return {
       productId: product.id,

@@ -11,6 +11,8 @@ export type Product = {
   capacity: string;
   unitPrice: number;
   salePrice: number;
+  stock: number;
+  stockMin: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -24,6 +26,8 @@ const seedProducts: Product[] = [
     capacity: "3 kg",
     unitPrice: 28750,
     salePrice: 28750,
+    stock: 100,
+    stockMin: 10,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -35,6 +39,8 @@ const seedProducts: Product[] = [
     capacity: "6 kg",
     unitPrice: 51500,
     salePrice: 51500,
+    stock: 80,
+    stockMin: 10,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -46,6 +52,8 @@ const seedProducts: Product[] = [
     capacity: "9 kg",
     unitPrice: 77250,
     salePrice: 77250,
+    stock: 60,
+    stockMin: 10,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -57,6 +65,8 @@ const seedProducts: Product[] = [
     capacity: "12 kg",
     unitPrice: 107200,
     salePrice: 107200,
+    stock: 40,
+    stockMin: 5,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -68,6 +78,8 @@ const seedProducts: Product[] = [
     capacity: "36 kg",
     unitPrice: 317300,
     salePrice: 317300,
+    stock: 20,
+    stockMin: 5,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -79,6 +91,8 @@ const seedProducts: Product[] = [
     capacity: "48 kg",
     unitPrice: 508072,
     salePrice: 508072,
+    stock: 10,
+    stockMin: 3,
     isActive: true,
     createdAt: "2026-03-22T00:00:00.000Z",
     updatedAt: "2026-03-22T00:00:00.000Z",
@@ -125,6 +139,8 @@ export async function listProducts(includeInactive = false) {
     capacity: p.capacity,
     unitPrice: p.unitPrice,
     salePrice: p.salePrice,
+    stock: p.stock ?? 0,
+    stockMin: p.stockMin ?? 0,
     isActive: p.isActive,
     createdAt: p.createdAt?.toISOString() || "",
     updatedAt: p.updatedAt?.toISOString() || "",

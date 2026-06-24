@@ -38,8 +38,10 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(invoice, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating sales invoice:', error);
-    return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to create invoice';
+    const status = message.includes('Stock insuffisant') ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

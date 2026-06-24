@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createInvoice } from "@/app/ventes/actions";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { SurfaceCard } from "@/components/surface-card";
-// DatePicker removed (was import)
 
 type Product = {
   id: number;
@@ -20,11 +19,18 @@ type Line = {
   unitPrice: string;
 };
 
+type ApiError = {
+  type: string;
+  message: string;
+  fields?: { name: string; value: string }[];
+};
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("fr-FR").format(value);
 }
 
 export default function NouvelleFacturePage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -34,6 +40,8 @@ export default function NouvelleFacturePage() {
   const [lines, setLines] = useState<Line[]>([
     { productId: "", quantity: "1", unitPrice: "" },
   ]);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetch("/api/produits")
@@ -46,6 +54,64 @@ export default function NouvelleFacturePage() {
         }
       });
   }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.set("customerName", customerName);
+      formData.set("date", date);
+      formData.set("paymentMethod", paymentMethod);
+      formData.set("amountPaid", amountPaid);
+      formData.set("notes", notes);
+      lines.forEach((line, i) => {
+        formData.set(`productId`, line.productId);
+        formData.set(`quantity`, line.quantity);
+        formData.set(`unitPrice`, line.unitPrice);
+      });
+
+      const response = await fetch("/api/factures", {
+        method: "POST",
+        body: JSON.stringify({
+          customerName,
+          date,
+          paymentMethod,
+          amountPaid: amountPaid || 0,
+          notes,
+          lines: lines.map((l) => ({
+            productId: parseInt(l.productId),
+            quantity: parseFloat(l.quantity),
+            amount: parseFloat(l.unitPrice),
+          })),
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = data.error || "Une erreur est survenue lors de la création de la facture.";
+        setError({
+          type: response.status === 400 ? "validation" : "server",
+          message,
+        });
+        return;
+      }
+
+      // Redirection en cas de succès
+      router.push("/ventes");
+    } catch (err: any) {
+      setError({
+        type: "network",
+        message: err instanceof Error ? err.message : "Erreur de connexion au serveur.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const addLine = () => {
     setLines((prev) => [
@@ -99,7 +165,21 @@ export default function NouvelleFacturePage() {
           title="Nouvelle facture client"
           description="Ajoute un ou plusieurs produits, le total se calcule automatiquement."
         >
-          <form action={createInvoice} className="grid gap-4">
+          <form onSubmit={handleSubmit} className="grid gap-4">
+            {error && (
+              <div className={`rounded-xl p-4 text-sm ${
+                error.type === 'validation'
+                  ? 'border border-red-200 bg-red-50 text-red-800'
+                  : 'border border-amber-200 bg-amber-50 text-amber-900'
+              }`}>
+                <div className="flex items-start gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <div className="whitespace-pre-wrap font-medium">{error.message}</div>
+                </div>
+              </div>
+            )}
             {/* Client & Date */}
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-base-content/80">
@@ -270,9 +350,20 @@ export default function NouvelleFacturePage() {
 
             <button
               type="submit"
-              className="inline-flex w-fit rounded-full bg-sky-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-800"
+              disabled={isSubmitting}
+              className="inline-flex w-fit rounded-full bg-sky-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Enregistrer la vente
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Enregistrement...
+                </>
+              ) : (
+                'Enregistrer la vente'
+              )}
             </button>
           </form>
         </SurfaceCard>
