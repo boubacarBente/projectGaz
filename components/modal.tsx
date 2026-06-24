@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string | React.ReactNode;
+  title?: string | React.ReactNode;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** Force full-screen on mobile (bottom sheet style). Default false. */
@@ -46,11 +46,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', fullScree
                 : 'w-[calc(100%-1rem)] sm:w-full mx-auto my-2 sm:my-8'
               }`}
           >
-            <div className="flex items-center justify-between border-b border-base-200 pb-3 sm:pb-4">
-              <h3 className="text-base sm:text-lg font-bold">{title}</h3>
-              <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-base-300 shrink-0" aria-label="Fermer">✕</button>
-            </div>
-            <div className="py-3 sm:py-4">{children}</div>
+            {title && (
+              <div className="flex items-center justify-between border-b border-base-200 pb-3 sm:pb-4">
+                <h3 className="text-base sm:text-lg font-bold">{title}</h3>
+                <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-base-300 shrink-0" aria-label="Fermer">✕</button>
+              </div>
+            )}
+            <div className={title ? 'py-3 sm:py-4' : ''}>{children}</div>
           </motion.div>
         </div>
       )}
