@@ -557,113 +557,174 @@ export default function ClientsPage() {
       </Modal>
 
       {/* ---------- Detail Modal ---------- */}
-      <Modal isOpen={showDetailModal} onClose={() => { setShowDetailModal(false); setSelectedCustomer(null); }} title={
-        selectedCustomer ? (
-          <div className="flex items-center gap-3">
-            <div className="avatar placeholder">
-              <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 w-10 rounded-xl text-lg font-bold">
-                {selectedCustomer.name.charAt(0).toUpperCase()}
-              </div>
-            </div>
-            <div>
-              <div className="text-lg font-bold">{selectedCustomer.name}</div>
-              <div className="text-sm text-base-content/50 flex items-center gap-2">
-                <StatusBadge active={selectedCustomer.isActive} />
-                {selectedCustomer.type && <><span className="text-base-content/20">·</span><span>{selectedCustomer.type.name}</span></>}
-              </div>
-            </div>
-          </div>
-        ) : 'Détails du client'
-      } size="lg">
+      <Modal isOpen={showDetailModal} onClose={() => { setShowDetailModal(false); setSelectedCustomer(null); }} size="lg">
         {!selectedCustomer ? null : (
-          <div className="space-y-6">
-            {/* Stats cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-xl border border-base-200/60 bg-base-100 p-4">
-                <p className="text-xs uppercase tracking-wider text-base-content/40">Achats totaux</p>
-                <p className="mt-1 text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400 break-words">{fCF(selectedCustomer.totalPurchases)} F</p>
-              </div>
-              <div className="rounded-xl border border-base-200/60 bg-base-100 p-4">
-                <p className="text-xs uppercase tracking-wider text-base-content/40">Factures</p>
-                <p className="mt-1 text-lg sm:text-xl font-bold text-base-content">
-                  {isDetailLoading ? <span className="loading loading-spinner loading-xs"></span> : customerInvoices?.count ?? '—'}
-                </p>
-              </div>
-              <div className="rounded-xl border border-base-200/60 bg-base-100 p-4">
-                <p className="text-xs uppercase tracking-wider text-base-content/40">Total facturé</p>
-                <p className="mt-1 text-lg sm:text-xl font-bold text-base-content">
-                  {isDetailLoading ? <span className="loading loading-spinner loading-xs"></span> : customerInvoices ? fCF(customerInvoices.total) + ' F' : '—'}
-                </p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="space-y-6"
+          >
+            {/* Header avec gradient */}
+            <div className="relative -mx-6 -mt-6 mb-2 overflow-hidden rounded-t-2xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 px-6 pb-8 pt-6">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2Mmgxem0tMi0ydi0ySDI2djJoOHptMC00di0ySDI2djJoOHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
+              <div className="relative flex items-center gap-4">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold text-white shadow-lg backdrop-blur-sm ring-1 ring-white/30"
+                >
+                  {selectedCustomer.name.charAt(0).toUpperCase()}
+                </motion.div>
+                <div className="flex-1 min-w-0">
+                  <motion.h2
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15, duration: 0.3 }}
+                    className="text-xl font-bold text-white truncate"
+                  >
+                    {selectedCustomer.name}
+                  </motion.h2>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2, duration: 0.3 }}
+                    className="mt-1 flex flex-wrap items-center gap-2 text-sm text-emerald-100"
+                  >
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium backdrop-blur-sm">
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${selectedCustomer.isActive ? 'bg-emerald-300' : 'bg-white/40'}`} />
+                      {selectedCustomer.isActive ? 'Actif' : 'Inactif'}
+                    </span>
+                    {selectedCustomer.type && (
+                      <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium backdrop-blur-sm">
+                        {selectedCustomer.type.name}
+                      </span>
+                    )}
+                    {selectedCustomer.city && (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-200/80">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        {selectedCustomer.city}
+                      </span>
+                    )}
+                  </motion.div>
+                </div>
               </div>
             </div>
 
-            {/* Contact info */}
-            <div className="rounded-xl border border-base-200/60">
-              <div className="border-b border-base-200/60 px-5 py-3">
-                <h4 className="font-semibold text-sm flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  Informations de contact
-                </h4>
+            {/* Stats cards avec icônes */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.3 }}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+            >
+              <StatCard
+                label="Achats totaux"
+                value={`${fCF(selectedCustomer.totalPurchases)} F`}
+                hint="Depuis le début"
+                accent
+              />
+              <StatCard
+                label="Factures"
+                value={isDetailLoading ? '—' : String(customerInvoices?.count ?? 0)}
+                hint={isDetailLoading ? 'Chargement...' : `${customerInvoices?.count ?? 0} facture(s)`}
+              />
+              <StatCard
+                label="Total facturé"
+                value={isDetailLoading ? '—' : `${fCF(customerInvoices?.total ?? 0)} F`}
+                hint={isDetailLoading ? 'Chargement...' : 'Montant cumulé'}
+              />
+            </motion.div>
+
+            {/* Contact info - cartes horizontales */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            >
+              <div className="flex items-center gap-3 rounded-xl border border-base-200/60 bg-base-50 p-4 transition-colors hover:bg-base-100/80">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] uppercase tracking-wider text-base-content/40">Téléphone</p>
+                  <p className="font-medium truncate">{selectedCustomer.phone || '—'}</p>
+                </div>
               </div>
-              <div className="p-5">
-                <dl className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-base-content/40">Téléphone</dt>
-                    <dd className="font-medium mt-0.5">{selectedCustomer.phone || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-base-content/40">Email</dt>
-                    <dd className="font-medium mt-0.5">{selectedCustomer.email || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-base-content/40">Adresse</dt>
-                    <dd className="font-medium mt-0.5">{selectedCustomer.address || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-base-content/40">Ville</dt>
-                    <dd className="font-medium mt-0.5">{selectedCustomer.city || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-base-content/40">Client depuis</dt>
-                    <dd className="font-medium mt-0.5">{selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString('fr-FR') : '—'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-base-content/40">Dernière mise à jour</dt>
-                    <dd className="font-medium mt-0.5">{selectedCustomer.updatedAt ? new Date(selectedCustomer.updatedAt).toLocaleDateString('fr-FR') : '—'}</dd>
-                  </div>
-                </dl>
+
+              <div className="flex items-center gap-3 rounded-xl border border-base-200/60 bg-base-50 p-4 transition-colors hover:bg-base-100/80">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] uppercase tracking-wider text-base-content/40">Email</p>
+                  <p className="font-medium truncate">{selectedCustomer.email || '—'}</p>
+                </div>
               </div>
-            </div>
+
+              <div className="flex items-center gap-3 rounded-xl border border-base-200/60 bg-base-50 p-4 transition-colors hover:bg-base-100/80">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] uppercase tracking-wider text-base-content/40">Adresse</p>
+                  <p className="font-medium truncate">{selectedCustomer.address || '—'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-xl border border-base-200/60 bg-base-50 p-4 transition-colors hover:bg-base-100/80">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] uppercase tracking-wider text-base-content/40">Client depuis</p>
+                  <p className="font-medium">{selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
+                </div>
+              </div>
+            </motion.div>
 
             {/* Notes */}
             {selectedCustomer.notes && (
-              <div className="rounded-xl border border-base-200/60">
-                <div className="border-b border-base-200/60 px-5 py-3">
-                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
-                    Notes
-                  </h4>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.3 }}
+                className="rounded-xl border border-amber-200/60 bg-amber-50/50 p-4"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                  <h4 className="font-semibold text-sm text-amber-800">Notes</h4>
                 </div>
-                <div className="p-5 text-sm text-base-content/70">{selectedCustomer.notes}</div>
-              </div>
+                <p className="text-sm text-amber-900/80 leading-relaxed">{selectedCustomer.notes}</p>
+              </motion.div>
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-2 border-t border-base-200/60">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.3 }}
+              className="flex flex-wrap justify-end gap-2 border-t border-base-200/60 pt-4"
+            >
+              <button onClick={() => { setShowDetailModal(false); setSelectedCustomer(null); }} className="btn btn-ghost btn-sm gap-1.5 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                Fermer
+              </button>
+              <button onClick={() => { setShowDetailModal(false); openEditModal(selectedCustomer); }} className="btn btn-primary btn-sm gap-1.5 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                Modifier
+              </button>
               <Link
                 href={`/clients/${selectedCustomer.id}/paiements`}
                 className="btn btn-success btn-sm gap-1.5 rounded-xl"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Historique des paiements
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Voir les paiements
               </Link>
-              <button onClick={() => { setShowDetailModal(false); openEditModal(selectedCustomer); }} className="btn btn-primary btn-sm gap-1.5 rounded-xl">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                Modifier
-              </button>
-              <button onClick={() => { setShowDetailModal(false); setSelectedCustomer(null); }} className="btn btn-ghost btn-sm rounded-xl">Fermer</button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
       </Modal>
 
