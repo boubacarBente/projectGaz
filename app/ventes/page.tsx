@@ -196,15 +196,18 @@ export default function FacturesPage() {
           lines,
         }),
       });
-      if (!res.ok) throw new Error('Erreur');
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Erreur lors de la création');
+      }
       toast.success('Facture créée avec succès!');
       setShowAddModal(false);
       resetForm();
       const { from, to } = getPeriodParams();
       fetchInvoices(from, to);
       fetchVentesStats(from, to);
-    } catch {
-      toast.error('Erreur lors de la création');
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la création');
     } finally {
       setIsSubmitting(false);
     }
