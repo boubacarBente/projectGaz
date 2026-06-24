@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import { PageHeader } from "@/components/page-header";
 import { SurfaceCard } from "@/components/surface-card";
 
@@ -19,12 +20,6 @@ type Line = {
   unitPrice: string;
 };
 
-type ApiError = {
-  type: string;
-  message: string;
-  fields?: { name: string; value: string }[];
-};
-
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("fr-FR").format(value);
 }
@@ -40,7 +35,6 @@ export default function NouvelleFacturePage() {
   const [lines, setLines] = useState<Line[]>([
     { productId: "", quantity: "1", unitPrice: "" },
   ]);
-  const [error, setError] = useState<ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -57,7 +51,6 @@ export default function NouvelleFacturePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setIsSubmitting(true);
 
     try {
@@ -94,20 +87,14 @@ export default function NouvelleFacturePage() {
 
       if (!response.ok) {
         const message = data.error || "Une erreur est survenue lors de la création de la facture.";
-        setError({
-          type: response.status === 400 ? "validation" : "server",
-          message,
-        });
+        toast.error(message, { autoClose: 8000 });
         return;
       }
 
       // Redirection en cas de succès
       router.push("/ventes");
     } catch (err: any) {
-      setError({
-        type: "network",
-        message: err instanceof Error ? err.message : "Erreur de connexion au serveur.",
-      });
+      toast.error(err instanceof Error ? err.message : "Erreur de connexion au serveur.");
     } finally {
       setIsSubmitting(false);
     }
@@ -166,20 +153,6 @@ export default function NouvelleFacturePage() {
           description="Ajoute un ou plusieurs produits, le total se calcule automatiquement."
         >
           <form onSubmit={handleSubmit} className="grid gap-4">
-            {error && (
-              <div className={`rounded-xl p-4 text-sm ${
-                error.type === 'validation'
-                  ? 'border border-red-200 bg-red-50 text-red-800'
-                  : 'border border-amber-200 bg-amber-50 text-amber-900'
-              }`}>
-                <div className="flex items-start gap-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  <div className="whitespace-pre-wrap font-medium">{error.message}</div>
-                </div>
-              </div>
-            )}
             {/* Client & Date */}
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-base-content/80">
