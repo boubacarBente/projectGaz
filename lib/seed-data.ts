@@ -23,12 +23,12 @@ export const seedSuppliers = [
 ];
 
 export const seedProducts = [
-  { code: "B3", name: "Petite bouteille", capacity: "3 kg", unitPrice: 10000, salePrice: 12000 },
-  { code: "B6", name: "Moyenne bouteille", capacity: "6 kg", unitPrice: 20000, salePrice: 22000 },
-  { code: "B9", name: "Grande bouteille", capacity: "9 kg", unitPrice: 30000, salePrice: 32000 },
-  { code: "B12", name: "Très grande bouteille", capacity: "12 kg", unitPrice: 40000, salePrice: 42000 },
-  { code: "B36", name: "Bouteille industrielle", capacity: "36 kg", unitPrice: 50000, salePrice: 52000 },
-  { code: "B48", name: "Grande bouteille industrielle", capacity: "48 kg", unitPrice: 60000, salePrice: 62000 },
+  { code: "B3", name: "Petite bouteille", capacity: "3 kg", unitPrice: 10000, salePrice: 12000, stock: 150, stockMin: 20 },
+  { code: "B6", name: "Moyenne bouteille", capacity: "6 kg", unitPrice: 20000, salePrice: 22000, stock: 100, stockMin: 15 },
+  { code: "B9", name: "Grande bouteille", capacity: "9 kg", unitPrice: 30000, salePrice: 32000, stock: 80, stockMin: 10 },
+  { code: "B12", name: "Très grande bouteille", capacity: "12 kg", unitPrice: 40000, salePrice: 42000, stock: 60, stockMin: 10 },
+  { code: "B36", name: "Bouteille industrielle", capacity: "36 kg", unitPrice: 50000, salePrice: 52000, stock: 40, stockMin: 5 },
+  { code: "B48", name: "Grande bouteille industrielle", capacity: "48 kg", unitPrice: 60000, salePrice: 62000, stock: 20, stockMin: 3 },
 ];
 
 // Données de factures d'achat (usine) et de ventes
@@ -187,12 +187,12 @@ export async function seedDatabase() {
   // ── Produits ──
   if (existingProducts.count === 0) {
     const insertProduct = client.prepare(
-      "INSERT INTO products (code, name, capacity, unit_price, sale_price) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO products (code, name, capacity, unit_price, sale_price, stock, stock_min) VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
     for (const p of seedProducts) {
-      insertProduct.run(p.code, p.name, p.capacity, p.unitPrice, p.salePrice);
+      insertProduct.run(p.code, p.name, p.capacity, p.unitPrice, p.salePrice, p.stock, p.stockMin);
     }
-    results.push(`✓ ${seedProducts.length} produits créés`);
+    results.push(`✓ ${seedProducts.length} produits créés avec stock initial`);
   } else {
     results.push("→ Produits ignorés (déjà existants)");
   }
@@ -212,6 +212,13 @@ export async function seedDatabase() {
     );
     const updateSupplierTotal = client.prepare(
       `UPDATE suppliers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE id = ?`
+    );
+    const updateProductStock = client.prepare(
+      `UPDATE products SET stock = COALESCE(stock, 0) + ? WHERE id = ?`
+    );
+    const insertStockMovement = client.prepare(
+      `INSERT INTO stock_movements (product_id, type, quantity, stock_before, stock_after, reference_type, reference_id, note, created_at)
+       VALUES (?, 'entry', ?, ?, ?, 'purchase', ?, ?, ?)`
     );
 
     const startDate = new Date('2026-01-01');
@@ -246,6 +253,13 @@ export async function seedDatabase() {
 
         for (const item of itemRows) {
           insertItem.run(invoiceId, item.productId, item.code, item.name, item.qty, item.cost, item.total);
+          // Récupérer le stock actuel avant mise à jour
+          const currentStock = client.prepare("SELECT COALESCE(stock, 0) as stock FROM products WHERE id = ?").get(item.productId) as { stock: number };
+          // Mettre à jour le stock du produit
+          updateProductStock.run(item.qty, item.productId);
+          // Créer le mouvement de stock
+          const newStock = currentStock.stock + item.qty;
+          insertStockMovement.run(item.productId, currentStock.stock, newStock, invoiceId, ref, ts);
         }
 
         updateSupplierTotal.run(totalAmount, seed.supplierId);
@@ -253,6 +267,7 @@ export async function seedDatabase() {
     })();
 
     results.push(`✓ ${invoicesCount} factures d'achat créées`);
+    results.push(`✓ Stocks et mouvements de stock mis à jour`);
     results.push(`✓ Totaux fournisseurs mis à jour`);
   } else {
     results.push("→ Factures d'achat ignorées (déjà existantes)");
@@ -273,6 +288,13 @@ export async function seedDatabase() {
     );
     const updateCustomerTotal = client.prepare(
       `UPDATE customers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE name = ?`
+    );
+    const updateProductStock = client.prepare(
+      `UPDATE products SET stock = COALESCE(stock, 0) - ? WHERE id = ?`
+    );
+    const insertStockMovement = client.prepare(
+      `INSERT INTO stock_movements (product_id, type, quantity, stock_before, stock_after, reference_type, reference_id, note, created_at)
+       VALUES (?, 'exit', ?, ?, ?, 'sale', ?, ?, ?)`
     );
 
     const startDate = new Date('2026-01-01');
@@ -310,6 +332,13 @@ export async function seedDatabase() {
 
         for (const item of itemRows) {
           insertItem.run(invoiceId, item.productId, item.code, item.name, item.qty, item.price, item.total);
+          // Récupérer le stock actuel avant mise à jour
+          const currentStock = client.prepare("SELECT COALESCE(stock, 0) as stock FROM products WHERE id = ?").get(item.productId) as { stock: number };
+          // Mettre à jour le stock du produit (sortie)
+          updateProductStock.run(item.qty, item.productId);
+          // Créer le mouvement de stock
+          const newStock = Math.max(0, currentStock.stock - item.qty);
+          insertStockMovement.run(item.productId, currentStock.stock, newStock, invoiceId, invoiceNum, ts);
         }
 
         updateCustomerTotal.run(totalAmount, seed.customerName);
@@ -317,6 +346,7 @@ export async function seedDatabase() {
     })();
 
     results.push(`✓ ${totalSales} factures de vente créées`);
+    results.push(`✓ Stocks et mouvements de stock mis à jour`);
     results.push(`✓ Totaux clients mis à jour`);
   } else {
     results.push("→ Factures de vente ignorées (déjà existantes)");

@@ -50,8 +50,10 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Détail des factures expandable (code produit, quantité, prix unitaire)
 
 ### 📄 Factures de Vente
-- Création avec numéro auto-incrémenté
+- Création avec numéro auto-incrémenté utilisant le préfixe configurable (`FAC-2026-000001`)
 - Sélection de produits avec prix unitaire
+- **Vérification automatique du stock** : impossible de vendre plus que le stock disponible
+  - Message d'erreur détaillé listant les produits en rupture (`B3 Petite bouteille : stock insuffisant (disponible: 10, demandé: 15)`)
 - Calcul automatique des totaux
 - Modes de paiement (Espèces, Mobile Money, Virement)
 - Statuts de paiement (Payé, Partiel, En attente)
@@ -64,6 +66,14 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Filtres par fournisseur et statut de paiement
 - **Export** : PDF, Image, partage WhatsApp direct
 - Suivi du coût moyen par facture
+
+### 📦 Gestion des Stocks
+- Stock en temps réel pour chaque produit (colonne `stock` dans la table products)
+- Mouvements de stock automatiques : entrée (achat usine), sortie (vente client)
+- Historique des mouvements consultable sur la page Stocks
+- Ajustement manuel possible
+- Stock d'alerte minimum (`stock_min`) pour le réapprovisionnement
+- **Vérification à la vente** : blocage si stock insuffisant avec message d'erreur détaillé
 
 ### 📈 Rapports et Analyses
 - Synthèse globale (totaux, bénéfice, panier moyen)
@@ -481,4 +491,4 @@ Composant dropdown réutilisable regroupant les options d'export :
 
 ---
 
-*Dernière mise à jour : 17/06/2026*
+*Dernière mise à jour : 24/06/2026*
