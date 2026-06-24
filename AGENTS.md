@@ -28,11 +28,12 @@ Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
 - `customers` - Clients
 - `customer_types` - Types de clients
 - `suppliers` - Fournisseurs/usines
-- `products` - Produits (bouteilles de gaz)
+- `products` - Produits (bouteilles de gaz) — contient `stock` (quantité disponible) et `stock_min` (alerte réapprovisionnement)
 - `purchase_invoices` - Factures d'achat (dépenses)
 - `purchase_invoice_items` - Items des factures d'achat
 - `sales_invoices` - Factures de vente
 - `sales_invoice_items` - Items des factures de vente
+- `stock_movements` - Mouvements de stock (entrée/sortie avec stock_before/stock_after)
 - `wallet_transactions` - Transactions du portefeuille (entrées/sorties)
 - `settings` - Paramètres de l'application
 
@@ -158,6 +159,21 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 ```json
 { "data": [...], "total": 100, "page": 1, "limit": 10, "totalPages": 10 }
 ```
+
+### Création de factures
+
+#### Numérotation avec préfixes paramétrables
+- **Factures de vente** : `createSalesInvoice()` utilise `invoicePrefix` des settings (défaut: `FAC`)
+  → Format : `FAC-2026-000001`
+- **Factures d'achat** : `createPurchaseInvoice()` utilise `purchasePrefix` des settings (défaut: `ACH`)
+  → Format : `ACH-2026-1234` (auto-généré si aucune référence fournie)
+- Les préfixes sont configurables depuis la page Paramètres
+
+#### Vérification du stock avant vente
+- `buildSalesItems()` dans `lib/operations.ts` vérifie le stock disponible avant chaque création de vente
+- Si la quantité demandée dépasse le stock (`product.stock`), une erreur est levée listant tous les produits en rupture
+- L'erreur remonte jusqu'à l'API `/api/factures` qui retourne un status 400 avec le message détaillé
+- Côté client, le toast affiche : `Stock insuffisant pour créer la vente : • B3 Petite bouteille : stock insuffisant (disponible: 10, demandé: 15)`
 
 ## Server Actions
 
