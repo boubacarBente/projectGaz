@@ -471,6 +471,13 @@ export async function createPurchaseInvoice(input: {
   const items = await buildPurchaseItems(input.lines);
   const totalAmount = items.reduce((sum, item) => sum + item.totalCost, 0);
 
+  // Récupérer le préfixe des paramètres (ou utiliser la référence fournie)
+  const appSettings = await getSettings();
+  const prefix = appSettings.purchasePrefix || 'ACH';
+  const finalReference = input.reference?.trim()
+    ? input.reference
+    : `${prefix}-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
+
   // Chercher le nom du fournisseur à partir de l'ID
   const supplierMatch = await db.select({ name: suppliers.name }).from(suppliers)
     .where(eq(suppliers.id, input.supplierId))
@@ -478,7 +485,7 @@ export async function createPurchaseInvoice(input: {
   const supplierName = supplierMatch.length > 0 ? supplierMatch[0].name : '';
 
   const result = await db.insert(purchaseInvoices).values({
-    reference: input.reference,
+    reference: finalReference,
     supplierId: input.supplierId,
     date: input.date,
     notes: input.notes,
@@ -578,10 +585,14 @@ export async function createSalesInvoice(input: {
         ? "Partiel"
         : "Payée";
 
-  // Compter les factures
+  // Récupérer le préfixe des paramètres
+  const appSettings = await getSettings();
+  const prefix = appSettings.invoicePrefix || 'FAC';
+
+  // Compter les factures pour générer le numéro
   const countResult = await db.select({ count: sql<number>`count(*)` }).from(salesInvoices);
   const invoiceCount = countResult[0]?.count || 0;
-  const invoiceNumber = `N ${String(invoiceCount + 1).padStart(6, "0")}`;
+  const invoiceNumber = `${prefix}-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(6, "0")}`;
 
   const result = await db.insert(salesInvoices).values({
     invoiceNumber,

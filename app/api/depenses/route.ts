@@ -28,12 +28,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { reference, supplierId, date, notes, lines, isPaid } = body;
 
-    if (!reference || !supplierId || !date || !lines || !Array.isArray(lines) || lines.length === 0) {
+    if (!supplierId || !date || !lines || !Array.isArray(lines) || lines.length === 0) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     }
 
     const invoice = await createPurchaseInvoice({
-      reference,
+      reference: reference || '',
       supplierId,
       date,
       notes: notes || '',
