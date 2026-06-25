@@ -366,7 +366,7 @@ export default function ProduitsPage() {
               />
             </div>
             <div className="form-control md:col-span-2">
-              <label className="label">
+              <label className="label block">
                 <span className="label-text font-medium">Désignation *</span>
               </label>
               <input
@@ -376,7 +376,7 @@ export default function ProduitsPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="input input-bordered"
+                className="input input-bordered w-full"
                 placeholder="Très grande bouteille"
               />
             </div>
@@ -513,7 +513,7 @@ export default function ProduitsPage() {
               />
             </div>
             <div className="form-control md:col-span-2">
-              <label className="label">
+              <label className="label block">
                 <span className="label-text font-medium">Désignation *</span>
               </label>
               <input
@@ -523,7 +523,7 @@ export default function ProduitsPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="input input-bordered"
+                className="input input-bordered w-full"
                 placeholder="Très grande bouteille"
               />
             </div>

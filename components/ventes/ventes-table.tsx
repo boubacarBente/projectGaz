@@ -22,7 +22,7 @@ function getStatusColor(status: string) {
     case 'Paye':
     case 'Payée': return 'badge-primary';
     case 'Partiel': return 'badge-error';
-    case 'En attente': return 'badge-primary';
+    case 'En attente': return 'badge-warning';
     default: return 'badge-primary';
   }
 }
