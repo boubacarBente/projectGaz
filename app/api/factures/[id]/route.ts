@@ -52,9 +52,11 @@ export async function PUT(
     });
 
     return NextResponse.json(invoice);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating sales invoice:', error);
-    return NextResponse.json({ error: 'Failed to update invoice' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to update invoice';
+    const status = message.includes('Stock insuffisant') ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
