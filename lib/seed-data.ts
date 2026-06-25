@@ -259,7 +259,7 @@ export async function seedDatabase() {
           updateProductStock.run(item.qty, item.productId);
           // Créer le mouvement de stock
           const newStock = currentStock.stock + item.qty;
-          insertStockMovement.run(item.productId, currentStock.stock, newStock, invoiceId, ref, ts);
+          insertStockMovement.run(item.productId, item.qty, currentStock.stock, newStock, invoiceId, ref, ts);
         }
 
         updateSupplierTotal.run(totalAmount, seed.supplierId);
@@ -338,7 +338,7 @@ export async function seedDatabase() {
           updateProductStock.run(item.qty, item.productId);
           // Créer le mouvement de stock
           const newStock = Math.max(0, currentStock.stock - item.qty);
-          insertStockMovement.run(item.productId, currentStock.stock, newStock, invoiceId, invoiceNum, ts);
+          insertStockMovement.run(item.productId, item.qty, currentStock.stock, newStock, invoiceId, invoiceNum, ts);
         }
 
         updateCustomerTotal.run(totalAmount, seed.customerName);
