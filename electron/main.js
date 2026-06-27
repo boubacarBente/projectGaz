@@ -1,5 +1,6 @@
-const { app, BrowserWindow, shell, dialog, ipcMain, utilityProcess } = require('electron');
+const { app, BrowserWindow, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
+const { fork } = require('child_process');
 const http = require('http');
 const { autoUpdater } = require('electron-updater');
 
@@ -22,11 +23,6 @@ function findFreePort(startPort) {
   });
 }
 
-function getAppRoot() {
-  // __dirname is electron/, app root is one level up
-  return path.join(__dirname, '..');
-}
-
 async function startNextServer() {
   const isDev = !app.isPackaged;
 
@@ -37,16 +33,17 @@ async function startNextServer() {
 
   serverPort = await findFreePort(3000);
 
-  const appRoot = getAppRoot();
-  const serverScript = path.join(appRoot, '.next', 'standalone', 'server.js');
+  // app.getAppPath() donne la racine de l'app (dev: racine projet, packagée: resources/app/)
+  const serverScript = path.join(app.getAppPath(), '.next', 'standalone', 'server.js');
 
-  serverProcess = utilityProcess.fork(serverScript, [], {
+  serverProcess = fork(serverScript, [], {
     env: {
       ...process.env,
       NODE_ENV: 'production',
       PORT: String(serverPort),
       ELECTRON_APP_PATH: app.getPath('userData'),
     },
+    silent: true,
   });
 
   serverProcess.stdout.on('data', (d) => console.log('[next]', d.toString().trim()));
