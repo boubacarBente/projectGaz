@@ -43,13 +43,7 @@ async function startNextServer() {
       PORT: String(serverPort),
       ELECTRON_APP_PATH: app.getPath('userData'),
     },
-    silent: true,
-  });
-
-  serverProcess.stdout.on('data', (d) => console.log('[next]', d.toString().trim()));
-  serverProcess.stderr.on('data', (d) => console.error('[next:err]', d.toString().trim()));
-  serverProcess.on('exit', (code) => {
-    console.log(`[next] server exited with code ${code}`);
+    stdio: 'inherit',
   });
 
   const url = `http://localhost:${serverPort}`;
