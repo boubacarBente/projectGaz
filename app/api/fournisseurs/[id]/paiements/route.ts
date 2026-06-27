@@ -30,9 +30,9 @@ export async function GET(
 
     // Récupérer les factures d'achat de ce fournisseur, filtrées par période
     const allInvoices = await listPurchaseInvoices(from, to);
-    const invoices = allInvoices.filter(inv => inv.supplierId === supplierId);
+    const invoices = allInvoices.filter((inv: (typeof allInvoices)[number]) => inv.supplierId === supplierId);
 
-    const invoicesWithItems = invoices.map(inv => ({
+    const invoicesWithItems = invoices.map((inv: (typeof invoices)[number]) => ({
       id: inv.id,
       reference: inv.reference,
       supplier: inv.supplierName,
