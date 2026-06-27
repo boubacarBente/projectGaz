@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "prebuild:next": "npm rebuild better-sqlite3",
-    "build:desktop:win": "npm rebuild better-sqlite3 && npm run build && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --win",
+    "build:desktop:win": "rmdir /s /q release && npm rebuild better-sqlite3 && npm run build && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --win",
     "build:desktop:mac": "npm rebuild better-sqlite3 && npm run build && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --mac",
     "build:desktop:linux": "npm rebuild better-sqlite3 && npm run build && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --linux",
     "db:push": "npx drizzle-kit push",
