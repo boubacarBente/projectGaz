@@ -7,7 +7,7 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
-    "dev:desktop": "concurrently \"next dev --port 12000\" \"wait-on http://localhost:12000 && electron .\"",
+    "dev:desktop": "npm rebuild better-sqlite3 && concurrently \"next dev --port 12000\" \"wait-on http://localhost:12000 && electron .\"",
     "build": "next build",
     "start": "next start",
     "prebuild:next": "npm rebuild better-sqlite3",
