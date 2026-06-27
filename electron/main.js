@@ -1,9 +1,8 @@
-const { app, BrowserWindow, shell, dialog } = require('electron');
+const { app, BrowserWindow, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const http = require('http');
 const { autoUpdater } = require('electron-updater');
-
 
 // ── Auto-updater config ──────────────────────────────────────────────
 autoUpdater.autoDownload = false;
@@ -28,23 +27,31 @@ async function startNextServer() {
   const isDev = !app.isPackaged;
 
   if (isDev) {
-    // In development, use the already-running dev server
     serverPort = 12000;
     return `http://localhost:${serverPort}`;
   }
 
-  // In production, start the Next.js production server
+  // En production : démarrer le serveur Next.js
   serverPort = await findFreePort(3000);
 
-  const serverPath = path.join(process.resourcesPath, 'app');
-  const nodeModulesPath = path.join(serverPath, 'node_modules', '.bin', 'next');
+  // Chemin vers les ressources de l'app packagée
+  const appPath = path.join(process.resourcesPath, 'app');
+
+  // Point d'entrée Next.js (pas le .cmd, mais le script JS directement)
+  const nextScript = path.join(appPath, 'node_modules', 'next', 'dist', 'bin', 'next');
 
   serverProcess = spawn(
-    process.execPath,
-    [nodeModulesPath, 'start', '--port', String(serverPort)],
+    process.execPath, // Electron.exe utilisé comme Node.js grâce à ELECTRON_RUN_AS_NODE
+    [nextScript, 'start', '--port', String(serverPort)],
     {
-      cwd: serverPath,
-      env: { ...process.env, NODE_ENV: 'production', PORT: String(serverPort), ELECTRON_APP_PATH: app.getPath('userData') },
+      cwd: appPath,
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        PORT: String(serverPort),
+        ELECTRON_APP_PATH: app.getPath('userData'),
+        ELECTRON_RUN_AS_NODE: '1', // ← force Electron à se comporter comme Node.js
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     }
   );
@@ -52,7 +59,6 @@ async function startNextServer() {
   serverProcess.stdout.on('data', (d) => console.log('[next]', d.toString().trim()));
   serverProcess.stderr.on('data', (d) => console.error('[next:err]', d.toString().trim()));
 
-  // Wait for the server to be ready
   const url = `http://localhost:${serverPort}`;
   await waitForServer(url);
   return url;
@@ -106,7 +112,6 @@ async function createWindow(url) {
   mainWindow.setMenuBarVisibility(false);
   mainWindow.once('ready-to-show', () => mainWindow.show());
 
-  // Open external links in the default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
@@ -121,14 +126,13 @@ async function createWindow(url) {
 
 // ── App lifecycle ────────────────────────────────────────────────────
 app.whenReady().then(async () => {
-
+  // Définir le chemin DB persistant AVANT de démarrer le serveur
   process.env.ELECTRON_APP_PATH = app.getPath('userData');
 
   try {
     const url = await startNextServer();
     await createWindow(url);
 
-    // Check for updates (only in production)
     if (app.isPackaged) {
       autoUpdater.checkForUpdatesAndNotify().catch(() => {});
     }
@@ -150,7 +154,6 @@ app.on('before-quit', () => {
   stopNextServer();
 });
 
-// macOS: re-create window when dock icon is clicked
 app.on('activate', async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     const url = await startNextServer();
@@ -168,9 +171,7 @@ function setupAutoUpdater() {
       buttons: ['Telecharger', 'Plus tard'],
       defaultId: 0,
     });
-    if (response === 0) {
-      autoUpdater.downloadUpdate();
-    }
+    if (response === 0) autoUpdater.downloadUpdate();
   });
 
   autoUpdater.on('update-not-available', () => {
@@ -187,13 +188,11 @@ function setupAutoUpdater() {
     const response = dialog.showMessageBoxSync(mainWindow, {
       type: 'info',
       title: 'Mise a jour prete',
-      message: 'La mise a jour a ete telechargee. Redemarrer maintenant pour l\'installer ?',
+      message: "La mise a jour a ete telechargee. Redemarrer maintenant pour l'installer ?",
       buttons: ['Redemarrer', 'Plus tard'],
       defaultId: 0,
     });
-    if (response === 0) {
-      autoUpdater.quitAndInstall();
-    }
+    if (response === 0) autoUpdater.quitAndInstall();
   });
 
   autoUpdater.on('error', (err) => {
@@ -202,7 +201,6 @@ function setupAutoUpdater() {
 }
 
 // ── IPC handlers ─────────────────────────────────────────────────────
-const { ipcMain } = require('electron');
 ipcMain.handle('check-for-updates', async () => {
   if (!app.isPackaged) return { dev: true };
   try {
