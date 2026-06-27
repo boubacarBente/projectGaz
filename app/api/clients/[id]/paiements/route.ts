@@ -30,7 +30,7 @@ export async function GET(
 
     // Récupérer les factures filtrées par date via la fonction centralisée
     const allSalesInvoices = await listSalesInvoices(from, to);
-    const invoices = allSalesInvoices.filter(inv => inv.customerId === customerId);
+    const invoices = allSalesInvoices.filter((inv: (typeof allSalesInvoices)[number]) => inv.customerId === customerId);
 
     // Calculer les métriques de profit (purchases aussi filtrées par date)
     const purchases = await listPurchaseInvoices(from, to);
