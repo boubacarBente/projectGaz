@@ -31,7 +31,8 @@
     "react-chartjs-2": "^5.3.1",
     "react-datepicker": "^9.1.0",
     "react-dom": "19.2.4",
-    "react-toastify": "^11.0.5"
+    "react-toastify": "^11.0.5",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
@@ -45,7 +46,6 @@
     "drizzle-kit": "^0.31.10",
     "electron": "^42.4.1",
     "electron-builder": "^26.15.3",
-    "electron-updater": "^6.8.9",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4.2.2",

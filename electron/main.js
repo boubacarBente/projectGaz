@@ -4,6 +4,7 @@ const { spawn } = require('child_process');
 const http = require('http');
 const { autoUpdater } = require('electron-updater');
 
+
 // ── Auto-updater config ──────────────────────────────────────────────
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
@@ -43,7 +44,7 @@ async function startNextServer() {
     [nodeModulesPath, 'start', '--port', String(serverPort)],
     {
       cwd: serverPath,
-      env: { ...process.env, NODE_ENV: 'production', PORT: String(serverPort) },
+      env: { ...process.env, NODE_ENV: 'production', PORT: String(serverPort), ELECTRON_APP_PATH: app.getPath('userData') },
       stdio: ['ignore', 'pipe', 'pipe'],
     }
   );
@@ -120,6 +121,9 @@ async function createWindow(url) {
 
 // ── App lifecycle ────────────────────────────────────────────────────
 app.whenReady().then(async () => {
+
+  process.env.ELECTRON_APP_PATH = app.getPath('userData');
+
   try {
     const url = await startNextServer();
     await createWindow(url);
