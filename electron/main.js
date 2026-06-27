@@ -1,6 +1,5 @@
-const { app, BrowserWindow, shell, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, dialog, ipcMain, utilityProcess } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
 const http = require('http');
 const { autoUpdater } = require('electron-updater');
 
@@ -23,6 +22,11 @@ function findFreePort(startPort) {
   });
 }
 
+function getAppRoot() {
+  // __dirname is electron/, app root is one level up
+  return path.join(__dirname, '..');
+}
+
 async function startNextServer() {
   const isDev = !app.isPackaged;
 
@@ -31,33 +35,25 @@ async function startNextServer() {
     return `http://localhost:${serverPort}`;
   }
 
-  // En production : démarrer le serveur Next.js
   serverPort = await findFreePort(3000);
 
-  // Chemin vers les ressources de l'app packagée
-  const appPath = path.join(process.resourcesPath, 'app');
+  const appRoot = getAppRoot();
+  const serverScript = path.join(appRoot, '.next', 'standalone', 'server.js');
 
-  // Point d'entrée Next.js (pas le .cmd, mais le script JS directement)
-  const nextScript = path.join(appPath, 'node_modules', 'next', 'dist', 'bin', 'next');
-
-  serverProcess = spawn(
-    process.execPath, // Electron.exe utilisé comme Node.js grâce à ELECTRON_RUN_AS_NODE
-    [nextScript, 'start', '--port', String(serverPort)],
-    {
-      cwd: appPath,
-      env: {
-        ...process.env,
-        NODE_ENV: 'production',
-        PORT: String(serverPort),
-        ELECTRON_APP_PATH: app.getPath('userData'),
-        ELECTRON_RUN_AS_NODE: '1', // ← force Electron à se comporter comme Node.js
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    }
-  );
+  serverProcess = utilityProcess.fork(serverScript, [], {
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      PORT: String(serverPort),
+      ELECTRON_APP_PATH: app.getPath('userData'),
+    },
+  });
 
   serverProcess.stdout.on('data', (d) => console.log('[next]', d.toString().trim()));
   serverProcess.stderr.on('data', (d) => console.error('[next:err]', d.toString().trim()));
+  serverProcess.on('exit', (code) => {
+    console.log(`[next] server exited with code ${code}`);
+  });
 
   const url = `http://localhost:${serverPort}`;
   await waitForServer(url);
