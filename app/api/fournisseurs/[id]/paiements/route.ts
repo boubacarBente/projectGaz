@@ -38,7 +38,7 @@ export async function GET(
       supplier: inv.supplierName,
       date: inv.date,
       notes: inv.notes || '',
-      items: inv.items.map(item => ({
+      items: inv.items.map((item: (typeof inv.items)[number]) => ({
         productId: item.productId,
         productCode: item.productCode,
         productName: item.productName,
