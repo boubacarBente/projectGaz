@@ -12,12 +12,13 @@ function getDbPath(): string {
 
 function getMigrationsPath(): string {
   if (process.env.ELECTRON_APP_PATH) {
-    // En production Electron : resources/app/drizzle/
-    const appPath = path.join(process.env.ELECTRON_APP_PATH, '..', 'app');
-    return path.join(appPath, 'drizzle');
+    // En production Electron : resources/app/db/migrations/
+    // process.resourcesPath = .../resources, app = .../resources/app
+    const appPath = path.join(process.resourcesPath, 'app');
+    return path.join(appPath, 'db', 'migrations');
   }
   // En développement
-  return path.join(process.cwd(), 'drizzle');
+  return path.join(process.cwd(), 'db', 'migrations');
 }
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -60,19 +61,30 @@ function initializeDatabase(sqlite: any) {
       const migrationsFolder = getMigrationsPath();
       console.log('[db] Dossier migrations:', migrationsFolder);
 
-      if (fs.existsSync(migrationsFolder)) {
+      if (!fs.existsSync(migrationsFolder)) {
+        console.error('[db] ❌ Dossier migrations introuvable:', migrationsFolder);
+        console.error('[db]    → Lance "npm run db:generate" puis rebuilde l\'app');
+        console.error('[db]    → Vérifie que "db/migrations/**/*" est dans package.json build.files');
+        return;
+      }
+
+      try {
         const { migrate } = require('drizzle-orm/better-sqlite3/migrator');
         migrate(_db, { migrationsFolder });
-        console.log('[db] Migrations appliquées avec succès');
-      } else {
-        console.warn('[db] Dossier migrations introuvable:', migrationsFolder);
-        console.warn('[db] Lance "npm run db:generate" puis rebuilde l\'app');
+        const tablesAfter = sqlite.prepare(
+          `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
+        ).all() as { name: string }[];
+        console.log(`[db] ✅ Migrations appliquées — ${tablesAfter.length} tables créées`);
+      } catch (migErr: any) {
+        console.error('[db] ❌ Échec des migrations:', migErr.message);
+        throw migErr;
       }
     } else {
       console.log(`[db] Base existante — ${tables.length} tables trouvées`);
     }
   } catch (err: any) {
     console.error('[db] Erreur initialisation:', err.message);
+    throw err;
   }
 }
 

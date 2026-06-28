@@ -36,9 +36,9 @@ copy(
 );
 
 copy(
-  path.join(root, 'drizzle'),
-  path.join(standalone, 'drizzle'),
-  'drizzle/'
+  path.join(root, 'db', 'migrations'),
+  path.join(standalone, 'db', 'migrations'),
+  'db/migrations/'
 );
 
 // 3. Supprimer standalone/.next/node_modules (contient des symlinks Windows problématiques)

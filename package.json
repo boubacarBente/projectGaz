@@ -64,7 +64,11 @@
       "!.next/standalone/.next/node_modules/**/*",
       "!.next/standalone/release/**/*",
       "!.next/standalone/data/**/*",
-      "drizzle/**/*",
+      "!.next/standalone/db/*.db",
+      "db/migrations/**/*",
+      "db/schema.ts",
+      "db/helpers.ts",
+      "db/index.ts",
       "package.json",
       "electron/**/*",
       "public/**/*"

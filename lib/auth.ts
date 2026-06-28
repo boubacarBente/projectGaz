@@ -4,31 +4,56 @@ import { eq } from 'drizzle-orm';
 
 // Vérifier si au moins un utilisateur admin existe
 export async function hasAdminUser(): Promise<boolean> {
-  const result = await db.select().from(users).where(eq(users.role, 'admin')).limit(1);
-  return result.length > 0;
+  try {
+    const result = await db.select().from(users).where(eq(users.role, 'admin')).limit(1);
+    return result.length > 0;
+  } catch (err: any) {
+    // La table users n'existe pas encore (DB vierge ou migrations non appliquées)
+    // → considérer qu'aucun admin n'existe → déclencher le setup
+    if (/no such table/i.test(err?.message ?? '')) {
+      console.warn('[auth] Table users absente — setup requis');
+      return false;
+    }
+    throw err;
+  }
 }
 
 // Récupérer un utilisateur par son nom
 export async function getUserByName(name: string) {
-  const result = await db.select().from(users).where(eq(users.name, name)).limit(1);
-  return result[0] || null;
+  try {
+    const result = await db.select().from(users).where(eq(users.name, name)).limit(1);
+    return result[0] || null;
+  } catch (err: any) {
+    if (/no such table/i.test(err?.message ?? '')) return null;
+    throw err;
+  }
 }
 
 // Récupérer un utilisateur par son id
 export async function getUserById(id: number) {
-  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  return result[0] || null;
+  try {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0] || null;
+  } catch (err: any) {
+    if (/no such table/i.test(err?.message ?? '')) return null;
+    throw err;
+  }
 }
 
 // Lister tous les utilisateurs
 export async function listUsers() {
-  return db.select({
-    id: users.id,
-    name: users.name,
-    role: users.role,
-    isActive: users.isActive,
-    createdAt: users.createdAt,
-  }).from(users);
+  try {
+    return await db.select({
+      id: users.id,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+      createdAt: users.createdAt,
+    }).from(users);
+  } catch (err: any) {
+    if (/no such table/i.test(err?.message ?? '')) return [];
+    throw err;
+  }
 }
 
 // Créer un utilisateur
