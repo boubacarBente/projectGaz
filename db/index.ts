@@ -51,37 +51,47 @@ function getDb() {
 
 function initializeDatabase(sqlite: any) {
   try {
+    const migrationsFolder = getMigrationsPath();
+    console.log('[db] Dossier migrations:', migrationsFolder);
+
+    if (!fs.existsSync(migrationsFolder)) {
+      console.error('[db] ❌ Dossier migrations introuvable:', migrationsFolder);
+      console.error('[db]    → Lance "npm run db:generate" puis rebuilde l\'app');
+      console.error('[db]    → Vérifie que "db/migrations/**/*" est dans package.json build.files');
+      return;
+    }
+
     const tables = sqlite.prepare(
       `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
     ).all() as { name: string }[];
 
-    if (tables.length === 0) {
-      console.log('[db] Base vide — application des migrations...');
+    const hasDrizzleTable = tables.some(t => t.name === '__drizzle_migrations');
 
-      const migrationsFolder = getMigrationsPath();
-      console.log('[db] Dossier migrations:', migrationsFolder);
-
-      if (!fs.existsSync(migrationsFolder)) {
-        console.error('[db] ❌ Dossier migrations introuvable:', migrationsFolder);
-        console.error('[db]    → Lance "npm run db:generate" puis rebuilde l\'app');
-        console.error('[db]    → Vérifie que "db/migrations/**/*" est dans package.json build.files');
-        return;
+    // Cas spécial : DB pré-existante sans tracking Drizzle
+    // (probablement créée avec `drizzle-kit push` qui ne crée pas
+    // __drizzle_migrations). Drizzle migrate() n'est PAS idempotent
+    // face à cette situation : il crash avec "table already exists".
+    // → On force un reset pour garantir la cohérence.
+    if (tables.length > 0 && !hasDrizzleTable) {
+      console.warn(`[db] ⚠️ DB existante (${tables.length} tables) sans tracking Drizzle — reset complet`);
+      for (const t of tables) {
+        sqlite.exec(`DROP TABLE IF EXISTS "${t.name}"`);
       }
-
-      try {
-        const { migrate } = require('drizzle-orm/better-sqlite3/migrator');
-        migrate(_db, { migrationsFolder });
-        const tablesAfter = sqlite.prepare(
-          `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
-        ).all() as { name: string }[];
-        console.log(`[db] ✅ Migrations appliquées — ${tablesAfter.length} tables créées`);
-      } catch (migErr: any) {
-        console.error('[db] ❌ Échec des migrations:', migErr.message);
-        throw migErr;
-      }
-    } else {
-      console.log(`[db] Base existante — ${tables.length} tables trouvées`);
+      console.log('[db] Tables supprimées, ré-application des migrations...');
     }
+
+    const { migrate } = require('drizzle-orm/better-sqlite3/migrator');
+    try {
+      migrate(_db, { migrationsFolder });
+    } catch (migErr: any) {
+      console.error('[db] ❌ Échec de migrate():', migErr.message);
+      throw migErr;
+    }
+
+    const tablesAfter = sqlite.prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
+    ).all() as { name: string }[];
+    console.log(`[db] ✅ ${tablesAfter.length} tables présentes`);
   } catch (err: any) {
     console.error('[db] Erreur initialisation:', err.message);
     throw err;
