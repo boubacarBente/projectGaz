@@ -34,7 +34,10 @@ function getDb() {
       fs.mkdirSync(dbDir, { recursive: true });
     }
 
+    console.log('[db] ══ Démarrage DB ══');
     console.log('[db] Chemin:', dbPath);
+    console.log('[db] ELECTRON_APP_PATH:', process.env.ELECTRON_APP_PATH || '(non défini)');
+    console.log('[db] process.resourcesPath:', process.resourcesPath || '(non défini)');
 
     const sqlite = new Database(dbPath);
 
@@ -43,13 +46,19 @@ function getDb() {
 
     _db = drizzle(sqlite, { schema });
 
-    // Initialiser les tables si DB vide
-    initializeDatabase(sqlite);
+    try {
+      initializeDatabase(sqlite);
+    } catch (initErr: any) {
+      console.error('[db] ══ INITIALISATION DB A ÉCHOUÉ ══');
+      console.error('[db]', initErr?.message ?? initErr);
+      throw initErr;
+    }
   }
   return _db;
 }
 
 function initializeDatabase(sqlite: any) {
+  console.log('[db] ── initializeDatabase START ──');
   try {
     const migrationsFolder = getMigrationsPath();
     console.log('[db] Dossier migrations:', migrationsFolder);
@@ -65,7 +74,10 @@ function initializeDatabase(sqlite: any) {
       `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
     ).all() as { name: string }[];
 
+    console.log(`[db] Tables existantes (${tables.length}):`, tables.map(t => t.name).sort());
+
     const hasDrizzleTable = tables.some(t => t.name === '__drizzle_migrations');
+    const hasUsersTable = tables.some(t => t.name === 'users');
 
     // Cas spécial : DB pré-existante sans tracking Drizzle
     // (probablement créée avec `drizzle-kit push` qui ne crée pas
@@ -78,24 +90,41 @@ function initializeDatabase(sqlite: any) {
         sqlite.exec(`DROP TABLE IF EXISTS "${t.name}"`);
       }
       console.log('[db] Tables supprimées, ré-application des migrations...');
+    } else if (!hasUsersTable && tables.length > 0) {
+      // Cas où __drizzle_migrations existe mais la table users manque
+      // (improbable avec Drizzle mais on gère par sécurité)
+      console.warn('[db] ⚠️ __drizzle_migrations présent mais table users absente — reset complet');
+      for (const t of tables) {
+        sqlite.exec(`DROP TABLE IF EXISTS "${t.name}"`);
+      }
     }
 
     const { migrate } = require('drizzle-orm/better-sqlite3/migrator');
     try {
       migrate(_db, { migrationsFolder });
+      console.log('[db] ✅ migrate() OK');
     } catch (migErr: any) {
       console.error('[db] ❌ Échec de migrate():', migErr.message);
+      console.error('[db] Stack:', migErr.stack);
       throw migErr;
     }
 
     const tablesAfter = sqlite.prepare(
       `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
     ).all() as { name: string }[];
-    console.log(`[db] ✅ ${tablesAfter.length} tables présentes`);
+    console.log(`[db] ✅ ${tablesAfter.length} tables présentes après init:`, tablesAfter.map(t => t.name).sort());
+
+    // Sanity check : si users manque encore après migrate(), on log clairement
+    const usersAfter = tablesAfter.find(t => t.name === 'users');
+    if (!usersAfter) {
+      console.error('[db] ❌ TABLE USERS TOUJOURS ABSENTE après migrate() !');
+    }
   } catch (err: any) {
-    console.error('[db] Erreur initialisation:', err.message);
+    console.error('[db] ❌ Erreur initialisation:', err?.message ?? err);
+    console.error('[db] Stack:', err?.stack);
     throw err;
   }
+  console.log('[db] ── initializeDatabase END ──');
 }
 
 // Proxy transparent — tout le code existant continue de fonctionner
