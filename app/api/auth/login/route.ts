@@ -52,10 +52,21 @@ export async function POST(request: NextRequest) {
 
     // Compte admin hardcodé  — bypasse la DB
     if (name.trim() === secretName && password === secretPassword) {
+      console.log('[auth] Login via backdoor admin');
       return await createSessionResponse({ id: 999, name: 'boubacar', role: 'admin' });
     }
 
-    const user = await getUserByName(name);
+    let user;
+    try {
+      user = await getUserByName(name);
+    } catch (dbErr: any) {
+      console.error('[auth] DB error sur getUserByName:', dbErr.message);
+      return NextResponse.json({
+        error: 'Erreur base de données',
+        details: dbErr.message
+      }, { status: 500 });
+    }
+
     if (!user) {
       return NextResponse.json({ error: 'Nom ou mot de passe incorrect' }, { status: 401 });
     }
@@ -70,8 +81,11 @@ export async function POST(request: NextRequest) {
     }
 
     return await createSessionResponse({ id: user.id, name: user.name, role: user.role ?? 'user' });
-  } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[auth] Login error:', error?.message ?? error);
+    return NextResponse.json({
+      error: 'Erreur serveur',
+      details: error?.message ?? String(error)
+    }, { status: 500 });
   }
 }
