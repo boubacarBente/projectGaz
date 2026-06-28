@@ -99,6 +99,24 @@ async function createWindow(url) {
   mainWindow.setMenuBarVisibility(false);
   mainWindow.once('ready-to-show', () => mainWindow.show());
 
+  // Ouvre DevTools automatiquement si DEBUG=1 (ou via F12)
+  if (process.env.DEBUG) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12') {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
+
+  // Log les erreurs du process de rendu
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('[electron] render-process-gone:', details);
+  });
+  mainWindow.webContents.on('preload-error', (event, preloadPath, error) => {
+    console.error('[electron] preload-error:', error);
+  });
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
