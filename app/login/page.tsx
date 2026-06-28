@@ -93,10 +93,17 @@ export default function LoginPage() {
     fetch('/api/auth/setup')
       .then(res => res.json())
       .then(data => {
+        console.log('[login] /api/auth/setup →', data);
         setNeedsSetup(data.needsSetup);
         setIsLoading(false);
       })
-      .catch(() => setIsLoading(false));
+      .catch((err) => {
+        console.error('[login] /api/auth/setup fetch error:', err);
+        // Si le fetch échoue complètement, on tente quand même le setup
+        // (mieux vaut afficher l'écran de setup qu'un écran bloqué)
+        setNeedsSetup(true);
+        setIsLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -130,17 +137,20 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
+      console.log('[login] /api/auth/login →', res.status, data);
 
       if (!res.ok) {
-        toast.error(data.error || 'Erreur de connexion');
+        const msg = data.details ? `${data.error} (${data.details})` : (data.error || 'Erreur de connexion');
+        toast.error(msg, { autoClose: 8000 });
         setIsSubmitting(false);
         return;
       }
 
       toast.success('Connexion réussie !');
       router.push('/');
-    } catch {
-      toast.error('Erreur de connexion au serveur');
+    } catch (err: any) {
+      console.error('[login] /api/auth/login fetch error:', err);
+      toast.error(`Erreur réseau : ${err?.message ?? 'serveur injoignable'}`, { autoClose: 8000 });
       setIsSubmitting(false);
     }
   };
@@ -169,9 +179,11 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
+      console.log('[login] /api/auth/setup POST →', res.status, data);
 
       if (!res.ok) {
-        toast.error(data.error || 'Erreur');
+        const msg = data.details ? `${data.error} (${data.details})` : (data.error || 'Erreur');
+        toast.error(msg, { autoClose: 8000 });
         setIsSubmitting(false);
         return;
       }
@@ -182,8 +194,9 @@ export default function LoginPage() {
       setSetupPassword('');
       setSetupConfirm('');
       setIsSubmitting(false);
-    } catch {
-      toast.error('Erreur serveur');
+    } catch (err: any) {
+      console.error('[login] /api/auth/setup fetch error:', err);
+      toast.error(`Erreur réseau : ${err?.message ?? 'serveur injoignable'}`, { autoClose: 8000 });
       setIsSubmitting(false);
     }
   };
