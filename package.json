@@ -10,10 +10,10 @@
     "dev:desktop": "npm rebuild better-sqlite3 && concurrently \"next dev --port 12000\" \"wait-on http://localhost:12000 && electron .\"",
     "build": "next build",
     "start": "next start",
-    "prebuild:next": "npm rebuild better-sqlite3",
-    "build:desktop:win": "npm rebuild better-sqlite3 && npm run build && npx @electron/rebuild -f -w better-sqlite3 && node -e \"require('fs').cpSync('node_modules/better-sqlite3','.next/standalone/node_modules/better-sqlite3',{recursive:true})\" && electron-builder --win",
-    "build:desktop:mac": "npm rebuild better-sqlite3 && npm run build && npx @electron/rebuild -f -w better-sqlite3 && node -e \"require('fs').cpSync('node_modules/better-sqlite3','.next/standalone/node_modules/better-sqlite3',{recursive:true})\" && electron-builder --mac",
-    "build:desktop:linux": "npm rebuild better-sqlite3 && npm run build && npx @electron/rebuild -f -w better-sqlite3 && node -e \"require('fs').cpSync('node_modules/better-sqlite3','.next/standalone/node_modules/better-sqlite3',{recursive:true})\" && electron-builder --linux",
+    "copy:standalone": "node scripts/copy-standalone.js",
+    "build:desktop:win": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --win",
+    "build:desktop:mac": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --mac",
+    "build:desktop:linux": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --linux",
     "db:push": "npx drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
     "db:studio": "npx drizzle-kit studio"
@@ -23,6 +23,7 @@
     "chart.js": "^4.5.1",
     "daisyui": "^5.5.19",
     "drizzle-orm": "^0.45.2",
+    "electron-updater": "^6.8.9",
     "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
@@ -31,8 +32,7 @@
     "react-chartjs-2": "^5.3.1",
     "react-datepicker": "^9.1.0",
     "react-dom": "19.2.4",
-    "react-toastify": "^11.0.5",
-    "electron-updater": "^6.8.9"
+    "react-toastify": "^11.0.5"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
@@ -60,12 +60,17 @@
     },
     "asar": false,
     "files": [
-      ".next/**/*",
-      "node_modules/**/*",
-      "!node_modules/.cache",
+      ".next/standalone/**/*",
+      "!.next/standalone/.next/node_modules/**/*",
+      "!.next/standalone/release/**/*",
+      "!.next/standalone/data/**/*",
+      "!.next/standalone/db/*.db",
+      "db/migrations/**/*",
+      "db/schema.ts",
+      "db/helpers.ts",
+      "db/index.ts",
       "package.json",
       "electron/**/*",
-      "db/**/*",
       "public/**/*"
     ],
     "win": {
