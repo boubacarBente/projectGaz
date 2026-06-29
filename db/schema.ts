@@ -83,12 +83,16 @@ export const purchaseInvoiceItems = sqliteTable('purchase_invoice_items', {
 export const stockMovements = sqliteTable('stock_movements', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   productId: integer('product_id').references(() => products.id).notNull(),
+  productCode: text('product_code').notNull(),
+  productName: text('product_name').notNull(),
   type: text('type', { enum: ['entry', 'exit', 'adjustment', 'initial'] }).notNull(),
   quantity: integer('quantity').notNull(),
   stockBefore: integer('stock_before').notNull(),
   stockAfter: integer('stock_after').notNull(),
+  reference: text('reference').notNull(),
   referenceType: text('reference_type'),
   referenceId: integer('reference_id'),
+  notes: text('notes'),
   note: text('note'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });

@@ -217,8 +217,8 @@ export async function seedDatabase() {
       `UPDATE products SET stock = COALESCE(stock, 0) + ? WHERE id = ?`
     );
     const insertStockMovement = client.prepare(
-      `INSERT INTO stock_movements (product_id, type, quantity, stock_before, stock_after, reference_type, reference_id, note, created_at)
-       VALUES (?, 'entry', ?, ?, ?, 'purchase', ?, ?, ?)`
+      `INSERT INTO stock_movements (product_id, product_code, product_name, type, quantity, stock_before, stock_after, reference, reference_type, reference_id, note, created_at)
+       VALUES (?, ?, ?, 'entry', ?, ?, ?, ?, 'purchase', ?, ?, ?)`
     );
 
     const startDate = new Date('2026-01-01');
@@ -259,7 +259,7 @@ export async function seedDatabase() {
           updateProductStock.run(item.qty, item.productId);
           // Créer le mouvement de stock
           const newStock = currentStock.stock + item.qty;
-          insertStockMovement.run(item.productId, item.qty, currentStock.stock, newStock, invoiceId, ref, ts);
+          insertStockMovement.run(item.productId, item.code, item.name, item.qty, currentStock.stock, newStock, ref, invoiceId, ref, ts);
         }
 
         updateSupplierTotal.run(totalAmount, seed.supplierId);
@@ -293,8 +293,8 @@ export async function seedDatabase() {
       `UPDATE products SET stock = COALESCE(stock, 0) - ? WHERE id = ?`
     );
     const insertStockMovement = client.prepare(
-      `INSERT INTO stock_movements (product_id, type, quantity, stock_before, stock_after, reference_type, reference_id, note, created_at)
-       VALUES (?, 'exit', ?, ?, ?, 'sale', ?, ?, ?)`
+      `INSERT INTO stock_movements (product_id, product_code, product_name, type, quantity, stock_before, stock_after, reference, reference_type, reference_id, note, created_at)
+       VALUES (?, ?, ?, 'exit', ?, ?, ?, ?, 'sale', ?, ?, ?)`
     );
 
     const startDate = new Date('2026-01-01');
@@ -338,7 +338,7 @@ export async function seedDatabase() {
           updateProductStock.run(item.qty, item.productId);
           // Créer le mouvement de stock
           const newStock = Math.max(0, currentStock.stock - item.qty);
-          insertStockMovement.run(item.productId, item.qty, currentStock.stock, newStock, invoiceId, invoiceNum, ts);
+          insertStockMovement.run(item.productId, item.code, item.name, item.qty, currentStock.stock, newStock, invoiceNum, invoiceId, invoiceNum, ts);
         }
 
         updateCustomerTotal.run(totalAmount, seed.customerName);
