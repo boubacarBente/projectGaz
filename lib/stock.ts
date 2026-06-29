@@ -66,9 +66,14 @@ export async function addStockMovement(
     referenceType,
     referenceId,
     note,
-  }: { referenceType?: string; referenceId?: number; note?: string } = {}
+    reference,
+  }: { referenceType?: string; referenceId?: number; note?: string; reference?: string } = {}
 ) {
-  const [product] = await db.select({ stock: schema.products.stock })
+  const [product] = await db.select({
+    stock: schema.products.stock,
+    code: schema.products.code,
+    name: schema.products.name,
+  })
     .from(schema.products)
     .where(eq(schema.products.id, productId));
 
@@ -87,10 +92,13 @@ export async function addStockMovement(
 
   await db.insert(schema.stockMovements).values({
     productId,
+    productCode: product.code,
+    productName: product.name,
     type,
     quantity,
     stockBefore,
     stockAfter,
+    reference: reference ?? referenceType ?? "manual",
     referenceType: referenceType ?? null,
     referenceId: referenceId ?? null,
     note: note ?? null,
