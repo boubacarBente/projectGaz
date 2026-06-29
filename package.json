@@ -33,7 +33,10 @@
     "react-datepicker": "^9.1.0",
     "react-dom": "19.2.4",
     "react-toastify": "^11.0.5",
-    "sharp": "^0.33.5"
+    "sharp": "^0.34.5"
+  },
+  "optionalDependencies": {
+    "@img/sharp-win32-x64": "^0.34.5"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
