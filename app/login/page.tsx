@@ -89,6 +89,19 @@ export default function LoginPage() {
   const [setupConfirm, setSetupConfirm] = useState('');
   const passwordRef = useRef<HTMLInputElement>(null);
 
+  const readApiPayload = async (res: Response) => {
+    const raw = await res.text();
+
+    try {
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {
+        error: raw || `Réponse invalide du serveur (${res.status})`,
+        details: `HTTP ${res.status} ${res.statusText}`.trim(),
+      };
+    }
+  };
+
   useEffect(() => {
     fetch('/api/auth/setup')
       .then(res => res.json())
@@ -136,7 +149,7 @@ export default function LoginPage() {
         body: JSON.stringify({ name: name.trim(), password }),
       });
 
-      const data = await res.json();
+      const data = await readApiPayload(res);
       console.log('[login] /api/auth/login →', res.status, data);
 
       if (!res.ok) {
@@ -178,7 +191,7 @@ export default function LoginPage() {
         body: JSON.stringify({ name: name.trim(), password: setupPassword }),
       });
 
-      const data = await res.json();
+      const data = await readApiPayload(res);
       console.log('[login] /api/auth/setup POST →', res.status, data);
 
       if (!res.ok) {

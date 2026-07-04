@@ -2,11 +2,18 @@ const { app, BrowserWindow, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 const http = require('http');
-const { autoUpdater } = require('electron-updater');
+let autoUpdater = null;
+try {
+  ({ autoUpdater } = require('electron-updater'));
+} catch (error) {
+  console.warn('[updater] disabled:', error.message);
+}
 
 // ── Auto-updater config ──────────────────────────────────────────────
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = true;
+if (autoUpdater) {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+}
 
 // ── Next.js server management ────────────────────────────────────────
 let serverProcess = null;
@@ -34,7 +41,9 @@ async function startNextServer() {
   serverPort = await findFreePort(3000);
 
   // app.getAppPath() donne la racine de l'app (dev: racine projet, packagée: resources/app/)
-  const serverScript = path.join(app.getAppPath(), '.next', 'standalone', 'server.js');
+  const serverScript = app.isPackaged
+    ? path.join(app.getAppPath(), 'server.js')
+    : path.join(app.getAppPath(), '.next', 'standalone', 'server.js');
 
   serverProcess = fork(serverScript, [], {
     env: {
@@ -138,11 +147,13 @@ app.whenReady().then(async () => {
     const url = await startNextServer();
     await createWindow(url);
 
-    if (app.isPackaged) {
+    if (app.isPackaged && autoUpdater) {
       autoUpdater.checkForUpdatesAndNotify().catch(() => {});
     }
 
-    setupAutoUpdater();
+    if (autoUpdater) {
+      setupAutoUpdater();
+    }
   } catch (err) {
     console.error('Failed to start:', err);
     dialog.showErrorBox('Erreur de demarrage', err.message);
@@ -208,6 +219,7 @@ function setupAutoUpdater() {
 // ── IPC handlers ─────────────────────────────────────────────────────
 ipcMain.handle('check-for-updates', async () => {
   if (!app.isPackaged) return { dev: true };
+  if (!autoUpdater) return { unavailable: true };
   try {
     const result = await autoUpdater.checkForUpdates();
     return result ? result.updateInfo : null;

@@ -3,80 +3,119 @@ const path = require('path');
 
 const root = process.cwd();
 const standalone = path.join(root, '.next', 'standalone');
+const standaloneNodeModules = path.join(standalone, 'node_modules');
+const rootPackagePath = path.join(root, 'package.json');
 
 function copy(src, dest, label) {
   if (!fs.existsSync(src)) {
-    console.warn(`⚠️  ${label} introuvable: ${src}`);
+    console.warn(`Warning: ${label} missing: ${src}`);
     return;
   }
-  console.log(`📦 Copie ${label}...`);
+
+  console.log(`Copying ${label}...`);
   fs.cpSync(src, dest, { recursive: true, force: true });
-  console.log(`✅ ${label} copié`);
+  console.log(`Copied ${label}`);
 }
 
 function remove(target, label) {
   if (fs.existsSync(target)) {
     fs.rmSync(target, { recursive: true, force: true });
-    console.log(`🧹 ${label} supprimé`);
+    console.log(`Removed ${label}`);
   }
 }
 
-// 1. .next/static → standalone/.next/static
-copy(
-  path.join(root, '.next', 'static'),
-  path.join(standalone, '.next', 'static'),
-  '.next/static'
-);
+function walk(dir, visitor) {
+  if (!fs.existsSync(dir)) {
+    return;
+  }
 
-// 2. public/ → standalone/public/
-copy(
-  path.join(root, 'public'),
-  path.join(standalone, 'public'),
-  'public/'
-);
-
-copy(
-  path.join(root, 'db', 'migrations'),
-  path.join(standalone, 'db', 'migrations'),
-  'db/migrations/'
-);
-
-// 3. Supprimer standalone/.next/node_modules (contient des symlinks Windows problématiques)
-remove(path.join(standalone, '.next', 'node_modules'), 'standalone/.next/node_modules');
-
-// 4. node_modules/ → standalone/node_modules/
-console.log('📦 Copie node_modules (peut prendre 1-2 minutes)...');
-fs.cpSync(
-  path.join(root, 'node_modules'),
-  path.join(standalone, 'node_modules'),
-  {
-    recursive: true,
-    force: true,
-    filter: (src) => {
-      // Ignorer les symlinks pour éviter EPERM sur Windows
-      try {
-        const stat = fs.lstatSync(src);
-        if (stat.isSymbolicLink()) return false;
-      } catch { return false; }
-
-      const rel = path.relative(path.join(root, 'node_modules'), src);
-      // Exclure les outils de dev inutiles en production
-      if (rel.startsWith('.cache')) return false;
-      if (rel.startsWith('electron-builder')) return false;
-      if (rel.startsWith('drizzle-kit')) return false;
-      if (rel.startsWith('eslint')) return false;
-      if (rel.startsWith('typescript')) return false;
-      if (rel.startsWith('@types')) return false;
-      if (rel.startsWith('tailwindcss')) return false;
-      if (rel.startsWith('@tailwindcss')) return false;
-      return true;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    visitor(fullPath, entry);
+    if (entry.isDirectory()) {
+      walk(fullPath, visitor);
     }
   }
-);
-console.log('✅ node_modules copié');
+}
 
-// 5. Nettoyer les artefacts parasites dans standalone/
+function ensureExternalAliases() {
+  const serverDir = path.join(standalone, '.next', 'server');
+  if (!fs.existsSync(serverDir) || !fs.existsSync(standaloneNodeModules)) {
+    return;
+  }
+
+  const aliasPattern = /\b([@a-z0-9._-]+)-([0-9a-f]{16,})\b/gi;
+  const aliases = new Map();
+
+  walk(serverDir, (fullPath, entry) => {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) {
+      return;
+    }
+
+    const content = fs.readFileSync(fullPath, 'utf8');
+    for (const match of content.matchAll(aliasPattern)) {
+      const alias = match[0];
+      const basePackage = match[1];
+
+      if (!basePackage.startsWith('better-sqlite3')) {
+        continue;
+      }
+
+      aliases.set(alias, basePackage);
+    }
+  });
+
+  for (const [alias, basePackage] of aliases) {
+    const aliasDir = path.join(standaloneNodeModules, alias);
+    const baseDir = path.join(standaloneNodeModules, basePackage);
+
+    if (!fs.existsSync(baseDir) || fs.existsSync(aliasDir)) {
+      continue;
+    }
+
+    fs.mkdirSync(aliasDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(aliasDir, 'package.json'),
+      JSON.stringify({ name: alias, private: true, main: 'index.js' }, null, 2)
+    );
+    fs.writeFileSync(
+      path.join(aliasDir, 'index.js'),
+      `module.exports = require(${JSON.stringify(basePackage)});\n`
+    );
+
+    console.log(`Created external alias: ${alias} -> ${basePackage}`);
+  }
+}
+
+function rewriteStandalonePackageJson() {
+  const rootPkg = JSON.parse(fs.readFileSync(rootPackagePath, 'utf8'));
+  const standalonePkgPath = path.join(standalone, 'package.json');
+  const minimalPkg = {
+    name: rootPkg.name,
+    version: rootPkg.version,
+    description: rootPkg.description,
+    author: rootPkg.author,
+    private: true,
+    main: 'electron/main.js',
+    optionalDependencies: {},
+  };
+
+  fs.writeFileSync(standalonePkgPath, JSON.stringify(minimalPkg, null, 2));
+  console.log('Rewrote standalone package.json for Electron packaging');
+}
+
 remove(path.join(standalone, 'release'), 'standalone/release');
 remove(path.join(standalone, 'data'), 'standalone/data');
+remove(path.join(standalone, 'tmp-electron'), 'standalone/tmp-electron');
+remove(path.join(standalone, 'db-error.log'), 'standalone/db-error.log');
+remove(path.join(standalone, '.next', 'node_modules'), 'standalone/.next/node_modules');
 
-console.log('\n✅ copy:standalone terminé avec succès');
+copy(path.join(root, '.next', 'static'), path.join(standalone, '.next', 'static'), '.next/static');
+copy(path.join(root, 'public'), path.join(standalone, 'public'), 'public');
+copy(path.join(root, 'db', 'migrations'), path.join(standalone, 'db', 'migrations'), 'db/migrations');
+copy(path.join(root, 'electron'), path.join(standalone, 'electron'), 'electron');
+
+ensureExternalAliases();
+rewriteStandalonePackageJson();
+
+console.log('\nStandalone packaging is ready');

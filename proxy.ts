@@ -5,7 +5,7 @@ const publicRoutes = ['/login', '/api/auth/login', '/api/auth/logout', '/api/aut
 
 const publicPrefixes = ['/_next', '/favicon', '/api/auth', '/logo'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Toujours autoriser les ressources statiques et les routes publiques
