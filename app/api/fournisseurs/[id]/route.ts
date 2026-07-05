@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/db';
+import { db, rawGet } from '@/db';
 import { suppliers, purchaseInvoices, purchaseInvoiceItems } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
@@ -13,8 +13,7 @@ export async function GET(
   
   try {
     // Get supplier info with computed totalPurchases
-    const rawDb: import('better-sqlite3').Database = (db as any).$client;
-    const suppliers = rawDb.prepare(`
+    const supplier = await rawGet<any>(`
       SELECT
         s.id,
         s.name,
@@ -27,9 +26,9 @@ export async function GET(
         s.updated_at AS updatedAt
       FROM suppliers s
       WHERE s.id = ?
-    `).get(supplierId) as any;
+    `, [supplierId]);
     
-    if (!suppliers) {
+    if (!supplier) {
       return NextResponse.json({ error: 'Fournisseur non trouvé' }, { status: 404 });
     }
     
@@ -46,7 +45,7 @@ export async function GET(
     }));
     
     return NextResponse.json({
-      supplier: suppliers,
+      supplier,
       invoices: invoicesWithItems,
     });
   } catch (error) {

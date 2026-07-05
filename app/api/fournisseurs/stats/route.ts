@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/db';
+import { rawAll, rawGet } from '@/db';
 
 // GET /api/fournisseurs/stats?period=day|week|month&supplierId=1&from=2026-01-01&to=2026-12-31
 export async function GET(request: Request) {
@@ -9,8 +9,6 @@ export async function GET(request: Request) {
     const supplierId = searchParams.get('supplierId');
     const from = searchParams.get('from');
     const to = searchParams.get('to');
-
-    const rawDb: import('better-sqlite3').Database = (db as any).$client;
 
     // Build WHERE clause
     const conditions: string[] = [];
@@ -41,18 +39,20 @@ export async function GET(request: Request) {
     const supplierWhereClause = supplierConditions.length > 0 ? ' AND ' + supplierConditions.join(' AND ') : '';
 
     // Total global
-    const totalRow = rawDb.prepare(
+    const totalRow = await rawGet<{ total: number; count: number }>(
       'SELECT COALESCE(SUM(pi.total_amount), 0) as total, COUNT(pi.id) as count FROM purchase_invoices pi' +
-      whereClause
-    ).get(...params) as { total: number; count: number };
+      whereClause,
+      params,
+    );
 
     // Stats par fournisseur
-    const bySupplier = rawDb.prepare(
+    const bySupplier = await rawAll(
       'SELECT s.id, s.name, COALESCE(SUM(pi.total_amount), 0) as total, COUNT(pi.id) as count ' +
       'FROM suppliers s LEFT JOIN purchase_invoices pi ON pi.supplier_id = s.id' +
       supplierWhereClause +
-      ' GROUP BY s.id, s.name ORDER BY total DESC'
-    ).all(...supplierParams);
+      ' GROUP BY s.id, s.name ORDER BY total DESC',
+      supplierParams,
+    );
 
     // Stats par période
     let periodSelect: string;
@@ -72,31 +72,33 @@ export async function GET(request: Request) {
 
     let byPeriod = null;
     if (period !== 'total' && period !== 'today') {
-      byPeriod = rawDb.prepare(
+      byPeriod = await rawAll(
         'SELECT ' + periodSelect + ', COALESCE(SUM(pi.total_amount), 0) as total, COUNT(pi.id) as count ' +
         'FROM purchase_invoices pi' + whereClause +
-        ' GROUP BY label ORDER BY label ASC'
-      ).all(...params);
+        ' GROUP BY label ORDER BY label ASC',
+        params,
+      );
     }
 
     // Dernières factures
-    const recentInvoices = rawDb.prepare(
+    const recentInvoices = await rawAll(
       'SELECT pi.id, pi.reference, pi.date, pi.total_amount as totalAmount, pi.is_paid as isPaid, ' +
       "s.name as supplierName, COALESCE((SELECT SUM(quantity) FROM purchase_invoice_items WHERE invoice_id = pi.id), 0) as totalItems " +
       'FROM purchase_invoices pi JOIN suppliers s ON s.id = pi.supplier_id' +
       whereClause +
-      ' ORDER BY pi.created_at DESC LIMIT 10'
-    ).all(...params);
+      ' ORDER BY pi.created_at DESC LIMIT 10',
+      params,
+    );
 
     // Active suppliers count (global, not filtered)
-    const activeRow = rawDb.prepare('SELECT COUNT(*) as count FROM suppliers WHERE is_active = 1').get() as { count: number };
+    const activeRow = await rawGet<{ count: number }>('SELECT COUNT(*) as count FROM suppliers WHERE is_active = 1');
 
     return NextResponse.json({
-      total: totalRow,
+      total: totalRow ?? { total: 0, count: 0 },
       bySupplier,
       byPeriod,
       recentInvoices,
-      activeCount: Number(activeRow.count),
+      activeCount: Number(activeRow?.count ?? 0),
       filters: { period, supplierId: supplierId ? Number(supplierId) : null, from, to },
     });
   } catch (error) {

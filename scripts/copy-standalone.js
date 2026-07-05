@@ -5,6 +5,10 @@ const root = process.cwd();
 const standalone = path.join(root, '.next', 'standalone');
 const standaloneNodeModules = path.join(standalone, 'node_modules');
 const rootPackagePath = path.join(root, 'package.json');
+const externalAliasPackages = new Set(['@libsql/client', 'libsql']);
+const externalAliasSubpaths = new Map([
+  ['@libsql/client', ['node', 'sqlite3', 'http', 'ws', 'web']],
+]);
 
 function copy(src, dest, label) {
   if (!fs.existsSync(src)) {
@@ -44,11 +48,11 @@ function ensureExternalAliases() {
     return;
   }
 
-  const aliasPattern = /\b([@a-z0-9._-]+)-([0-9a-f]{16,})\b/gi;
+  const aliasPattern = /(@[a-z0-9._-]+\/[a-z0-9._-]+|[a-z0-9._-]+)-([0-9a-f]{16,})\b/gi;
   const aliases = new Map();
 
   walk(serverDir, (fullPath, entry) => {
-    if (!entry.isFile() || !entry.name.endsWith('.json')) {
+    if (!entry.isFile() || (!entry.name.endsWith('.json') && !entry.name.endsWith('.js'))) {
       return;
     }
 
@@ -57,7 +61,7 @@ function ensureExternalAliases() {
       const alias = match[0];
       const basePackage = match[1];
 
-      if (!basePackage.startsWith('better-sqlite3')) {
+      if (!externalAliasPackages.has(basePackage)) {
         continue;
       }
 
@@ -74,16 +78,32 @@ function ensureExternalAliases() {
     }
 
     fs.mkdirSync(aliasDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(aliasDir, 'package.json'),
-      JSON.stringify({ name: alias, private: true, main: 'index.js' }, null, 2)
-    );
-    fs.writeFileSync(
-      path.join(aliasDir, 'index.js'),
-      `module.exports = require(${JSON.stringify(basePackage)});\n`
-    );
+    writeAliasPackage(aliasDir, alias, basePackage);
 
     console.log(`Created external alias: ${alias} -> ${basePackage}`);
+  }
+}
+
+function writeAliasPackage(aliasDir, alias, basePackage) {
+  const exportsMap = { '.': './index.js' };
+  for (const subpath of externalAliasSubpaths.get(basePackage) ?? []) {
+    exportsMap[`./${subpath}`] = `./${subpath}.js`;
+  }
+
+  fs.writeFileSync(
+    path.join(aliasDir, 'package.json'),
+    JSON.stringify({ name: alias, private: true, main: 'index.js', exports: exportsMap }, null, 2)
+  );
+  fs.writeFileSync(
+    path.join(aliasDir, 'index.js'),
+    `module.exports = require(${JSON.stringify(basePackage)});\n`
+  );
+
+  for (const subpath of externalAliasSubpaths.get(basePackage) ?? []) {
+    fs.writeFileSync(
+      path.join(aliasDir, `${subpath}.js`),
+      `module.exports = require(${JSON.stringify(`${basePackage}/${subpath}`)});\n`
+    );
   }
 }
 

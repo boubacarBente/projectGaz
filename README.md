@@ -101,7 +101,7 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 | Composant | Technologie |
 |-----------|-------------|
 | Framework | Next.js 16 (App Router) |
-| Base de données | SQLite 3 |
+| Base de données | SQLite 3 local via `@libsql/client/sqlite3` |
 | ORM | Drizzle ORM |
 | Styling | Tailwind CSS 4 + DaisyUI 5.5 |
 | Graphiques | Chart.js 4 (react-chartjs-2) |
@@ -160,9 +160,6 @@ L'application peut être empaquetée en exécutable desktop natif (`.exe` Window
 ### Builder l'application
 
 ```bash
-# Prérequis : reconstruction du module natif SQLite pour Electron
-npx @electron/rebuild -f -w better-sqlite3
-
 # Windows → .exe (NSIS installer)
 npm run build:desktop:win
 
@@ -241,8 +238,8 @@ projectGaz/
 ├── db/                           # Base de données
 │   ├── schema.ts                 # Définition des tables Drizzle
 │   ├── helpers.ts                #   Requêtes avec relations (JOIN auto)
-│   ├── index.ts                  #   Connexion SQLite + schéma
-│   └── database2.db              #   Fichier de la base SQLite
+│   ├── index.ts                  #   Connexion SQLite libSQL + migrations
+│   └── database.db               #   Fichier de la base SQLite en dev
 ├── lib/                          # Utilitaires et fonctions métier
 │   ├── auth.ts                   # Authentification (hachage, CRUD users)
 │   ├── colors.ts                 # Application des couleurs CSS (OKLCH)
@@ -406,11 +403,9 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 npm run dev              # Démarrer le serveur de développement
 npm run dev:desktop      # Next.js + Electron en mode dev
 npm run build            # Builder Next.js pour production
-npm run build:desktop    # Builder l'app Electron (plateforme courante)
 npm run build:desktop:win # Builder pour Windows (.exe)
 npm run build:desktop:mac # Builder pour macOS (.dmg)
 npm run build:desktop:linux # Builder pour Linux (.AppImage)
-npm run lint             # Linter le code
 npm run db:generate      # Générer les migrations Drizzle
 npm run db:push          # Pousser le schéma vers la DB
 npm run db:studio        # Ouvrir Drizzle Studio

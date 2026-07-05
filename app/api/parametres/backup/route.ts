@@ -4,7 +4,9 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const dbPath = path.join(process.cwd(), 'db', 'database2.db');
+    const dbPath = process.env.ELECTRON_APP_PATH
+      ? path.join(process.env.ELECTRON_APP_PATH, 'database.db')
+      : path.join(process.cwd(), 'db', 'database.db');
 
     if (!fs.existsSync(dbPath)) {
       return NextResponse.json({ error: 'Base de données introuvable' }, { status: 404 });

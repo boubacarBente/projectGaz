@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
+import { rawGet } from '@/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,28 +19,26 @@ export async function GET(request: NextRequest) {
 
     const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-    const rawDb: import('better-sqlite3').Database = (db as any).$client;
-
     // On sépare les agrégations pour éviter le double-comptage de pi.total_amount
     // causé par le LEFT JOIN avec purchase_invoice_items (1 facture → N items → N lignes)
-    const totalRow = rawDb.prepare(`
+    const totalRow = await rawGet<{ totalAmount: number }>(`
       SELECT COALESCE(SUM(total_amount), 0) as totalAmount
       FROM purchase_invoices pi
       ${whereClause}
-    `).get(...params) as { totalAmount: number };
+    `, params);
 
-    const statsRow = rawDb.prepare(`
+    const statsRow = await rawGet<{ totalBottles: number; count: number }>(`
       SELECT
         COALESCE(SUM(pii.quantity), 0) as totalBottles,
         COUNT(DISTINCT pi.id) as count
       FROM purchase_invoices pi
       LEFT JOIN purchase_invoice_items pii ON pii.invoice_id = pi.id
       ${whereClause}
-    `).get(...params) as { totalBottles: number; count: number };
+    `, params);
 
-    const totalAmountNum = Number(totalRow.totalAmount);
-    const totalBottlesNum = Number(statsRow.totalBottles);
-    const countNum = Number(statsRow.count);
+    const totalAmountNum = Number(totalRow?.totalAmount ?? 0);
+    const totalBottlesNum = Number(statsRow?.totalBottles ?? 0);
+    const countNum = Number(statsRow?.count ?? 0);
 
     return NextResponse.json({
       totalAmount: totalAmountNum,

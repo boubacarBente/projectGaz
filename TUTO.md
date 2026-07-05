@@ -14,7 +14,7 @@ Ce projet peut maintenant être transformé en application desktop exécutable
 │  │  Next.js (serveur local)           │  │
 │  │  ┌──────────────────────────────┐  │  │
 │  │  │  Gestion Gaz (React + API)   │  │  │
-│  │  │  + SQLite (better-sqlite3)   │  │  │
+│  │  │  + SQLite (libSQL)           │  │  │
 │  │  └──────────────────────────────┘  │  │
 │  └────────────────────────────────────┘  │
 │                                          │
@@ -50,16 +50,7 @@ cd projectGaz
 npm install
 ```
 
-### 2. Rebuilder les modules natifs pour Electron
-
-```bash
-npx @electron/rebuild -f -w better-sqlite3
-```
-
-> **Pourquoi ?** `better-sqlite3` est un module C++. Il doit être compilé pour la
-> version d'Electron, pas pour Node.js classique.
-
-### 3. Builder l'application
+### 2. Builder l'application
 
 ```bash
 # Windows → .exe (NSIS installer)
@@ -71,8 +62,6 @@ npm run build:desktop:mac
 # Linux → .AppImage + .deb
 npm run build:desktop:linux
 
-# Plateforme actuelle
-npm run build:desktop
 ```
 
 Le fichier exécutable sera dans le dossier `release/`.
@@ -119,8 +108,8 @@ et les attacher à une **Release GitHub** automatiquement.
 
 **Méthode 2 : Manuel**
 ```bash
-# Builder localement
-npm run build:desktop
+# Builder localement, par exemple Windows
+npm run build:desktop:win
 
 # Aller sur GitHub → Releases → "Draft a new release"
 # → Tag: v0.2.0
@@ -165,11 +154,9 @@ Cela démarre :
 | `npm run dev` | Next.js dev server uniquement |
 | `npm run dev:desktop` | Next.js + Electron en mode dev |
 | `npm run build` | Build Next.js production |
-| `npm run build:desktop` | Build l'app Electron pour la plateforme courante |
 | `npm run build:desktop:win` | Build pour Windows (.exe) |
 | `npm run build:desktop:mac` | Build pour macOS (.dmg) |
 | `npm run build:desktop:linux` | Build pour Linux (.AppImage) |
-| `npx @electron/rebuild -f -w better-sqlite3` | Recompiler SQLite pour Electron |
 
 ---
 
@@ -177,10 +164,13 @@ Cela démarre :
 
 L'application utilise SQLite. En production (app desktop) :
 - La base de données est créée automatiquement au premier lancement
-  (via Drizzle ORM push)
-- Elle est stockée dans le dossier de l'application (`db/database2.db`)
-- Pour migrer des données existantes, copier le fichier `.db` dans le dossier
-  d'installation
+  (via les migrations Drizzle au démarrage)
+- Elle est stockée dans le dossier utilisateur Electron
+  (`%APPDATA%/gestion-gaz/database.db` sur Windows)
+- Le driver SQLite local est `@libsql/client/sqlite3`; il ne nécessite pas
+  `@electron/rebuild`.
+- Pour migrer des données existantes, copier le fichier `.db` vers ce dossier
+  utilisateur.
 
 ---
 

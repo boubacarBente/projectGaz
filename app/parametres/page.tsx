@@ -544,7 +544,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         <div className="rounded-2xl border border-info/20 bg-info/5 p-5">
           <h4 className="mb-2 font-semibold text-info">Télécharger une sauvegarde de la base</h4>
           <p className="text-sm leading-6 text-base-content/70">
-            Télécharge l&apos;intégralité de la base de données SQLite (<code>database2.db</code>).
+            Télécharge l&apos;intégralité de la base de données SQLite (<code>database.db</code>).
             La sauvegarde contient toutes les données : clients, fournisseurs, produits, factures, transactions et paramètres.
           </p>
           <div className="mt-4 flex justify-end">

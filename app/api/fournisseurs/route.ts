@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
+import { db, rawAll, rawGet } from '@/db';
 import { suppliers } from '@/db/schema';
-import { desc, like, or, sql } from 'drizzle-orm';
 
 // GET /api/fournisseurs - Liste tous les fournisseurs
 export async function GET(request: NextRequest) {
@@ -11,19 +10,11 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100000, Math.max(1, parseInt(searchParams.get('limit') ?? '10', 10)));
     const search = searchParams.get('search') || undefined;
 
-    const where = search
-      ? or(
-          like(suppliers.name, `%${search}%`),
-          like(suppliers.phone, `%${search}%`),
-          like(suppliers.address, `%${search}%`),
-        )
-      : undefined;
-
-    const rawDb: import('better-sqlite3').Database = (db as any).$client;
-
     const offset = (page - 1) * limit;
+    const hasSearch = Boolean(search);
+    const searchArgs = hasSearch ? [`%${search}%`, `%${search}%`, `%${search}%`] : [];
 
-    const rows = rawDb.prepare(`
+    const rows = await rawAll(`
       SELECT
         s.id,
         s.name,
@@ -35,19 +26,22 @@ export async function GET(request: NextRequest) {
         s.created_at AS createdAt,
         s.updated_at AS updatedAt
       FROM suppliers s
-      ${where ? `WHERE s.name LIKE ? OR s.phone LIKE ? OR s.address LIKE ?` : ''}
+      ${hasSearch ? `WHERE s.name LIKE ? OR s.phone LIKE ? OR s.address LIKE ?` : ''}
       ORDER BY s.created_at DESC
       LIMIT ? OFFSET ?
-    `).all(...(where ? [`%${search}%`, `%${search}%`, `%${search}%`, limit, offset] : [limit, offset]));
+    `, [...searchArgs, limit, offset]);
 
-    const countResult = rawDb.prepare(`SELECT COUNT(*) as count FROM suppliers s${where ? ` WHERE s.name LIKE ? OR s.phone LIKE ? OR s.address LIKE ?` : ''}`).get(...(where ? [`%${search}%`, `%${search}%`, `%${search}%`] : [])) as { count: number };
+    const countResult = await rawGet<{ count: number }>(
+      `SELECT COUNT(*) as count FROM suppliers s${hasSearch ? ` WHERE s.name LIKE ? OR s.phone LIKE ? OR s.address LIKE ?` : ''}`,
+      searchArgs,
+    );
 
     return NextResponse.json({
       data: rows,
-      total: countResult.count,
+      total: countResult?.count ?? 0,
       page,
       limit,
-      totalPages: Math.ceil(countResult.count / limit),
+      totalPages: Math.ceil((countResult?.count ?? 0) / limit),
     });
   } catch (error) {
     console.error('Error fetching suppliers:', error);

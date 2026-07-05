@@ -6,15 +6,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Base de données
 
-Le projet utilise **SQLite** avec **Drizzle ORM** pour la gestion des données.
+Le projet utilise **SQLite** avec **Drizzle ORM** et le driver local
+`@libsql/client/sqlite3` pour la gestion des données.
 
 ### Structure de la DB
 
 - **Fichiers**:
   - `db/schema.ts` - Schéma des tables + relations Drizzle
   - `db/helpers.ts` - Requêtes avec JOIN automatiques via `db.query...with`
-  - `db/index.ts` - Connexion à la base SQLite
-  - `db/database2.db` - Fichier de la base SQLite
+  - `db/index.ts` - Connexion SQLite libSQL + migrations + helpers SQL bruts async
+  - `db/database.db` - Fichier de la base SQLite en développement
 
 ### Commandes utiles
 
@@ -46,6 +47,9 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
   `findPurchaseInvoices()` / `findPurchaseInvoiceById()` dans `db/helpers.ts`
 - Le mapping vers le type `PurchaseInvoice` est centralisé dans
   `mapPurchaseInvoiceRow()` dans `lib/operations.ts`
+- Les requêtes SQL brutes doivent passer par `rawGet()`, `rawAll()`, `rawRun()`
+  ou `withRawTransaction()` depuis `db/index.ts`. Ne pas utiliser
+  `(db as any).$client.prepare(...)` : le driver libSQL est async.
 
 ---
 
@@ -271,11 +275,9 @@ type Column<T> = {
 
 ### Commandes
 - `npm run dev:desktop` — Mode dev (Next.js + Electron)
-- `npm run build:desktop` — Build Electron plateforme courante
 - `npm run build:desktop:win` — Build Windows (.exe NSIS)
 - `npm run build:desktop:mac` — Build macOS (.dmg)
 - `npm run build:desktop:linux` — Build Linux (.AppImage)
-- `npx @electron/rebuild -f -w better-sqlite3` — Recompiler SQLite pour Electron (obligatoire avant le 1er build)
 
 ### Auto-update
 - `electron-updater` vérifie les Releases GitHub au lancement

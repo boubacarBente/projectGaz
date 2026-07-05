@@ -1,5 +1,4 @@
-import Database from "better-sqlite3";
-import { db } from "@/db";
+import { rawAll, rawGet, rawRun, withRawTransaction } from "@/db";
 
 function randomDateBetween(start: Date, end: Date): string {
   const d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
@@ -132,26 +131,32 @@ const saleInvoiceSeeds: {
 ];
 
 export async function seedDatabase() {
-  const client: Database.Database = (db as any).$client;
-
   const results: string[] = [];
 
   // ── Vérifier les données existantes ──
-  const existingClients = client.prepare("SELECT COUNT(*) as count FROM customers").get() as { count: number };
-  const existingSuppliers = client.prepare("SELECT COUNT(*) as count FROM suppliers").get() as { count: number };
-  const existingProducts = client.prepare("SELECT COUNT(*) as count FROM products").get() as { count: number };
-  const existingPurchaseInvoices = client.prepare("SELECT COUNT(*) as count FROM purchase_invoices").get() as { count: number };
-  const existingSalesInvoices = client.prepare("SELECT COUNT(*) as count FROM sales_invoices").get() as { count: number };
+  const [
+    existingClients,
+    existingSuppliers,
+    existingProducts,
+    existingPurchaseInvoices,
+    existingSalesInvoices,
+  ] = await Promise.all([
+    rawGet<{ count: number }>("SELECT COUNT(*) as count FROM customers"),
+    rawGet<{ count: number }>("SELECT COUNT(*) as count FROM suppliers"),
+    rawGet<{ count: number }>("SELECT COUNT(*) as count FROM products"),
+    rawGet<{ count: number }>("SELECT COUNT(*) as count FROM purchase_invoices"),
+    rawGet<{ count: number }>("SELECT COUNT(*) as count FROM sales_invoices"),
+  ]);
 
   // ── Clients ──
-  if (existingClients.count === 0) {
+  if ((existingClients?.count ?? 0) === 0) {
     let typeParticulier = 1;
     let typeProfessionnel = 2;
-    const typeCount = client.prepare("SELECT COUNT(*) as count FROM customer_types").get() as { count: number };
-    if (typeCount.count === 0) {
-      client.prepare("INSERT INTO customer_types (name) VALUES ('Particulier')").run();
-      client.prepare("INSERT INTO customer_types (name) VALUES ('Professionnel')").run();
-      const types = client.prepare("SELECT id, name FROM customer_types ORDER BY id").all() as { id: number; name: string }[];
+    const typeCount = await rawGet<{ count: number }>("SELECT COUNT(*) as count FROM customer_types");
+    if ((typeCount?.count ?? 0) === 0) {
+      await rawRun("INSERT INTO customer_types (name) VALUES ('Particulier')");
+      await rawRun("INSERT INTO customer_types (name) VALUES ('Professionnel')");
+      const types = await rawAll<{ id: number; name: string }>("SELECT id, name FROM customer_types ORDER BY id");
       for (const t of types) {
         if (t.name === 'Particulier') typeParticulier = t.id;
         if (t.name === 'Professionnel') typeProfessionnel = t.id;
@@ -159,12 +164,12 @@ export async function seedDatabase() {
       results.push("✓ Types de clients créés (Particulier, Professionnel)");
     }
 
-    const insertClient = client.prepare(
-      "INSERT INTO customers (name, phone, address, city, type_id, is_active) VALUES (?, ?, ?, ?, ?, 1)"
-    );
     for (const c of seedClients) {
       const typeId = c.typeId === 2 ? typeProfessionnel : typeParticulier;
-      insertClient.run(c.name, c.phone, c.address, c.city, typeId);
+      await rawRun(
+        "INSERT INTO customers (name, phone, address, city, type_id, is_active) VALUES (?, ?, ?, ?, ?, 1)",
+        [c.name, c.phone, c.address, c.city, typeId],
+      );
     }
     results.push(`✓ ${seedClients.length} clients créés`);
   } else {
@@ -172,12 +177,12 @@ export async function seedDatabase() {
   }
 
   // ── Fournisseurs ──
-  if (existingSuppliers.count === 0) {
-    const insertSupplier = client.prepare(
-      "INSERT INTO suppliers (name, phone, address, is_active) VALUES (?, ?, ?, 1)"
-    );
+  if ((existingSuppliers?.count ?? 0) === 0) {
     for (const s of seedSuppliers) {
-      insertSupplier.run(s.name, s.phone, s.address);
+      await rawRun(
+        "INSERT INTO suppliers (name, phone, address, is_active) VALUES (?, ?, ?, 1)",
+        [s.name, s.phone, s.address],
+      );
     }
     results.push(`✓ ${seedSuppliers.length} fournisseurs créés`);
   } else {
@@ -185,12 +190,12 @@ export async function seedDatabase() {
   }
 
   // ── Produits ──
-  if (existingProducts.count === 0) {
-    const insertProduct = client.prepare(
-      "INSERT INTO products (code, name, capacity, unit_price, sale_price, stock, stock_min) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    );
+  if ((existingProducts?.count ?? 0) === 0) {
     for (const p of seedProducts) {
-      insertProduct.run(p.code, p.name, p.capacity, p.unitPrice, p.salePrice, p.stock, p.stockMin);
+      await rawRun(
+        "INSERT INTO products (code, name, capacity, unit_price, sale_price, stock, stock_min) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [p.code, p.name, p.capacity, p.unitPrice, p.salePrice, p.stock, p.stockMin],
+      );
     }
     results.push(`✓ ${seedProducts.length} produits créés avec stock initial`);
   } else {
@@ -198,29 +203,9 @@ export async function seedDatabase() {
   }
 
   // ── Factures d'achat (20) ──
-  if (existingPurchaseInvoices.count === 0) {
-    const suppliers = client.prepare("SELECT id, name FROM suppliers").all() as { id: number; name: string }[];
-    const products = client.prepare("SELECT id, code, name FROM products").all() as { id: number; code: string; name: string }[];
-
-    const insertInvoice = client.prepare(
-      `INSERT INTO purchase_invoices (reference, supplier_id, date, notes, total_amount, is_paid, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    const insertItem = client.prepare(
-      `INSERT INTO purchase_invoice_items (invoice_id, product_id, product_code, product_name, quantity, unit_cost, total_cost)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    );
-    const updateSupplierTotal = client.prepare(
-      `UPDATE suppliers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE id = ?`
-    );
-    const updateProductStock = client.prepare(
-      `UPDATE products SET stock = COALESCE(stock, 0) + ? WHERE id = ?`
-    );
-    const insertStockMovement = client.prepare(
-      `INSERT INTO stock_movements (product_id, product_code, product_name, type, quantity, stock_before, stock_after, reference, reference_type, reference_id, note, created_at)
-       VALUES (?, ?, ?, 'entry', ?, ?, ?, ?, 'purchase', ?, ?, ?)`
-    );
-
+  if ((existingPurchaseInvoices?.count ?? 0) === 0) {
+    const supplierRows = await rawAll<{ id: number; name: string }>("SELECT id, name FROM suppliers");
+    const productRows = await rawAll<{ id: number; code: string; name: string }>("SELECT id, code, name FROM products");
     const startDate = new Date('2026-01-01');
     const endDate = new Date();
     const purchaseInvoices = purchaseInvoiceSeeds.map(inv => ({
@@ -229,10 +214,10 @@ export async function seedDatabase() {
     }));
     const invoicesCount = purchaseInvoices.length;
 
-    client.transaction(() => {
+    await withRawTransaction(async (client) => {
       for (let i = 0; i < purchaseInvoices.length; i++) {
         const seed = purchaseInvoices[i];
-        const supplier = suppliers.find(s => s.id === seed.supplierId)!;
+        const supplier = supplierRows.find(s => s.id === seed.supplierId)!;
         const ref = `ACH ${String(i + 1).padStart(4, '0')}`;
         const dateObj = new Date(seed.date + 'T08:00:00');
         const ts = dateObj.getTime();
@@ -241,30 +226,45 @@ export async function seedDatabase() {
         let totalAmount = 0;
         const itemRows: { productId: number; code: string; name: string; qty: number; cost: number; total: number }[] = [];
         for (const line of seed.lines) {
-          const prod = products.find(p => p.id === line.productId)!;
+          const prod = productRows.find(p => p.id === line.productId)!;
           const total = line.quantity * line.unitCost;
           totalAmount += total;
           itemRows.push({ productId: prod.id, code: prod.code, name: prod.name, qty: line.quantity, cost: line.unitCost, total });
         }
 
-        insertInvoice.run(ref, seed.supplierId, seed.date, '', totalAmount, seed.isPaid ? 1 : 0, ts, ts);
-
-        const invoiceId = i + 1; // autoincrement séquentiel dans la transaction
+        const insertedInvoice = await rawRun(
+          `INSERT INTO purchase_invoices (reference, supplier_id, date, notes, total_amount, is_paid, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [ref, seed.supplierId, seed.date, '', totalAmount, seed.isPaid ? 1 : 0, ts, ts],
+          client,
+        );
+        const invoiceId = Number(insertedInvoice.lastInsertRowid);
 
         for (const item of itemRows) {
-          insertItem.run(invoiceId, item.productId, item.code, item.name, item.qty, item.cost, item.total);
+          await rawRun(
+            `INSERT INTO purchase_invoice_items (invoice_id, product_id, product_code, product_name, quantity, unit_cost, total_cost)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [invoiceId, item.productId, item.code, item.name, item.qty, item.cost, item.total],
+            client,
+          );
           // Récupérer le stock actuel avant mise à jour
-          const currentStock = client.prepare("SELECT COALESCE(stock, 0) as stock FROM products WHERE id = ?").get(item.productId) as { stock: number };
+          const currentStock = await rawGet<{ stock: number }>("SELECT COALESCE(stock, 0) as stock FROM products WHERE id = ?", [item.productId], client);
           // Mettre à jour le stock du produit
-          updateProductStock.run(item.qty, item.productId);
+          await rawRun(`UPDATE products SET stock = COALESCE(stock, 0) + ? WHERE id = ?`, [item.qty, item.productId], client);
           // Créer le mouvement de stock
-          const newStock = currentStock.stock + item.qty;
-          insertStockMovement.run(item.productId, item.code, item.name, item.qty, currentStock.stock, newStock, ref, invoiceId, ref, ts);
+          const stockBefore = currentStock?.stock ?? 0;
+          const newStock = stockBefore + item.qty;
+          await rawRun(
+            `INSERT INTO stock_movements (product_id, product_code, product_name, type, quantity, stock_before, stock_after, reference, reference_type, reference_id, note, created_at)
+             VALUES (?, ?, ?, 'entry', ?, ?, ?, ?, 'purchase', ?, ?, ?)`,
+            [item.productId, item.code, item.name, item.qty, stockBefore, newStock, ref, invoiceId, ref, ts],
+            client,
+          );
         }
 
-        updateSupplierTotal.run(totalAmount, seed.supplierId);
+        await rawRun(`UPDATE suppliers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE id = ?`, [totalAmount, seed.supplierId], client);
       }
-    })();
+    });
 
     results.push(`✓ ${invoicesCount} factures d'achat créées`);
     results.push(`✓ Stocks et mouvements de stock mis à jour`);
@@ -274,29 +274,9 @@ export async function seedDatabase() {
   }
 
   // ── Factures de vente (50) ──
-  if (existingSalesInvoices.count === 0) {
-    const products = client.prepare("SELECT id, code, name FROM products").all() as { id: number; code: string; name: string }[];
-    const customers = client.prepare("SELECT id, name FROM customers").all() as { id: number; name: string }[];
-
-    const insertInvoice = client.prepare(
-      `INSERT INTO sales_invoices (invoice_number, customer_id, customer_name, date, payment_method, notes, total_amount, amount_paid, remaining_amount, payment_status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    const insertItem = client.prepare(
-      `INSERT INTO sales_invoice_items (invoice_id, product_id, product_code, product_name, quantity, unit_price, total_price)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    );
-    const updateCustomerTotal = client.prepare(
-      `UPDATE customers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE name = ?`
-    );
-    const updateProductStock = client.prepare(
-      `UPDATE products SET stock = COALESCE(stock, 0) - ? WHERE id = ?`
-    );
-    const insertStockMovement = client.prepare(
-      `INSERT INTO stock_movements (product_id, product_code, product_name, type, quantity, stock_before, stock_after, reference, reference_type, reference_id, note, created_at)
-       VALUES (?, ?, ?, 'exit', ?, ?, ?, ?, 'sale', ?, ?, ?)`
-    );
-
+  if ((existingSalesInvoices?.count ?? 0) === 0) {
+    const productRows = await rawAll<{ id: number; code: string; name: string }>("SELECT id, code, name FROM products");
+    const customerRows = await rawAll<{ id: number; name: string }>("SELECT id, name FROM customers");
     const startDate = new Date('2026-01-01');
     const endDate = new Date();
     const saleInvoices = saleInvoiceSeeds.map(inv => ({
@@ -305,10 +285,10 @@ export async function seedDatabase() {
     }));
     const totalSales = saleInvoices.length;
 
-    client.transaction(() => {
+    await withRawTransaction(async (client) => {
       for (let i = 0; i < saleInvoices.length; i++) {
         const seed = saleInvoices[i];
-        const customer = customers.find(c => c.name === seed.customerName)!;
+        const customer = customerRows.find(c => c.name === seed.customerName)!;
         const invoiceNum = `N ${String(i + 1).padStart(6, '0')}`;
         const dateObj = new Date(seed.date + 'T10:00:00');
         const ts = dateObj.getTime();
@@ -317,7 +297,7 @@ export async function seedDatabase() {
         let totalAmount = 0;
         const itemRows: { productId: number; code: string; name: string; qty: number; price: number; total: number }[] = [];
         for (const line of seed.lines) {
-          const prod = products.find(p => p.id === line.productId)!;
+          const prod = productRows.find(p => p.id === line.productId)!;
           const total = line.quantity * line.unitPrice;
           totalAmount += total;
           itemRows.push({ productId: prod.id, code: prod.code, name: prod.name, qty: line.quantity, price: line.unitPrice, total });
@@ -326,24 +306,39 @@ export async function seedDatabase() {
         const remainingAmount = Math.max(totalAmount - seed.amountPaid, 0);
         const paymentStatus = seed.amountPaid <= 0 ? 'En attente' : remainingAmount > 0 ? 'Partiel' : 'Payée';
 
-        insertInvoice.run(invoiceNum, customer?.id ?? null, seed.customerName, seed.date, seed.paymentMethod, '', totalAmount, seed.amountPaid, remainingAmount, paymentStatus, ts, ts);
-
-        const invoiceId = i + 1; // autoincrement séquentiel dans la transaction
+        const insertedInvoice = await rawRun(
+          `INSERT INTO sales_invoices (invoice_number, customer_id, customer_name, date, payment_method, notes, total_amount, amount_paid, remaining_amount, payment_status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [invoiceNum, customer?.id ?? null, seed.customerName, seed.date, seed.paymentMethod, '', totalAmount, seed.amountPaid, remainingAmount, paymentStatus, ts, ts],
+          client,
+        );
+        const invoiceId = Number(insertedInvoice.lastInsertRowid);
 
         for (const item of itemRows) {
-          insertItem.run(invoiceId, item.productId, item.code, item.name, item.qty, item.price, item.total);
+          await rawRun(
+            `INSERT INTO sales_invoice_items (invoice_id, product_id, product_code, product_name, quantity, unit_price, total_price)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [invoiceId, item.productId, item.code, item.name, item.qty, item.price, item.total],
+            client,
+          );
           // Récupérer le stock actuel avant mise à jour
-          const currentStock = client.prepare("SELECT COALESCE(stock, 0) as stock FROM products WHERE id = ?").get(item.productId) as { stock: number };
+          const currentStock = await rawGet<{ stock: number }>("SELECT COALESCE(stock, 0) as stock FROM products WHERE id = ?", [item.productId], client);
           // Mettre à jour le stock du produit (sortie)
-          updateProductStock.run(item.qty, item.productId);
+          await rawRun(`UPDATE products SET stock = COALESCE(stock, 0) - ? WHERE id = ?`, [item.qty, item.productId], client);
           // Créer le mouvement de stock
-          const newStock = Math.max(0, currentStock.stock - item.qty);
-          insertStockMovement.run(item.productId, item.code, item.name, item.qty, currentStock.stock, newStock, invoiceNum, invoiceId, invoiceNum, ts);
+          const stockBefore = currentStock?.stock ?? 0;
+          const newStock = Math.max(0, stockBefore - item.qty);
+          await rawRun(
+            `INSERT INTO stock_movements (product_id, product_code, product_name, type, quantity, stock_before, stock_after, reference, reference_type, reference_id, note, created_at)
+             VALUES (?, ?, ?, 'exit', ?, ?, ?, ?, 'sale', ?, ?, ?)`,
+            [item.productId, item.code, item.name, item.qty, stockBefore, newStock, invoiceNum, invoiceId, invoiceNum, ts],
+            client,
+          );
         }
 
-        updateCustomerTotal.run(totalAmount, seed.customerName);
+        await rawRun(`UPDATE customers SET total_purchases = COALESCE(total_purchases, 0) + ? WHERE name = ?`, [totalAmount, seed.customerName], client);
       }
-    })();
+    });
 
     results.push(`✓ ${totalSales} factures de vente créées`);
     results.push(`✓ Stocks et mouvements de stock mis à jour`);
