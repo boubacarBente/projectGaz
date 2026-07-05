@@ -183,8 +183,34 @@ git push origin v0.2.0
 ```
 
 👉 À chaque tag `v*`, GitHub Actions compile pour **Windows, macOS et Linux**,
-crée une Release GitHub, et les apps installées détectent la mise à jour
-automatiquement au lancement.
+crée une Release GitHub avec les fichiers d'auto-update (`latest.yml`,
+blockmap, installateur), et les apps installées détectent la mise à jour au
+lancement. La nouvelle version est téléchargée automatiquement, puis l'utilisateur
+confirme seulement le redémarrage quand l'installation est prête.
+
+### Mise à jour de la base de données installée
+
+Les données de chaque client restent dans son dossier utilisateur Electron :
+`%APPDATA%/gestion-gaz/database.db` sur Windows.
+
+Quand tu ajoutes une table ou une colonne :
+
+```bash
+# 1. Modifier db/schema.ts
+# 2. Générer une migration versionnée
+npm run db:generate
+
+# 3. Tester en local, puis publier une nouvelle version
+git add db/schema.ts db/migrations package.json
+git commit -m "Release v0.2.0"
+git tag v0.2.0
+git push origin main --tags
+```
+
+Au lancement de la nouvelle version installée, `db/index.ts` exécute
+automatiquement les migrations Drizzle embarquées dans l'app. Le code frontend/API
+est remplacé par l'auto-update, et la DB locale de l'utilisateur est migrée sans
+intervention développeur.
 
 📖 **Guide complet** : voir le fichier [`TUTO.md`](TUTO.md) à la racine du projet.
 
@@ -486,4 +512,4 @@ Composant dropdown réutilisable regroupant les options d'export :
 
 ---
 
-*Dernière mise à jour : 24/06/2026*
+*Dernière mise à jour : 05/07/2026*

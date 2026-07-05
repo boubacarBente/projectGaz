@@ -7,7 +7,6 @@ import fs from 'fs';
 import os from 'os';
 
 type RawExecutor = Pick<Client | Transaction, 'execute'>;
-type RawStatement = { sql: string; args?: InArgs };
 
 let _logFilePath: string | null = null;
 

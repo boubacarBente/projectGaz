@@ -281,6 +281,9 @@ type Column<T> = {
 
 ### Auto-update
 - `electron-updater` vérifie les Releases GitHub au lancement
-- Si version plus récente → popup → téléchargement → installation
+- Si version plus récente → téléchargement automatique → popup de redémarrage quand la mise à jour est prête
 - Configuré dans `package.json` → `build.publish` (GitHub provider)
 - Pour publier : modifier la version → `git tag vX.Y.Z` → `git push origin vX.Y.Z`
+- Distribuer aux clients l'installateur NSIS `Gestion Gaz-Setup-x.y.z.exe`, pas le dossier `win-unpacked`
+- Les fichiers d'auto-update (`latest.yml`, `.blockmap`, installateur) doivent être attachés à la Release GitHub
+- Les changements de schéma DB passent par `db/schema.ts` + `npm run db:generate`; les migrations dans `db/migrations` sont copiées dans l'app packagée et exécutées automatiquement au démarrage via `db/index.ts`

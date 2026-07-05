@@ -11,7 +11,7 @@ try {
 
 // ── Auto-updater config ──────────────────────────────────────────────
 if (autoUpdater) {
-  autoUpdater.autoDownload = false;
+  autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 }
 
@@ -147,12 +147,12 @@ app.whenReady().then(async () => {
     const url = await startNextServer();
     await createWindow(url);
 
-    if (app.isPackaged && autoUpdater) {
-      autoUpdater.checkForUpdatesAndNotify().catch(() => {});
-    }
-
     if (autoUpdater) {
       setupAutoUpdater();
+    }
+
+    if (app.isPackaged && autoUpdater) {
+      autoUpdater.checkForUpdates().catch(() => {});
     }
   } catch (err) {
     console.error('Failed to start:', err);
@@ -180,14 +180,10 @@ app.on('activate', async () => {
 // ── Auto-updater events ──────────────────────────────────────────────
 function setupAutoUpdater() {
   autoUpdater.on('update-available', (info) => {
-    const response = dialog.showMessageBoxSync(mainWindow, {
-      type: 'info',
-      title: 'Mise a jour disponible',
-      message: `La version ${info.version} est disponible.\n\nChangements : ${info.releaseNotes || 'Non specifies.'}`,
-      buttons: ['Telecharger', 'Plus tard'],
-      defaultId: 0,
-    });
-    if (response === 0) autoUpdater.downloadUpdate();
+    console.log(`[updater] Mise a jour ${info.version} disponible, telechargement automatique...`);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', info.version);
+    }
   });
 
   autoUpdater.on('update-not-available', () => {

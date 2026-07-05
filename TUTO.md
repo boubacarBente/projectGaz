@@ -86,7 +86,7 @@ convert public/logo.jpeg -resize 512x512 public/icon.png
 
 1. L'app Electron inclut `electron-updater`
 2. Au lancement, il vérifie les **Releases GitHub** du repo `boubacarBente/projectGaz`
-3. Si une version plus récente existe → notification → téléchargement → installation automatique
+3. Si une version plus récente existe → téléchargement automatique → confirmation de redémarrage → installation
 
 ### Publier une nouvelle version
 
@@ -126,7 +126,7 @@ App lancée
 Vérifie https://github.com/boubacarBente/projectGaz/releases/latest
     │
     ├── Version plus récente trouvée ?
-    │   ├── Oui → Popup "Mise à jour dispo" → Téléchargement → Installation
+    │   ├── Oui → Téléchargement automatique → Popup "Redémarrer" → Installation
     │   └── Non → Rien
     │
     └── Erreur réseau → Ignore silencieusement
@@ -168,7 +168,11 @@ L'application utilise SQLite. En production (app desktop) :
 - Elle est stockée dans le dossier utilisateur Electron
   (`%APPDATA%/gestion-gaz/database.db` sur Windows)
 - Le driver SQLite local est `@libsql/client/sqlite3`; il ne nécessite pas
-  `@electron/rebuild`.
+  de recompilation native spécifique à Electron.
+- Pour ajouter une table ou une colonne en production, modifier `db/schema.ts`,
+  lancer `npm run db:generate`, commiter `db/migrations`, puis publier une
+  nouvelle version. L'app installée appliquera ces migrations au prochain
+  lancement.
 - Pour migrer des données existantes, copier le fichier `.db` vers ce dossier
   utilisateur.
 
