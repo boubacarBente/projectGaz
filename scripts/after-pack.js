@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { prepareNativeModules } = require('./prepare-native-modules');
 
 function walk(dir, visitor) {
   if (!fs.existsSync(dir)) {
@@ -72,22 +72,10 @@ exports.default = async function afterPack(context) {
     console.log(`[afterPack] ensured external alias: ${alias} -> ${basePackage}`);
   }
 
-  const rebuildCli = path.join(context.packager.projectDir, 'node_modules', '@electron', 'rebuild', 'lib', 'cli.js');
-  if (fs.existsSync(rebuildCli) && fs.existsSync(path.join(nodeModulesDir, 'better-sqlite3'))) {
-    const electronVersion = context.electronVersion || context.packager.config.electronVersion;
-    execFileSync(process.execPath, [
-      rebuildCli,
-      '-f',
-      '-w',
-      'better-sqlite3',
-      '--version',
-      electronVersion,
-      '--module-dir',
-      appDir,
-    ], {
-      cwd: context.packager.projectDir,
-      stdio: 'inherit',
-    });
-    console.log('[afterPack] rebuilt better-sqlite3 for Electron');
-  }
+  prepareNativeModules({
+    projectDir: context.packager.projectDir,
+    appDir,
+    electronVersion: context.electronVersion || context.packager.config.electronVersion,
+  });
+  console.log('[afterPack] prepared native modules for Electron');
 };

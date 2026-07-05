@@ -6,15 +6,16 @@
   "private": true,
   "main": "electron/main.js",
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm rebuild better-sqlite3 && next dev",
     "dev:desktop": "npm rebuild better-sqlite3 && concurrently \"next dev --port 12000\" \"wait-on http://localhost:12000 && electron .\"",
     "build": "next build",
     "start": "next start",
     "copy:standalone": "node scripts/copy-standalone.js",
-    "build:desktop:win": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --win",
-    "build:desktop:win2": "npm rebuild better-sqlite3 && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --win",
-    "build:desktop:mac": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --mac",
-    "build:desktop:linux": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npx @electron/rebuild -f -w better-sqlite3 && electron-builder --linux",
+    "prepare:desktop:natives": "node scripts/prepare-native-modules.js",
+    "build:desktop:win": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npm run prepare:desktop:natives && electron-builder --win",
+    "build:desktop:win2": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npm run prepare:desktop:natives && electron-builder --win",
+    "build:desktop:mac": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npm run prepare:desktop:natives && electron-builder --mac",
+    "build:desktop:linux": "npm rebuild better-sqlite3 && npm run build && npm run copy:standalone && npm run prepare:desktop:natives && electron-builder --linux",
     "db:push": "npx drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
     "db:studio": "npx drizzle-kit studio"
@@ -58,23 +59,20 @@
   "build": {
     "appId": "com.gestiongaz.app",
     "productName": "Gestion Gaz",
+    "npmRebuild": false,
+    "afterPack": "scripts/after-pack.js",
     "directories": {
+      "app": ".next/standalone",
       "output": "release"
     },
     "asar": false,
     "files": [
-      ".next/standalone/**/*",
-      "!.next/standalone/.next/node_modules/**/*",
-      "!.next/standalone/release/**/*",
-      "!.next/standalone/data/**/*",
-      "!.next/standalone/db/*.db",
-      "db/migrations/**/*",
-      "db/schema.ts",
-      "db/helpers.ts",
-      "db/index.ts",
-      "package.json",
-      "electron/**/*",
-      "public/**/*"
+      "**/*",
+      "!db/*.db",
+      "!release/**/*",
+      "!data/**/*",
+      "!tmp-electron/**/*",
+      "!db-error.log"
     ],
     "win": {
       "target": [
@@ -85,7 +83,7 @@
           ]
         }
       ],
-      "icon": "public/icon.png"
+      "icon": "app/favicon.ico"
     },
     "nsis": {
       "oneClick": false,
