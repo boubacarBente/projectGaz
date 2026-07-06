@@ -134,10 +134,6 @@ console.log(`\nPublication ${tag} depuis la branche ${branch}...\n`);
 
 run("git", ["add", "-A"]);
 
-run("git", ["restore", "--staged", "--", ...protectedPaths], {
-  allowFailure: true,
-});
-
 const stagedProtected = run("git", ["diff", "--cached", "--name-only", "--", ...protectedPaths], {
   capture: true,
   allowFailure: true,
@@ -146,7 +142,8 @@ const stagedProtected = run("git", ["diff", "--cached", "--name-only", "--", ...
   .filter(Boolean);
 
 if (stagedProtected.length > 0) {
-  fail(`Fichiers locaux refuses dans la release: ${stagedProtected.join(", ")}`);
+  run("git", ["restore", "--staged", "--", ...stagedProtected]);
+  console.log(`Fichiers locaux exclus de la release: ${stagedProtected.join(", ")}`);
 }
 
 if (succeeds("git", ["diff", "--cached", "--quiet"])) {
