@@ -89,7 +89,7 @@
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "Gestion-Gaz-Setup-${version}.${ext}"
     },
     "mac": {
       "target": [
