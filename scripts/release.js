@@ -145,10 +145,10 @@ if (trackedProtected.length > 0) {
 }
 
 if (succeeds("git", ["diff", "--cached", "--quiet"])) {
-  fail("Aucun changement a publier apres exclusion des fichiers locaux DB/log.");
+  console.log("Aucun changement applicatif non commite. Creation du commit de version uniquement.");
+} else {
+  run("git", ["commit", "-m", message]);
 }
-
-run("git", ["commit", "-m", message]);
 
 run("npm", ["version", bump, "--no-git-tag-version"]);
 run("git", ["add", "package.json"]);
