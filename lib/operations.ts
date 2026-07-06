@@ -21,7 +21,7 @@ import {
 } from "../db/schema";
 import { eq, desc, asc, like, sql, and, or, gte, lte, inArray } from "drizzle-orm";
 import { listProducts } from "@/lib/products";
-import { addStockMovement, updateProductStock } from "@/lib/stock";
+import { addStockMovement } from "@/lib/stock";
 
 export type PurchaseInvoiceItem = {
   productId: number;
@@ -437,25 +437,41 @@ async function buildPurchaseItems(lines: LineInput[]) {
   });
 }
 
-async function buildSalesItems(lines: LineInput[]) {
+async function buildSalesItems(
+  lines: LineInput[],
+  options: {
+    stockAllowanceByProductId?: Map<number, number>;
+    operationLabel?: string;
+  } = {},
+) {
   const products = await listProducts();
 
-  // Vérifier le stock disponible pour chaque ligne
+  // Vérifier le stock disponible par produit, même si le produit apparaît sur plusieurs lignes.
   const stockErrors: string[] = [];
+  const requestedByProductId = new Map<number, number>();
 
   for (const line of lines) {
-    const product = products.find((item) => item.id === line.productId);
+    const quantity = Number(line.quantity) || 0;
+    requestedByProductId.set(
+      line.productId,
+      (requestedByProductId.get(line.productId) ?? 0) + quantity,
+    );
+  }
+
+  for (const [productId, quantity] of requestedByProductId) {
+    const product = products.find((item) => item.id === productId);
 
     if (!product) {
-      throw new Error(`Produit introuvable pour la facture vente (ID: ${line.productId}).`);
+      throw new Error(`Produit introuvable pour la facture vente (ID: ${productId}).`);
     }
 
-    const quantity = Number(line.quantity) || 0;
+    const restoredQuantity = options.stockAllowanceByProductId?.get(productId) ?? 0;
     const currentStock = product.stock ?? 0;
+    const availableStock = currentStock + restoredQuantity;
 
-    if (quantity > currentStock) {
+    if (quantity > availableStock) {
       stockErrors.push(
-        `• ${product.code} ${product.name} : stock insuffisant (disponible: ${currentStock}, demandé: ${quantity})`
+        `• ${product.code} ${product.name} : stock insuffisant (disponible: ${availableStock}, demandé: ${quantity})`
       );
     }
   }
@@ -463,22 +479,73 @@ async function buildSalesItems(lines: LineInput[]) {
   if (stockErrors.length > 0) {
     const errorDetails = stockErrors.join('\n');
     throw new Error(
-      `Stock insuffisant pour créer la vente :\n\n${errorDetails}\n\nVeuillez ajuster les quantités ou réapprovisionner le stock.`
+      `Stock insuffisant pour ${options.operationLabel ?? 'créer la vente'} :\n\n${errorDetails}\n\nVeuillez ajuster les quantités ou réapprovisionner le stock.`
     );
   }
 
   return lines.map((line) => {
-    const product = products.find((item) => item.id === line.productId)!;
+    const product = products.find((item) => item.id === line.productId);
 
+    if (!product) {
+      throw new Error(`Produit introuvable pour la facture vente (ID: ${line.productId}).`);
+    }
+
+    const quantity = Number(line.quantity) || 0;
     return {
       productId: product.id,
       productCode: product.code,
       productName: product.name,
-      quantity: Number(line.quantity) || 0,
+      quantity,
       unitPrice: Number(line.amount) || 0,
-      totalPrice: (Number(line.quantity) || 0) * (Number(line.amount) || 0),
+      totalPrice: quantity * (Number(line.amount) || 0),
     };
   });
+}
+
+async function adjustProductStocksFromLines(
+  lines: Array<{ productId: number; quantity: number }>,
+  direction: 1 | -1,
+) {
+  const quantityByProductId = quantityMapFromLines(lines);
+
+  for (const [productId, quantity] of quantityByProductId) {
+    const [product] = await db.select({ stock: products.stock })
+      .from(products)
+      .where(eq(products.id, productId))
+      .limit(1);
+
+    if (!product) {
+      throw new Error(`Produit introuvable pour ajuster le stock (ID: ${productId}).`);
+    }
+
+    const nextStock = Math.max(0, (product.stock ?? 0) + (direction * quantity));
+    await db.update(products)
+      .set({ stock: nextStock })
+      .where(eq(products.id, productId));
+  }
+}
+
+function quantityMapFromLines(lines: Array<{ productId: number; quantity: number }>) {
+  const quantityByProductId = new Map<number, number>();
+
+  for (const line of lines) {
+    quantityByProductId.set(
+      line.productId,
+      (quantityByProductId.get(line.productId) ?? 0) + (Number(line.quantity) || 0),
+    );
+  }
+
+  return quantityByProductId;
+}
+
+function areQuantityMapsEqual(left: Map<number, number>, right: Map<number, number>) {
+  if (left.size !== right.size) return false;
+
+  for (const [productId, quantity] of left) {
+    if (right.get(productId) !== quantity) return false;
+  }
+
+  return true;
 }
 
 export async function createPurchaseInvoice(input: {
@@ -753,10 +820,19 @@ export async function updatePurchaseInvoice(id: number, input: {
   if (input.lines) {
     // Récupérer les anciens items pour recalculer le stock
     const oldItems = await db.select().from(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
+    const stockQuantityChanged = !areQuantityMapsEqual(
+      quantityMapFromLines(oldItems),
+      quantityMapFromLines(items),
+    );
 
-    // Supprimer les anciens mouvements de stock
-    await db.delete(stockMovements)
-      .where(and(eq(stockMovements.referenceType, 'purchase'), eq(stockMovements.referenceId, id)));
+    if (stockQuantityChanged) {
+      // Supprimer les anciens mouvements de stock
+      await db.delete(stockMovements)
+        .where(and(eq(stockMovements.referenceType, 'purchase'), eq(stockMovements.referenceId, id)));
+
+      // Annuler l'impact stock de l'ancienne facture d'achat avant d'appliquer les nouvelles lignes.
+      await adjustProductStocksFromLines(oldItems, -1);
+    }
 
     // Supprimer les anciens items
     await db.delete(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
@@ -774,23 +850,17 @@ export async function updatePurchaseInvoice(id: number, input: {
       });
     }
 
-    // Ajouter les nouveaux mouvements de stock
-    for (const item of items) {
-      await addStockMovement(item.productId, 'entry', item.quantity, {
-        referenceType: 'purchase',
-        referenceId: id,
-        note: `Achat: ${existing[0].reference}`,
-      });
-    }
-
-    // Recalculer le stock pour les anciens produits qui ne sont plus dans la nouvelle facture
-    const oldProductIds = new Set(oldItems.map(i => i.productId));
-    const newProductIds = new Set(items.map(i => i.productId));
-    for (const pid of oldProductIds) {
-      if (!newProductIds.has(pid)) {
-        await updateProductStock(pid);
+    if (stockQuantityChanged) {
+      // Ajouter les nouveaux mouvements de stock
+      for (const item of items) {
+        await addStockMovement(item.productId, 'entry', item.quantity, {
+          referenceType: 'purchase',
+          referenceId: id,
+          note: `Achat: ${existing[0].reference}`,
+        });
       }
     }
+
   }
 
   // Mettre à jour le total des achats du fournisseur (ancien et nouveau si changé)
@@ -853,6 +923,9 @@ export async function deletePurchaseInvoice(id: number) {
   await db.delete(stockMovements)
     .where(and(eq(stockMovements.referenceType, 'purchase'), eq(stockMovements.referenceId, id)));
 
+  // Annuler l'impact stock de la facture d'achat supprimée.
+  await adjustProductStocksFromLines(items, -1);
+
   // Supprimer les items
   await db.delete(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
   // Supprimer la facture
@@ -863,11 +936,6 @@ export async function deletePurchaseInvoice(id: number) {
     await recalculateSupplierTotalPurchases(existing[0].supplierId);
   }
 
-  // Recalculer le stock pour chaque produit concerné
-  for (const item of items) {
-    await updateProductStock(item.productId);
-  }
-  
   return { success: true };
 }
 
@@ -991,9 +1059,21 @@ export async function updateSalesInvoice(id: number, input: {
     throw new Error('Invoice not found');
   }
 
+  const oldSaleItems = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
+  const oldQuantityByProductId = new Map<number, number>();
+  for (const item of oldSaleItems) {
+    oldQuantityByProductId.set(
+      item.productId,
+      (oldQuantityByProductId.get(item.productId) ?? 0) + item.quantity,
+    );
+  }
+
   const items = input.lines 
-    ? await buildSalesItems(input.lines)
-    : await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
+    ? await buildSalesItems(input.lines, {
+        stockAllowanceByProductId: oldQuantityByProductId,
+        operationLabel: 'modifier la vente',
+      })
+    : oldSaleItems;
   const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
   const amountPaid = input.amountPaid ?? existing[0]?.amountPaid ?? 0;
   const remainingAmount = Math.max(totalAmount - amountPaid, 0);
@@ -1017,12 +1097,19 @@ export async function updateSalesInvoice(id: number, input: {
   }).where(eq(salesInvoices.id, id));
 
   if (input.lines) {
-    // Récupérer les anciens items pour recalculer le stock
-    const oldSaleItems = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
+    const stockQuantityChanged = !areQuantityMapsEqual(
+      quantityMapFromLines(oldSaleItems),
+      quantityMapFromLines(items),
+    );
 
-    // Supprimer les anciens mouvements de stock
-    await db.delete(stockMovements)
-      .where(and(eq(stockMovements.referenceType, 'sale'), eq(stockMovements.referenceId, id)));
+    if (stockQuantityChanged) {
+      // Supprimer les anciens mouvements de stock
+      await db.delete(stockMovements)
+        .where(and(eq(stockMovements.referenceType, 'sale'), eq(stockMovements.referenceId, id)));
+
+      // Annuler l'impact stock de l'ancienne vente avant d'appliquer les nouvelles sorties.
+      await adjustProductStocksFromLines(oldSaleItems, 1);
+    }
 
     // Supprimer les anciens items
     await db.delete(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
@@ -1040,23 +1127,17 @@ export async function updateSalesInvoice(id: number, input: {
       }))
     );
 
-    // Ajouter les nouveaux mouvements de stock (sortie)
-    for (const item of items) {
-      await addStockMovement(item.productId, 'exit', item.quantity, {
-        referenceType: 'sale',
-        referenceId: id,
-        note: `Vente: ${existing[0].invoiceNumber}`,
-      });
-    }
-
-    // Recalculer le stock pour les anciens produits qui ne sont plus dans la nouvelle facture
-    const oldSaleProductIds = new Set(oldSaleItems.map(i => i.productId));
-    const newSaleProductIds = new Set(items.map(i => i.productId));
-    for (const pid of oldSaleProductIds) {
-      if (!newSaleProductIds.has(pid)) {
-        await updateProductStock(pid);
+    if (stockQuantityChanged) {
+      // Ajouter les nouveaux mouvements de stock (sortie)
+      for (const item of items) {
+        await addStockMovement(item.productId, 'exit', item.quantity, {
+          referenceType: 'sale',
+          referenceId: id,
+          note: `Vente: ${existing[0].invoiceNumber}`,
+        });
       }
     }
+
   }
 
   return {
@@ -1124,14 +1205,12 @@ export async function deleteSalesInvoice(id: number) {
   await db.delete(stockMovements)
     .where(and(eq(stockMovements.referenceType, 'sale'), eq(stockMovements.referenceId, id)));
 
+  // Annuler l'impact stock de la vente supprimée.
+  await adjustProductStocksFromLines(saleItems, 1);
+
   await db.delete(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
   await db.delete(salesInvoices).where(eq(salesInvoices.id, id));
 
-  // Recalculer le stock pour chaque produit concerné
-  for (const item of saleItems) {
-    await updateProductStock(item.productId);
-  }
-  
   return { success: true };
 }
 

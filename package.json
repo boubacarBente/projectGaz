@@ -12,7 +12,6 @@
     "start": "next start",
     "copy:standalone": "node scripts/copy-standalone.js",
     "build:desktop:win": "npm run build && npm run copy:standalone && electron-builder --win --publish never",
-    "build:desktop:win2": "npm run build && npm run copy:standalone && electron-builder --win --publish never",
     "build:desktop:mac": "npm run build && npm run copy:standalone && electron-builder --mac --publish never",
     "build:desktop:linux": "npm run build && npm run copy:standalone && electron-builder --linux --publish never",
     "db:push": "npx drizzle-kit push",
@@ -79,11 +78,13 @@
           ]
         }
       ],
-      "icon": "app/favicon.ico"
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
