@@ -229,7 +229,7 @@ export default function PortefeuillePage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="stats shadow bg-base-100 border border-base-200">
           <div className="stat">
-            <div className="stat-title">Solde actuel</div>
+            <div className="stat-title">Solde actuelttt</div>
             <div className={`stat-value text-2xl ${(summary?.currentBalance ?? 0) >= 0 ? 'text-success' : 'text-error'}`}>
               {formatCurrency(summary?.currentBalance ?? 0)} GNF
             </div>
