@@ -14,6 +14,10 @@
     "build:desktop:win": "npm run build && npm run copy:standalone && electron-builder --win --publish never",
     "build:desktop:mac": "npm run build && npm run copy:standalone && electron-builder --mac --publish never",
     "build:desktop:linux": "npm run build && npm run copy:standalone && electron-builder --linux --publish never",
+    "release": "node scripts/release.js",
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major",
     "db:push": "npx drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
     "db:studio": "npx drizzle-kit studio"
