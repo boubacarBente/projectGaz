@@ -52,6 +52,7 @@ function run(command, commandArgs, options = {}) {
   const result = spawnSync(commandName(command), commandArgs, {
     cwd: process.cwd(),
     encoding: "utf8",
+    shell: shouldUseShell(command),
     stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit",
   });
 
@@ -69,6 +70,7 @@ function succeeds(command, commandArgs) {
   const result = spawnSync(commandName(command), commandArgs, {
     cwd: process.cwd(),
     encoding: "utf8",
+    shell: shouldUseShell(command),
     stdio: "ignore",
   });
   return result.status === 0;
@@ -80,6 +82,10 @@ function commandName(command) {
   }
 
   return command;
+}
+
+function shouldUseShell(command) {
+  return process.platform === "win32" && command === "npm";
 }
 
 function nextVersion(currentVersion, bumpType) {
