@@ -9,6 +9,8 @@ import os from 'os';
 type RawExecutor = Pick<Client | Transaction, 'execute'>;
 
 let _logFilePath: string | null = null;
+const MIGRATION_LOCK_TIMEOUT_MS = 60_000;
+const MIGRATION_LOCK_STALE_MS = 120_000;
 
 function getLogFilePath() {
   if (!_logFilePath) {
@@ -55,6 +57,50 @@ function getMigrationsPath(): string {
 
 function toLibsqlFileUrl(filePath: string) {
   return `file:${filePath.replace(/\\/g, '/')}`;
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function acquireMigrationLock() {
+  const lockPath = `${dbPath}.migrate.lock`;
+  const startedAt = Date.now();
+
+  while (true) {
+    try {
+      const fd = fs.openSync(lockPath, 'wx');
+      fs.writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`);
+
+      return () => {
+        try {
+          fs.closeSync(fd);
+        } catch {}
+
+        try {
+          fs.rmSync(lockPath, { force: true });
+        } catch {}
+      };
+    } catch (error: any) {
+      if (error?.code !== 'EEXIST') {
+        throw error;
+      }
+
+      try {
+        const stat = fs.statSync(lockPath);
+        if (Date.now() - stat.mtimeMs > MIGRATION_LOCK_STALE_MS) {
+          fs.rmSync(lockPath, { force: true });
+          continue;
+        }
+      } catch {}
+
+      if (Date.now() - startedAt > MIGRATION_LOCK_TIMEOUT_MS) {
+        throw new Error(`Timeout waiting for DB migration lock: ${lockPath}`);
+      }
+
+      await sleep(100);
+    }
+  }
 }
 
 const dbPath = getDbPath();
@@ -144,6 +190,11 @@ async function initializeDatabase() {
   }
 
   await rawRun('PRAGMA journal_mode = WAL');
+  await rawRun('PRAGMA busy_timeout = 5000');
+
+  const releaseMigrationLock = await acquireMigrationLock();
+
+  try {
 
   const tables = await rawAll<{ name: string }>(
     `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`,
@@ -172,6 +223,10 @@ async function initializeDatabase() {
 
   if (!tablesAfter.some(t => t.name === 'users')) {
     throw new Error('Table users absente après migrations');
+  }
+
+  } finally {
+    releaseMigrationLock();
   }
 
   dbLog('[db] ── initializeDatabase END ──');

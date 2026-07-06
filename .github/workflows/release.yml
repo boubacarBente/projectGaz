@@ -45,7 +45,7 @@ jobs:
 
   # ── Build macOS ────────────────────────────────────────────────────
   build-mac:
-    if: ${{ github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'mac' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'mac') }}
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
 
   # ── Build Linux ────────────────────────────────────────────────────
   build-linux:
-    if: ${{ github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'linux' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'linux') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,14 +98,14 @@ jobs:
   # ── Create GitHub Release ──────────────────────────────────────────
   create-release:
     if: github.event_name == 'push'
-    needs: [build-windows, build-mac, build-linux]
+    needs: [build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: GestionGaz-*
+          pattern: GestionGaz-Windows
           merge-multiple: true
           path: artifacts
 
