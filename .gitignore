@@ -42,11 +42,16 @@ next-env.d.ts
 
 # database files
 *.db
+*.db-shm
+*.db-wal
 db/*.db
 db/database.db
+db/database.db-shm
+db/database.db-wal
 
 # logs
 server.log
+db-error.log
 
 # electron build output
 /release

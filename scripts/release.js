@@ -123,25 +123,30 @@ if (succeeds("git", ["rev-parse", "-q", "--verify", `refs/tags/${tag}`])) {
   fail(`Le tag ${tag} existe deja. Augmente la version ou supprime le tag avant de publier.`);
 }
 
-console.log(`\nPublication ${tag} depuis la branche ${branch}...\n`);
-
-run("git", ["add", "-A"]);
-
 const protectedPaths = [
   "db-error.log",
   "db/database.db",
   "db/database.db-shm",
   "db/database.db-wal",
 ];
-const trackedProtected = run("git", ["ls-files", ...protectedPaths], {
+
+console.log(`\nPublication ${tag} depuis la branche ${branch}...\n`);
+
+run("git", ["add", "-A"]);
+
+run("git", ["restore", "--staged", "--", ...protectedPaths], {
+  allowFailure: true,
+});
+
+const stagedProtected = run("git", ["diff", "--cached", "--name-only", "--", ...protectedPaths], {
   capture: true,
   allowFailure: true,
 })
   .split(/\r?\n/)
   .filter(Boolean);
 
-if (trackedProtected.length > 0) {
-  run("git", ["reset", "--", ...trackedProtected]);
+if (stagedProtected.length > 0) {
+  fail(`Fichiers locaux refuses dans la release: ${stagedProtected.join(", ")}`);
 }
 
 if (succeeds("git", ["diff", "--cached", "--quiet"])) {
