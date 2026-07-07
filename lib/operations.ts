@@ -1536,30 +1536,66 @@ export async function listWalletTransactions({
 } = {}) {
   const offset = (page - 1) * limit;
 
-  const conditions: ReturnType<typeof like>[] = [];
+  const conditions: string[] = [];
+  const filterArgs: Array<string | number> = [];
+
   if (search) {
-    conditions.push(like(walletTransactions.description, `%${search}%`));
+    conditions.push('description LIKE ?');
+    filterArgs.push(`%${search}%`);
   }
   if (type) {
-    conditions.push(eq(walletTransactions.type, type));
+    conditions.push('type = ?');
+    filterArgs.push(type);
   }
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const [data, totalResult] = await Promise.all([
-    db.query.walletTransactions.findMany({
-      where,
-      orderBy: [desc(walletTransactions.createdAt), desc(walletTransactions.id)],
-      limit,
-      offset,
-    }),
-    db.select({ count: sql<number>`count(*)` })
-      .from(walletTransactions)
-      .where(where),
+    rawAll<{
+      id: number;
+      amount: number;
+      type: 'income' | 'expense';
+      description: string | null;
+      balance_after: number;
+      created_at: number;
+      updated_at: number;
+    }>(`
+      WITH ledger AS (
+        SELECT
+          id,
+          amount,
+          type,
+          description,
+          created_at,
+          updated_at,
+          SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END) OVER (
+            ORDER BY created_at ASC, id ASC
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+          ) AS balance_after
+        FROM wallet_transactions
+      )
+      SELECT id, amount, type, description, balance_after, created_at, updated_at
+      FROM ledger
+      ${whereSql}
+      ORDER BY created_at DESC, id DESC
+      LIMIT ? OFFSET ?
+    `, [...filterArgs, limit, offset]),
+    rawGet<{ count: number }>(
+      `SELECT COUNT(*) as count FROM wallet_transactions ${whereSql}`,
+      filterArgs,
+    ),
   ]);
 
-  const total = Number(totalResult[0].count);
+  const total = Number(totalResult?.count ?? 0);
   return {
-    data,
+    data: data.map((tx) => ({
+      id: tx.id,
+      amount: tx.amount,
+      type: tx.type,
+      description: tx.description,
+      balanceAfter: tx.balance_after,
+      createdAt: new Date(tx.created_at * 1000),
+      updatedAt: new Date(tx.updated_at * 1000),
+    })),
     total,
     page,
     limit,
@@ -1573,8 +1609,8 @@ export async function getWalletTransaction(id: number) {
   return tx;
 }
 
-function parseWalletDate(date?: string) {
-  if (!date) return Math.floor(Date.now() / 1000);
+function parseWalletDate(date?: string, timeSource = new Date()) {
+  if (!date) return Math.floor(timeSource.getTime() / 1000);
 
   const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) {
@@ -1584,7 +1620,15 @@ function parseWalletDate(date?: string) {
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
+  const parsed = new Date(
+    year,
+    month - 1,
+    day,
+    timeSource.getHours(),
+    timeSource.getMinutes(),
+    timeSource.getSeconds(),
+    timeSource.getMilliseconds(),
+  );
 
   if (
     parsed.getFullYear() !== year ||
@@ -1604,8 +1648,9 @@ export async function createWalletTransaction(data: {
   date?: string;
 }) {
   return withRawTransaction(async (client) => {
-    const now = Math.floor(Date.now() / 1000);
-    const createdAt = parseWalletDate(data.date);
+    const nowDate = new Date();
+    const now = Math.floor(nowDate.getTime() / 1000);
+    const createdAt = parseWalletDate(data.date, nowDate);
     const result = await rawRun(`
       INSERT INTO wallet_transactions (amount, type, description, balance_after, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -1643,9 +1688,10 @@ export async function updateWalletTransaction(
     const amount = data.amount ?? existing.amount;
     const type = data.type ?? existing.type;
     const description = data.description !== undefined ? data.description : existing.description;
+    const existingCreatedAt = existing.createdAt ?? new Date();
     const createdAt = data.date !== undefined
-      ? parseWalletDate(data.date)
-      : Math.floor((existing.createdAt?.getTime() ?? Date.now()) / 1000);
+      ? parseWalletDate(data.date, existingCreatedAt)
+      : Math.floor(existingCreatedAt.getTime() / 1000);
 
     // Mettre à jour la transaction
     await rawRun(`
@@ -1701,13 +1747,14 @@ async function recalculateWalletBalances(
 }
 
 export async function getWalletSummary() {
-  const lastTx = await rawGet<{ balance_after: number }>(
-    'SELECT balance_after FROM wallet_transactions ORDER BY created_at DESC, id DESC LIMIT 1'
-  );
-  const currentBalance = lastTx?.balance_after ?? 0;
-
-  const stats = await rawGet<{ total_income: number; total_expense: number; transactions_count: number }>(`
+  const stats = await rawGet<{
+    current_balance: number;
+    total_income: number;
+    total_expense: number;
+    transactions_count: number;
+  }>(`
     SELECT
+      COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END), 0) as current_balance,
       COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
       COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense,
       COUNT(*) as transactions_count
@@ -1715,7 +1762,7 @@ export async function getWalletSummary() {
   `);
 
   return {
-    currentBalance,
+    currentBalance: stats?.current_balance ?? 0,
     totalIncome: stats?.total_income ?? 0,
     totalExpense: stats?.total_expense ?? 0,
     transactionsCount: stats?.transactions_count ?? 0,

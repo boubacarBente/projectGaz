@@ -330,7 +330,7 @@ export default function PortefeuillePage() {
                 { key: 'description', label: 'Description', render: (tx) => (
                   <span className="text-sm text-base-content/70 max-w-[200px] truncate block">{tx.description || '—'}</span>
                 ), hideOnMobile: true},
-                { key: 'balance', label: 'Solde', render: (tx) => (
+                { key: 'balance', label: 'Solde après', render: (tx) => (
                   <span className="text-sm font-medium">{formatCurrency(tx.balanceAfter)} GNF</span>
                 ), className: 'text-right', hideOnMobile: true},
               ]}
