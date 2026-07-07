@@ -1491,7 +1491,7 @@ export async function updateSettings(updates: Partial<Settings>): Promise<Settin
   };
 }
 
-export async function resetDatabaseExceptProductsAndCustomers() {
+export async function resetDatabaseExceptProtectedTables() {
   await withRawTransaction(async (client) => {
     // Supprimer les items des factures
     await rawRun('DELETE FROM purchase_invoice_items', [], client);
@@ -1504,14 +1504,10 @@ export async function resetDatabaseExceptProductsAndCustomers() {
     // Supprimer les clients et leurs types (clients d'abord à cause de FK)
     await rawRun('DELETE FROM customers', [], client);
     await rawRun('DELETE FROM customer_types', [], client);
-    // Supprimer les mouvements de stock (avant produits à cause de FK)
+    // Supprimer les mouvements de stock tout en conservant les produits.
     await rawRun('DELETE FROM stock_movements', [], client);
-    // Supprimer les produits
-    await rawRun('DELETE FROM products', [], client);
-    // Réinitialiser les séquences auto-increment
-    await rawRun("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'products', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'suppliers', 'wallet_transactions', 'stock_movements')", [], client);
-    // Supprimer les transactions du portefeuille
-    await rawRun('DELETE FROM wallet_transactions', [], client);
+    // Réinitialiser uniquement les séquences des tables vidées.
+    await rawRun("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'suppliers', 'stock_movements')", [], client);
     // Supprimer les paramètres
     await rawRun('DELETE FROM settings', [], client);
 
@@ -1522,6 +1518,8 @@ export async function resetDatabaseExceptProductsAndCustomers() {
 
   return { success: true };
 }
+
+export const resetDatabaseExceptProductsAndCustomers = resetDatabaseExceptProtectedTables;
 
 // ─── Wallet (Portefeuille) ─────────────────────────────────────────
 

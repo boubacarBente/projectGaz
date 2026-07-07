@@ -509,7 +509,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
           <p className="text-sm leading-6 text-base-content/70">
             Cette action supprime les clients, les types de clients, les factures de vente, les factures d&apos;usine,
             les fournisseurs et remet les paramètres par défaut.
-            <strong> Les produits sont conservés.</strong>
+            <strong> Les utilisateurs, le portefeuille et les produits sont conservés.</strong>
           </p>
           <div className="mt-4 flex justify-end">
             <button
@@ -639,7 +639,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
               Voulez-vous vraiment réinitialiser les données opérationnelles ?
               <br />
               <span className="text-sm">
-                Les clients, les factures, les fournisseurs et les produits seront supprimés.
+                Les clients, les factures et les fournisseurs seront supprimés. Les utilisateurs, le portefeuille et les produits seront conservés.
               </span>
             </p>
           </div>
