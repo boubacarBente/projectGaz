@@ -1550,7 +1550,7 @@ export async function listWalletTransactions({
   const [data, totalResult] = await Promise.all([
     db.query.walletTransactions.findMany({
       where,
-      orderBy: [desc(walletTransactions.createdAt)],
+      orderBy: [desc(walletTransactions.createdAt), desc(walletTransactions.id)],
       limit,
       offset,
     }),
@@ -1575,47 +1575,67 @@ export async function getWalletTransaction(id: number) {
   return tx;
 }
 
+function parseWalletDate(date?: string) {
+  if (!date) return Math.floor(Date.now() / 1000);
+
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    throw new Error('Date invalide');
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
+
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    throw new Error('Date invalide');
+  }
+
+  return Math.floor(parsed.getTime() / 1000);
+}
+
 export async function createWalletTransaction(data: {
   amount: number;
   type: 'income' | 'expense';
   description?: string;
+  date?: string;
 }) {
   return withRawTransaction(async (client) => {
-    // Récupérer le dernier solde
-    const last = await rawGet<{ balance_after: number }>(
-      'SELECT balance_after FROM wallet_transactions ORDER BY id DESC LIMIT 1',
-      [],
-      client,
-    );
-    const lastBalance = last?.balance_after ?? 0;
-
-    // Calculer le nouveau solde (peut être négatif)
-    const newBalance = data.type === 'income'
-      ? lastBalance + data.amount
-      : lastBalance - data.amount;
-
-    // Insérer la transaction
     const now = Math.floor(Date.now() / 1000);
+    const createdAt = parseWalletDate(data.date);
     const result = await rawRun(`
       INSERT INTO wallet_transactions (amount, type, description, balance_after, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
-    `, [data.amount, data.type, data.description || null, newBalance, now, now], client);
+    `, [data.amount, data.type, data.description || null, 0, createdAt, now], client);
+
+    await recalculateWalletBalances(client);
+
+    const created = await rawGet<any>(
+      'SELECT * FROM wallet_transactions WHERE id = ?',
+      [Number(result.lastInsertRowid)],
+      client,
+    );
 
     return {
-      id: Number(result.lastInsertRowid),
-      amount: data.amount,
-      type: data.type,
-      description: data.description || null,
-      balanceAfter: newBalance,
-      createdAt: new Date(now * 1000),
-      updatedAt: new Date(now * 1000),
+      id: created.id,
+      amount: created.amount,
+      type: created.type,
+      description: created.description,
+      balanceAfter: created.balance_after,
+      createdAt: new Date((created.created_at as number) * 1000),
+      updatedAt: new Date((created.updated_at as number) * 1000),
     };
   });
 }
 
 export async function updateWalletTransaction(
   id: number,
-  data: { amount?: number; type?: 'income' | 'expense'; description?: string }
+  data: { amount?: number; type?: 'income' | 'expense'; description?: string; date?: string }
 ) {
   const existing = await findWalletTransactionById(id);
   if (!existing) throw new Error('Transaction introuvable');
@@ -1625,16 +1645,18 @@ export async function updateWalletTransaction(
     const amount = data.amount ?? existing.amount;
     const type = data.type ?? existing.type;
     const description = data.description !== undefined ? data.description : existing.description;
+    const createdAt = data.date !== undefined
+      ? parseWalletDate(data.date)
+      : Math.floor((existing.createdAt?.getTime() ?? Date.now()) / 1000);
 
     // Mettre à jour la transaction
     await rawRun(`
       UPDATE wallet_transactions
-      SET amount = ?, type = ?, description = ?, updated_at = ?
+      SET amount = ?, type = ?, description = ?, created_at = ?, updated_at = ?
       WHERE id = ?
-    `, [amount, type, description, now, id], client);
+    `, [amount, type, description, createdAt, now, id], client);
 
-    // Recalculer les soldes à partir de cette transaction
-    await recalculateBalancesFrom(client, id);
+    await recalculateWalletBalances(client);
 
     // Retourner la transaction mise à jour
     const updated = await rawGet<any>('SELECT * FROM wallet_transactions WHERE id = ?', [id], client);
@@ -1655,37 +1677,19 @@ export async function deleteWalletTransaction(id: number) {
   if (!existing) throw new Error('Transaction introuvable');
 
   await withRawTransaction(async (client) => {
-    // Supprimer la transaction
     await rawRun('DELETE FROM wallet_transactions WHERE id = ?', [id], client);
-
-    // Recalculer les soldes à partir de la première transaction suivante
-    const nextTx = await rawGet<{ id: number }>(
-      'SELECT id FROM wallet_transactions WHERE id > ? ORDER BY id ASC LIMIT 1',
-      [id],
-      client,
-    );
-    if (nextTx) {
-      await recalculateBalancesFrom(client, nextTx.id);
-    }
+    await recalculateWalletBalances(client);
   });
 }
 
-async function recalculateBalancesFrom(
+async function recalculateWalletBalances(
   client: Parameters<typeof rawRun>[2],
-  startId: number,
 ) {
-  // Récupérer le solde avant cette transaction
-  const prev = await rawGet<{ balance_after: number }>(
-    'SELECT balance_after FROM wallet_transactions WHERE id < ? ORDER BY id DESC LIMIT 1',
-    [startId],
-    client,
-  );
-  let currentBalance = prev?.balance_after ?? 0;
+  let currentBalance = 0;
 
-  // Récupérer toutes les transactions à partir de startId, triées par id croissant
   const txs = await rawAll<{ id: number; amount: number; type: string }>(
-    'SELECT id, amount, type FROM wallet_transactions WHERE id >= ? ORDER BY id ASC',
-    [startId],
+    'SELECT id, amount, type FROM wallet_transactions ORDER BY created_at ASC, id ASC',
+    [],
     client,
   );
 
@@ -1699,7 +1703,9 @@ async function recalculateBalancesFrom(
 }
 
 export async function getWalletSummary() {
-  const lastTx = await rawGet<{ balance_after: number }>('SELECT balance_after FROM wallet_transactions ORDER BY id DESC LIMIT 1');
+  const lastTx = await rawGet<{ balance_after: number }>(
+    'SELECT balance_after FROM wallet_transactions ORDER BY created_at DESC, id DESC LIMIT 1'
+  );
   const currentBalance = lastTx?.balance_after ?? 0;
 
   const stats = await rawGet<{ total_income: number; total_expense: number; transactions_count: number }>(`

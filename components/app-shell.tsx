@@ -8,6 +8,7 @@ import { useSettings } from "@/app/parametres/page";
 import { useTheme } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/components/auth-provider";
+import { UpdateStatus } from "@/components/update-status";
 import { motion, AnimatePresence } from 'framer-motion';
 
 const navigation = [
@@ -225,6 +226,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             )}
 
+            <UpdateStatus />
+
             {/* Theme toggle */}
             <div className="flex items-center justify-between mb-3 px-1">
               <span className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Thème</span>
@@ -369,6 +372,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <div className="flex items-center justify-between px-3">
                   <span className="text-xs" style={{ color: 'var(--sidebar-text-muted)' }}>Thème</span>
                   <ThemeToggle />
+                </div>
+                <div className="px-3">
+                  <UpdateStatus />
                 </div>
                 <button
                   onClick={logout}

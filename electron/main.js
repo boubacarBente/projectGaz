@@ -1,5 +1,6 @@
 const { app, BrowserWindow, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { fork } = require('child_process');
 const http = require('http');
 let autoUpdater = null;
@@ -13,6 +14,59 @@ try {
 if (autoUpdater) {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+}
+
+function getErrorMessage(error) {
+  if (!error) return 'Erreur inconnue';
+  return error.message || String(error);
+}
+
+function updaterLogPath() {
+  const basePath = app.isReady() ? app.getPath('userData') : process.env.ELECTRON_APP_PATH;
+  return basePath ? path.join(basePath, 'updater.log') : null;
+}
+
+function logUpdater(level, message, extra) {
+  const line = `[${new Date().toISOString()}] [${level}] ${message}${extra ? ` ${extra}` : ''}`;
+  const logger = console[level] || console.log;
+  logger(line);
+
+  try {
+    const filePath = updaterLogPath();
+    if (!filePath) return;
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.appendFileSync(filePath, `${line}\n`, 'utf8');
+  } catch (error) {
+    console.warn('[updater] log write failed:', getErrorMessage(error));
+  }
+}
+
+function sendUpdaterEvent(channel, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, payload);
+  }
+}
+
+async function runUpdateCheck(source = 'manual') {
+  if (!app.isPackaged) {
+    return { status: 'dev', version: app.getVersion() };
+  }
+
+  if (!autoUpdater) {
+    return { status: 'unavailable' };
+  }
+
+  try {
+    logUpdater('info', `Verification des mises a jour (${source}) - version actuelle ${app.getVersion()}`);
+    sendUpdaterEvent('update-checking', { source, version: app.getVersion() });
+    const result = await autoUpdater.checkForUpdates();
+    return { status: 'ok', updateInfo: result ? result.updateInfo : null };
+  } catch (error) {
+    const message = getErrorMessage(error);
+    logUpdater('error', `Erreur de verification (${source}): ${message}`);
+    sendUpdaterEvent('update-error', { source, message });
+    return { status: 'error', error: message };
+  }
 }
 
 // ── Next.js server management ────────────────────────────────────────
@@ -153,7 +207,9 @@ app.whenReady().then(async () => {
     }
 
     if (app.isPackaged && autoUpdater) {
-      autoUpdater.checkForUpdates().catch(() => {});
+      setTimeout(() => {
+        runUpdateCheck('startup');
+      }, 3000);
     }
   } catch (err) {
     console.error('Failed to start:', err);
@@ -180,24 +236,36 @@ app.on('activate', async () => {
 
 // ── Auto-updater events ──────────────────────────────────────────────
 function setupAutoUpdater() {
-  autoUpdater.on('update-available', (info) => {
-    console.log(`[updater] Mise a jour ${info.version} disponible, telechargement automatique...`);
-    if (mainWindow) {
-      mainWindow.webContents.send('update-available', info.version);
-    }
+  autoUpdater.logger = {
+    info: (message) => logUpdater('info', String(message)),
+    warn: (message) => logUpdater('warn', String(message)),
+    error: (message) => logUpdater('error', String(message)),
+    debug: (message) => logUpdater('debug', String(message)),
+  };
+
+  autoUpdater.on('checking-for-update', () => {
+    logUpdater('info', 'Verification en cours...');
+    sendUpdaterEvent('update-checking', { version: app.getVersion() });
   });
 
-  autoUpdater.on('update-not-available', () => {
-    console.log('[updater] Aucune mise a jour disponible.');
+  autoUpdater.on('update-available', (info) => {
+    logUpdater('info', `Mise a jour ${info.version} disponible, telechargement automatique...`);
+    sendUpdaterEvent('update-available', { version: info.version });
+  });
+
+  autoUpdater.on('update-not-available', (info) => {
+    logUpdater('info', `Aucune mise a jour disponible. Derniere version distante: ${info.version}`);
+    sendUpdaterEvent('update-not-available', { version: info.version });
   });
 
   autoUpdater.on('download-progress', (progress) => {
-    if (mainWindow) {
-      mainWindow.webContents.send('update-progress', Math.round(progress.percent));
-    }
+    const percent = Math.round(progress.percent);
+    sendUpdaterEvent('update-progress', { percent });
   });
 
-  autoUpdater.on('update-downloaded', () => {
+  autoUpdater.on('update-downloaded', (info) => {
+    logUpdater('info', `Mise a jour ${info.version} telechargee.`);
+    sendUpdaterEvent('update-downloaded', { version: info.version });
     const response = dialog.showMessageBoxSync(mainWindow, {
       type: 'info',
       title: 'Mise a jour prete',
@@ -209,20 +277,15 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on('error', (err) => {
-    console.error('[updater] Erreur:', err.message);
+    const message = getErrorMessage(err);
+    logUpdater('error', `Erreur: ${message}`);
+    sendUpdaterEvent('update-error', { message });
   });
 }
 
 // ── IPC handlers ─────────────────────────────────────────────────────
 ipcMain.handle('check-for-updates', async () => {
-  if (!app.isPackaged) return { dev: true };
-  if (!autoUpdater) return { unavailable: true };
-  try {
-    const result = await autoUpdater.checkForUpdates();
-    return result ? result.updateInfo : null;
-  } catch (e) {
-    return { error: e.message };
-  }
+  return runUpdateCheck('manual');
 });
 
 ipcMain.handle('get-app-version', () => app.getVersion());

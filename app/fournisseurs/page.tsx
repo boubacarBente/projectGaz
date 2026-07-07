@@ -670,8 +670,8 @@ export default function FournisseursPage() {
                 <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="+224 6XX XXXXXX" />
               </div>
               <div className="form-control md:col-span-2">
-                <label className="label"><span className="label-text font-medium">Adresse</span></label>
-                <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Adresse du fournisseur" />
+                <label className="label"><span className="label-text font-medium block">Adresse</span></label>
+                <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus w-full" placeholder="Adresse du fournisseur" />
               </div>
             </div>
           </div>

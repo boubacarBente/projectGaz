@@ -1,6 +1,23 @@
 import { listWalletTransactions, createWalletTransaction } from '@/lib/operations';
 import { NextRequest, NextResponse } from 'next/server';
 
+function isValidDateInput(date: unknown): date is string {
+  if (typeof date !== 'string') return false;
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(year, month - 1, day);
+
+  return (
+    parsed.getFullYear() === year &&
+    parsed.getMonth() === month - 1 &&
+    parsed.getDate() === day
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -19,7 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { amount, type, description } = body;
+    const { amount, type, description, date } = body;
 
     if (amount == null || !type || !['income', 'expense'].includes(type)) {
       return NextResponse.json({ error: 'Montant et type requis (income/expense)' }, { status: 400 });
@@ -29,10 +46,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Montant invalide' }, { status: 400 });
     }
 
+    if (date !== undefined && !isValidDateInput(date)) {
+      return NextResponse.json({ error: 'Date invalide' }, { status: 400 });
+    }
+
     const transaction = await createWalletTransaction({
       amount,
       type,
       description: description || '',
+      ...(date !== undefined && { date }),
     });
 
     return NextResponse.json(transaction, { status: 201 });

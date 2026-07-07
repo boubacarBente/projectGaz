@@ -34,6 +34,16 @@ function formatDate(ts: string) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function toDateInputValue(value: Date | string) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return toDateInputValue(new Date());
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function PortefeuillePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -49,6 +59,7 @@ export default function PortefeuillePage() {
   // Formulaire
   const [formType, setFormType] = useState<'income' | 'expense'>('income');
   const [formAmount, setFormAmount] = useState('');
+  const [formDate, setFormDate] = useState(() => toDateInputValue(new Date()));
   const [formDescription, setFormDescription] = useState('');
 
   const { search, setSearch, filter, setFilter, currentPage, setCurrentPage } = useSearchFilter(
@@ -90,6 +101,7 @@ export default function PortefeuillePage() {
   const resetForm = () => {
     setFormType('income');
     setFormAmount('');
+    setFormDate(toDateInputValue(new Date()));
     setFormDescription('');
   };
 
@@ -102,6 +114,11 @@ export default function PortefeuillePage() {
       return;
     }
 
+    if (!formDate) {
+      toast.error('Date invalide');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/wallet', {
@@ -110,6 +127,7 @@ export default function PortefeuillePage() {
         body: JSON.stringify({
           amount,
           type: formType,
+          date: formDate,
           description: formDescription,
         }),
       });
@@ -132,6 +150,7 @@ export default function PortefeuillePage() {
     setSelectedTx(tx);
     setFormType(tx.type);
     setFormAmount(tx.amount.toString());
+    setFormDate(toDateInputValue(tx.createdAt));
     setFormDescription(tx.description || '');
     setShowEditModal(true);
   };
@@ -146,6 +165,11 @@ export default function PortefeuillePage() {
       return;
     }
 
+    if (!formDate) {
+      toast.error('Date invalide');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/wallet/${selectedTx.id}`, {
@@ -154,6 +178,7 @@ export default function PortefeuillePage() {
         body: JSON.stringify({
           amount,
           type: formType,
+          date: formDate,
           description: formDescription,
         }),
       });
@@ -229,7 +254,7 @@ export default function PortefeuillePage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="stats shadow bg-base-100 border border-base-200">
           <div className="stat">
-            <div className="stat-title">Solde actuelttt</div>
+            <div className="stat-title">Solde actuel</div>
             <div className={`stat-value text-2xl ${(summary?.currentBalance ?? 0) >= 0 ? 'text-success' : 'text-error'}`}>
               {formatCurrency(summary?.currentBalance ?? 0)} GNF
             </div>
@@ -372,6 +397,28 @@ export default function PortefeuillePage() {
 
           <div className="form-control">
             <label className="label">
+              <span className="label-text">Date</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                className="input input-bordered w-full"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setFormDate(toDateInputValue(new Date()))}
+                className="btn btn-ghost border border-base-300"
+              >
+                Aujourd'hui
+              </button>
+            </div>
+          </div>
+
+          <div className="form-control">
+            <label className="label">
               <span className="label-text">Montant (GNF)</span>
             </label>
             <input
@@ -452,6 +499,28 @@ export default function PortefeuillePage() {
               </svg>
               Sortie
             </button>
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Date</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                className="input input-bordered w-full"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setFormDate(toDateInputValue(new Date()))}
+                className="btn btn-ghost border border-base-300"
+              >
+                Aujourd'hui
+              </button>
+            </div>
           </div>
 
           <div className="form-control">

@@ -88,7 +88,7 @@ export async function findSalesInvoices() {
 /** Récupère une facture de vente par son ID avec le client et les items */
 export async function findWalletTransactions() {
   return db.query.walletTransactions.findMany({
-    orderBy: [desc(walletTransactions.createdAt)],
+    orderBy: [desc(walletTransactions.createdAt), desc(walletTransactions.id)],
   });
 }
 
@@ -101,7 +101,7 @@ export async function findWalletTransactionById(id: number) {
 
 export async function findLastWalletTransaction() {
   const result = await db.query.walletTransactions.findFirst({
-    orderBy: [desc(walletTransactions.createdAt)],
+    orderBy: [desc(walletTransactions.createdAt), desc(walletTransactions.id)],
   });
   return result ?? null;
 }
