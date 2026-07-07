@@ -176,23 +176,19 @@ export function applyThemeColors(primaryColor: string, sidebarColor: string, isD
   doc.style.setProperty('--color-accent', hexToOklch(accentHex));
   doc.style.setProperty('--color-accent-content', getContrastOklch(accentHex));
 
-  // --- Info ---
-  const infoHex = shiftHue(primaryColor, 40);
-  doc.style.setProperty('--color-info', hexToOklch(lightenHex(infoHex, 30)));
+  // --- Couleurs sémantiques ---
+  // Elles restent fixes pour que success/error/warning gardent leur sens
+  // même quand la couleur principale est personnalisée.
+  const infoHex = '#0ea5e9';
+  const successHex = '#10b981';
+  const warningHex = '#f59e0b';
+  const errorHex = '#ef4444';
+  doc.style.setProperty('--color-info', hexToOklch(infoHex));
   doc.style.setProperty('--color-info-content', getContrastOklch(infoHex));
-
-  // --- Success ---
-  const successHex = shiftHue(primaryColor, 100);
   doc.style.setProperty('--color-success', hexToOklch(successHex));
   doc.style.setProperty('--color-success-content', getContrastOklch(successHex));
-
-  // --- Warning ---
-  const warningHex = shiftHue(primaryColor, 160);
   doc.style.setProperty('--color-warning', hexToOklch(warningHex));
   doc.style.setProperty('--color-warning-content', getContrastOklch(warningHex));
-
-  // --- Error ---
-  const errorHex = shiftHue(primaryColor, 150);
   doc.style.setProperty('--color-error', hexToOklch(errorHex));
   doc.style.setProperty('--color-error-content', getContrastOklch(errorHex));
 

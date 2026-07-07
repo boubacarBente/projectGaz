@@ -1,6 +1,6 @@
 {
   "name": "gestion-gaz",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Application de gestion pour une entreprise de distribution de bouteilles de gaz",
   "author": "boubacarBente",
   "private": true,
