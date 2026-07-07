@@ -6,6 +6,7 @@ const standalone = path.join(root, '.next', 'standalone');
 const standaloneNodeModules = path.join(standalone, 'node_modules');
 const rootPackagePath = path.join(root, 'package.json');
 const externalAliasPackages = new Set(['@libsql/client', 'libsql']);
+const forcedRuntimePackages = ['electron-updater'];
 const externalAliasSubpaths = new Map([
   ['@libsql/client', ['node', 'sqlite3', 'http', 'ws', 'web']],
 ]);
@@ -84,6 +85,44 @@ function ensureExternalAliases() {
   }
 }
 
+function getPackagePath(packageName) {
+  return path.join(root, 'node_modules', ...packageName.split('/'));
+}
+
+function copyRuntimePackage(packageName, copied = new Set()) {
+  if (copied.has(packageName)) {
+    return;
+  }
+
+  copied.add(packageName);
+
+  const sourceDir = getPackagePath(packageName);
+  const packagePath = path.join(sourceDir, 'package.json');
+
+  if (!fs.existsSync(packagePath)) {
+    console.warn(`Warning: runtime package missing: ${packageName}`);
+    return;
+  }
+
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  const dependencyNames = [
+    ...Object.keys(packageJson.dependencies ?? {}),
+    ...Object.keys(packageJson.optionalDependencies ?? {}),
+  ];
+
+  for (const dependencyName of dependencyNames) {
+    copyRuntimePackage(dependencyName, copied);
+  }
+
+  copy(sourceDir, path.join(standaloneNodeModules, ...packageName.split('/')), `runtime package ${packageName}`);
+}
+
+function ensureForcedRuntimePackages() {
+  for (const packageName of forcedRuntimePackages) {
+    copyRuntimePackage(packageName);
+  }
+}
+
 function writeAliasPackage(aliasDir, alias, basePackage) {
   const exportsMap = { '.': './index.js' };
   for (const subpath of externalAliasSubpaths.get(basePackage) ?? []) {
@@ -136,6 +175,7 @@ copy(path.join(root, 'db', 'migrations'), path.join(standalone, 'db', 'migration
 copy(path.join(root, 'electron'), path.join(standalone, 'electron'), 'electron');
 
 ensureExternalAliases();
+ensureForcedRuntimePackages();
 rewriteStandalonePackageJson();
 
 console.log('\nStandalone packaging is ready');
