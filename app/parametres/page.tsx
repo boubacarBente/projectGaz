@@ -9,6 +9,7 @@ import { applyThemeColors } from '@/lib/colors';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
+import { UpdateStatus } from '@/components/update-status';
 
 type Settings = {
   companyName: string;
@@ -163,11 +164,24 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
   const [isSeeding, setIsSeeding] = useState(false);
   const [showSeedModal, setShowSeedModal] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
+  const [runtime, setRuntime] = useState<'checking' | 'browser' | 'electron'>('checking');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const hideDatabaseActions = process.env.NODE_ENV === 'production' || runtime !== 'browser';
 
   useEffect(() => {
     setFormData(initialSettings);
   }, [initialSettings]);
+
+  useEffect(() => {
+    setRuntime(window.electronAPI?.isElectron ? 'electron' : 'browser');
+  }, []);
+
+  useEffect(() => {
+    if (hideDatabaseActions) {
+      setShowResetModal(false);
+      setShowSeedModal(false);
+    }
+  }, [hideDatabaseActions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,6 +208,8 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
   };
 
   const handleResetDatabase = async () => {
+    if (hideDatabaseActions) return;
+
     setIsResettingData(true);
     try {
       const res = await fetch('/api/parametres/reset-data', {
@@ -215,6 +231,8 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
   };
 
   const handleSeedDatabase = async () => {
+    if (hideDatabaseActions) return;
+
     setIsSeeding(true);
     setSeedResult(null);
     try {
@@ -496,6 +514,19 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
       </SettingsCard>
 
       <SettingsCard
+        title="Application"
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        }
+        iconBg="bg-primary/10 text-primary"
+      >
+        <UpdateStatus />
+      </SettingsCard>
+
+      {!hideDatabaseActions && (
+      <SettingsCard
         title="Zone dangereuse"
         icon={
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -530,6 +561,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
           </div>
         </div>
       </SettingsCard>
+      )}
 
       {/* Backup Card */}
       <SettingsCard
@@ -562,43 +594,47 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         </div>
       </SettingsCard>
 
-      {/* Seed Data Card */}
-      <SettingsCard
-        title="Préremplir les données"
-        icon={
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-          </svg>
-        }
-        iconBg="bg-success/10 text-success"
-      >
-        <div className="rounded-2xl border border-success/20 bg-success/5 p-5">
-          <h4 className="mb-2 font-semibold text-success">Ajouter des données de démonstration</h4>
-          <p className="text-sm leading-6 text-base-content/70">
-            Crée automatiquement 5 clients et 5 fournisseurs avec des informations réalistes.
-            Idéal pour tester l&apos;application après une réinitialisation ou une première installation.
-            <br />
-            <span className="font-medium">Aucune donnée existante ne sera modifiée.</span>
-          </p>
-          <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowSeedModal(true)}
-              disabled={isSeeding || isSubmitting}
-              className="btn btn-success gap-2"
-            >
-              {isSeeding ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              )}
-              Préremplir les données
-            </button>
-          </div>
-        </div>
-      </SettingsCard>
+      {!hideDatabaseActions && (
+        <>
+          {/* Seed Data Card */}
+          <SettingsCard
+            title="Préremplir les données"
+            icon={
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            }
+            iconBg="bg-success/10 text-success"
+          >
+            <div className="rounded-2xl border border-success/20 bg-success/5 p-5">
+              <h4 className="mb-2 font-semibold text-success">Ajouter des données de démonstration</h4>
+              <p className="text-sm leading-6 text-base-content/70">
+                Crée automatiquement 5 clients et 5 fournisseurs avec des informations réalistes.
+                Idéal pour tester l&apos;application après une réinitialisation ou une première installation.
+                <br />
+                <span className="font-medium">Aucune donnée existante ne sera modifiée.</span>
+              </p>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowSeedModal(true)}
+                  disabled={isSeeding || isSubmitting}
+                  className="btn btn-success gap-2"
+                >
+                  {isSeeding ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  )}
+                  Préremplir les données
+                </button>
+              </div>
+            </div>
+          </SettingsCard>
+        </>
+      )}
 
       {/* Submit Button */}
       <div className="flex justify-end pt-4">
@@ -618,120 +654,124 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         </button>
       </div>
 
-      <Modal
-        isOpen={showResetModal}
-        onClose={() => {
-          if (!isResettingData) {
-            setShowResetModal(false);
-          }
-        }}
-        title="Confirmer la réinitialisation"
-        size="sm"
-      >
-        <div className="py-2">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-error/10 p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <p className="text-base-content/70">
-              Voulez-vous vraiment réinitialiser les données opérationnelles ?
-              <br />
-              <span className="text-sm">
-                Les clients, les factures et les fournisseurs seront supprimés. Les utilisateurs, le portefeuille et les produits seront conservés.
-              </span>
-            </p>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
-            <button
-              type="button"
-              onClick={() => setShowResetModal(false)}
-              disabled={isResettingData}
-              className="btn btn-ghost"
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              onClick={handleResetDatabase}
-              disabled={isResettingData}
-              className="btn btn-error"
-            >
-              {isResettingData ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      {!hideDatabaseActions && (
+        <>
+          <Modal
+            isOpen={showResetModal}
+            onClose={() => {
+              if (!isResettingData) {
+                setShowResetModal(false);
+              }
+            }}
+            title="Confirmer la réinitialisation"
+            size="sm"
+          >
+            <div className="py-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-error/10 p-3 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
-                  Confirmer
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </Modal>
+                </div>
+                <p className="text-base-content/70">
+                  Voulez-vous vraiment réinitialiser les données opérationnelles ?
+                  <br />
+                  <span className="text-sm">
+                    Les clients, les factures et les fournisseurs seront supprimés. Les utilisateurs, le portefeuille et les produits seront conservés.
+                  </span>
+                </p>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(false)}
+                  disabled={isResettingData}
+                  className="btn btn-ghost"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetDatabase}
+                  disabled={isResettingData}
+                  className="btn btn-error"
+                >
+                  {isResettingData ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Confirmer
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </Modal>
 
-      <Modal
-        isOpen={showSeedModal}
-        onClose={() => {
-          if (!isSeeding) {
-            setShowSeedModal(false);
-          }
-        }}
-        title="Confirmer le préremplissage"
-        size="sm"
-      >
-        <div className="py-2">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-success/10 p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-            </div>
-            <p className="text-base-content/70">
-              Préremplir la base avec 5 clients et 5 fournisseurs&nbsp;?
-              <br />
-              <span className="text-sm">
-                Cette action n&apos;affectera pas les données existantes.
-              </span>
-            </p>
-          </div>
-          {seedResult && (
-            <div className="mb-4 p-3 bg-success/5 border border-success/20 rounded-xl text-sm text-success whitespace-pre-line">
-              {seedResult}
-            </div>
-          )}
-          <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
-            <button
-              type="button"
-              onClick={() => setShowSeedModal(false)}
-              disabled={isSeeding}
-              className="btn btn-ghost"
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              onClick={handleSeedDatabase}
-              disabled={isSeeding}
-              className="btn btn-success"
-            >
-              {isSeeding ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          <Modal
+            isOpen={showSeedModal}
+            onClose={() => {
+              if (!isSeeding) {
+                setShowSeedModal(false);
+              }
+            }}
+            title="Confirmer le préremplissage"
+            size="sm"
+          >
+            <div className="py-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-success/10 p-3 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
-                  Confirmer
-                </>
+                </div>
+                <p className="text-base-content/70">
+                  Préremplir la base avec 5 clients et 5 fournisseurs&nbsp;?
+                  <br />
+                  <span className="text-sm">
+                    Cette action n&apos;affectera pas les données existantes.
+                  </span>
+                </p>
+              </div>
+              {seedResult && (
+                <div className="mb-4 p-3 bg-success/5 border border-success/20 rounded-xl text-sm text-success whitespace-pre-line">
+                  {seedResult}
+                </div>
               )}
-            </button>
-          </div>
-        </div>
-      </Modal>
+              <div className="flex justify-end gap-3 pt-4 border-t border-base-200">
+                <button
+                  type="button"
+                  onClick={() => setShowSeedModal(false)}
+                  disabled={isSeeding}
+                  className="btn btn-ghost"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSeedDatabase}
+                  disabled={isSeeding}
+                  className="btn btn-success"
+                >
+                  {isSeeding ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Confirmer
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </Modal>
+        </>
+      )}
     </form>
   );
 }
