@@ -25,7 +25,14 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100000, Math.max(1, parseInt(searchParams.get('limit') ?? '15', 10)));
     const search = searchParams.get('search') || undefined;
     const type = searchParams.get('type') as 'income' | 'expense' | undefined;
-    const result = await listWalletTransactions({ page, limit, search, type });
+    const from = searchParams.get('from') || undefined;
+    const to = searchParams.get('to') || undefined;
+
+    if ((from && !isValidDateInput(from)) || (to && !isValidDateInput(to))) {
+      return NextResponse.json({ error: 'Date invalide' }, { status: 400 });
+    }
+
+    const result = await listWalletTransactions({ page, limit, search, type, from, to });
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching wallet transactions:', error);

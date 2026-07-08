@@ -44,6 +44,7 @@ function getDateParams(period: Period, selectedDay: string, selectedMonth?: stri
 export default function RapportsPage() {
   const [data, setData] = useState<RapportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   const [period, setPeriod] = useState<Period>('total');
   const [selectedDay, setSelectedDay] = useState(() => {
     const now = new Date();
@@ -55,6 +56,7 @@ export default function RapportsPage() {
   });
 
   const params = useMemo(() => getDateParams(period, selectedDay, selectedMonth), [period, selectedDay, selectedMonth]);
+  const isRefreshing = isLoading && hasLoadedData;
 
   useEffect(() => {
     const ac = new AbortController();
@@ -65,11 +67,17 @@ export default function RapportsPage() {
         if (params.from) qs.set('from', params.from);
         if (params.to) qs.set('to', params.to);
         const res = await fetch('/api/rapports?' + qs.toString(), { signal: ac.signal });
+        if (ac.signal.aborted) return;
         setData(await res.json());
+        setHasLoadedData(true);
       } catch {
+        if (ac.signal.aborted) return;
         /* silent */
       } finally {
-        setIsLoading(false);
+        if (!ac.signal.aborted) {
+          setIsLoading(false);
+          setHasLoadedData(true);
+        }
       }
     }
     fetchData();
@@ -78,7 +86,7 @@ export default function RapportsPage() {
 
   const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
 
-  if (isLoading || !data) {
+  if ((isLoading && !hasLoadedData) || !data) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -125,6 +133,9 @@ export default function RapportsPage() {
           />
         )}
         <span className="text-xs text-base-content/40 ml-2">({periodLabel})</span>
+        {isRefreshing && (
+          <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+        )}
       </div>
 
       <RapportStatsCards summary={data.summary} periodLabel={periodLabel} />

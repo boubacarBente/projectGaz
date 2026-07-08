@@ -1528,11 +1528,15 @@ export async function listWalletTransactions({
   limit = 15,
   search,
   type,
+  from,
+  to,
 }: {
   page?: number;
   limit?: number;
   search?: string;
   type?: 'income' | 'expense';
+  from?: string;
+  to?: string;
 } = {}) {
   const offset = (page - 1) * limit;
 
@@ -1546,6 +1550,14 @@ export async function listWalletTransactions({
   if (type) {
     conditions.push('type = ?');
     filterArgs.push(type);
+  }
+  if (from) {
+    conditions.push('created_at >= ?');
+    filterArgs.push(getWalletDateBoundaryTimestamp(from, 'start'));
+  }
+  if (to) {
+    conditions.push('created_at <= ?');
+    filterArgs.push(getWalletDateBoundaryTimestamp(to, 'end'));
   }
   const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -1628,6 +1640,36 @@ function parseWalletDate(date?: string, timeSource = new Date()) {
     timeSource.getMinutes(),
     timeSource.getSeconds(),
     timeSource.getMilliseconds(),
+  );
+
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    throw new Error('Date invalide');
+  }
+
+  return Math.floor(parsed.getTime() / 1000);
+}
+
+function getWalletDateBoundaryTimestamp(date: string, boundary: 'start' | 'end') {
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    throw new Error('Date invalide');
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(
+    year,
+    month - 1,
+    day,
+    boundary === 'start' ? 0 : 23,
+    boundary === 'start' ? 0 : 59,
+    boundary === 'start' ? 0 : 59,
+    boundary === 'start' ? 0 : 999,
   );
 
   if (
@@ -1746,7 +1788,26 @@ async function recalculateWalletBalances(
   }
 }
 
-export async function getWalletSummary() {
+export async function getWalletSummary({
+  from,
+  to,
+}: {
+  from?: string;
+  to?: string;
+} = {}) {
+  const conditions: string[] = [];
+  const filterArgs: Array<string | number> = [];
+
+  if (from) {
+    conditions.push('created_at >= ?');
+    filterArgs.push(getWalletDateBoundaryTimestamp(from, 'start'));
+  }
+  if (to) {
+    conditions.push('created_at <= ?');
+    filterArgs.push(getWalletDateBoundaryTimestamp(to, 'end'));
+  }
+
+  const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const stats = await rawGet<{
     current_balance: number;
     total_income: number;
@@ -1759,7 +1820,8 @@ export async function getWalletSummary() {
       COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense,
       COUNT(*) as transactions_count
     FROM wallet_transactions
-  `);
+    ${whereSql}
+  `, filterArgs);
 
   return {
     currentBalance: stats?.current_balance ?? 0,

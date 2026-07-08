@@ -46,8 +46,10 @@ export default function ProduitsPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const { search, setSearch, currentPage, setCurrentPage } = useSearchFilter(products, ['code', 'name', 'capacity']);
   const ITEMS_PER_PAGE = 10;
+  const isRefreshingProducts = isLoading && hasLoadedProducts;
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -58,7 +60,9 @@ export default function ProduitsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchProducts();
+    const controller = new AbortController();
+    fetchProducts(controller.signal);
+    return () => controller.abort();
   }, [currentPage, search]);
   useEffect(() => { fetchProduitsStats(); }, []);
 
@@ -67,7 +71,7 @@ export default function ProduitsPage() {
     catch { /* silent */ }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -75,15 +79,21 @@ export default function ProduitsPage() {
       params.set('page', String(currentPage));
       params.set('limit', String(ITEMS_PER_PAGE));
       if (search) params.set('search', search);
-      const res = await fetch(`/api/produits?${params}`);
+      const res = await fetch(`/api/produits?${params}`, { signal });
       const data = await res.json();
+      if (signal?.aborted) return;
       setProducts(data.data);
       setTotal(data.total);
       setTotalPages(data.totalPages);
+      setHasLoadedProducts(true);
     } catch {
+      if (signal?.aborted) return;
       toast.error('Erreur lors du chargement des produits');
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setHasLoadedProducts(true);
+      }
     }
   };
 
@@ -277,10 +287,17 @@ export default function ProduitsPage() {
           <h3 className="font-semibold text-lg">Liste des produits</h3>
         </div>
         <div className="p-4">
-          <SearchBar value={search} onChange={setSearch} onClear={() => setSearch('')} placeholder="Rechercher par code, nom ou capacité..." />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <SearchBar value={search} onChange={setSearch} onClear={() => setSearch('')} placeholder="Rechercher par code, nom ou capacité..." />
+            </div>
+            {isRefreshingProducts && (
+              <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+            )}
+          </div>
         </div>
         <div>
-          {isLoading ? (
+          {isLoading && !hasLoadedProducts ? (
             <div className="flex items-center justify-center p-8">
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>

@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -87,6 +87,7 @@ export default function DepensesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<{ id: number; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedInvoices, setHasLoadedInvoices] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -103,28 +104,57 @@ export default function DepensesPage() {
 
   const [depensesStats, setDepensesStats] = useState<{ totalAmount: number; totalBottles: number; averageCost: number } | null>(null);
   const ITEMS_PER_PAGE = 10;
+  const isRefreshingInvoices = isLoading && hasLoadedInvoices;
+  const selectedSupplierId = useMemo(() => {
+    if (!supplierFilter) return undefined;
+    return suppliers.find(s => s.name.toLowerCase() === supplierFilter.toLowerCase())?.id;
+  }, [supplierFilter, suppliers]);
 
   useEffect(() => {
-    fetchData();
-  }, [currentPage, search, filter, supplierFilter]);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [currentPage, search, filter, selectedSupplierId]);
+  useEffect(() => {
+    fetchLookups();
+  }, []);
   useEffect(() => {
     fetchDepensesStats();
-  }, [supplierFilter]);
+  }, [selectedSupplierId]);
+
+  const fetchLookups = async () => {
+    try {
+      const [productsRes, suppliersRes] = await Promise.all([
+        fetch('/api/produits?all=true&limit=100'),
+        fetch('/api/fournisseurs?limit=100'),
+      ]);
+      const productsData = await productsRes.json();
+      const suppliersData = await suppliersRes.json();
+      const prodList = Array.isArray(productsData.data) ? productsData.data : [];
+      setProducts(prodList);
+      setSuppliers(Array.isArray(suppliersData.data) ? suppliersData.data : []);
+      if (prodList.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          lines: [{ productId: prodList[0].id.toString(), quantity: '1', unitCost: '' }]
+        }));
+      }
+    } catch {
+      toast.error('Erreur lors du chargement des données de référence');
+    }
+  };
 
   const fetchDepensesStats = async () => {
     try {
       const params = new URLSearchParams();
-      if (supplierFilter) {
-        const supplier = suppliers.find(s => s.name.toLowerCase() === supplierFilter.toLowerCase());
-        if (supplier) params.set('supplierId', String(supplier.id));
-      }
+      if (selectedSupplierId) params.set('supplierId', String(selectedSupplierId));
       const res = await fetch(`/api/depenses/stats?${params}`);
       const data = await res.json();
       setDepensesStats(data);
     } catch { /* silent */ }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -133,34 +163,22 @@ export default function DepensesPage() {
       if (search) params.set('search', search);
       if (filter === 'paid') params.set('paid', 'true');
       if (filter === 'unpaid') params.set('paid', 'false');
-      if (supplierFilter) {
-        const supplier = suppliers.find(s => s.name.toLowerCase() === supplierFilter.toLowerCase());
-        if (supplier) params.set('supplierId', String(supplier.id));
-      }
-      const [invoicesRes, productsRes, suppliersRes] = await Promise.all([
-        fetch(`/api/depenses?${params}`),
-        fetch('/api/produits?all=true&limit=100'),
-        fetch('/api/fournisseurs?limit=100'),
-      ]);
+      if (selectedSupplierId) params.set('supplierId', String(selectedSupplierId));
+      const invoicesRes = await fetch(`/api/depenses?${params}`, { signal });
       const invoicesData = await invoicesRes.json();
-      const productsData = await productsRes.json();
-      const suppliersData = await suppliersRes.json();
+      if (signal?.aborted) return;
       setInvoices(Array.isArray(invoicesData.data) ? invoicesData.data : []);
       setTotal(invoicesData.total);
       setTotalPages(invoicesData.totalPages);
-      setProducts(Array.isArray(productsData.data) ? productsData.data : []);
-      setSuppliers(Array.isArray(suppliersData.data) ? suppliersData.data : []);
-      const prodList = Array.isArray(productsData.data) ? productsData.data : [];
-      if (prodList.length > 0) {
-        setFormData(prev => ({
-          ...prev,
-          lines: [{ productId: prodList[0].id.toString(), quantity: '1', unitCost: '' }]
-        }));
-      }
+      setHasLoadedInvoices(true);
     } catch {
+      if (signal?.aborted) return;
       toast.error('Erreur lors du chargement des données');
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setHasLoadedInvoices(true);
+      }
     }
   };
 
@@ -489,7 +507,7 @@ export default function DepensesPage() {
   const totalBottles = depensesStats?.totalBottles ?? 0;
   const averageCost = depensesStats?.averageCost ?? 0;
 
-  if (isLoading) {
+  if (isLoading && !hasLoadedInvoices) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -578,10 +596,13 @@ export default function DepensesPage() {
                 placeholder="Rechercher par réf., fournisseur, date..."
               />
             </div>
+            {isRefreshingInvoices && (
+              <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+            )}
           </div>
         </div>
 
-        {invoices.length === 0 && !isLoading ? (
+        {invoices.length === 0 && !isRefreshingInvoices ? (
           <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 px-4 py-12 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

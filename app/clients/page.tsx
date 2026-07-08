@@ -103,6 +103,7 @@ export default function ClientsPage() {
   const [clientsStats, setClientsStats] = useState<{ total: number; activeCount: number; totalPurchases: number; topCustomers: Customer[] } | null>(null);
   const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedCustomers, setHasLoadedCustomers] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddTypeModal, setShowAddTypeModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -117,8 +118,13 @@ export default function ClientsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedType, setSelectedType] = useState('');
   const ITEMS_PER_PAGE = 10;
+  const isRefreshingCustomers = isLoading && hasLoadedCustomers;
 
-  useEffect(() => { fetchCustomers(); }, [search, selectedType, currentPage]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchCustomers(controller.signal);
+    return () => controller.abort();
+  }, [search, selectedType, currentPage]);
   useEffect(() => { fetchCustomersStats(); }, []);
   useEffect(() => { fetchCustomerTypes(); }, []);
 
@@ -130,7 +136,7 @@ export default function ClientsPage() {
     } catch { /* silent */ }
   };
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -138,13 +144,23 @@ export default function ClientsPage() {
       if (selectedType) params.set('typeId', selectedType);
       params.set('page', String(currentPage));
       params.set('limit', String(ITEMS_PER_PAGE));
-      const res = await fetch(`/api/clients?${params}`);
+      const res = await fetch(`/api/clients?${params}`, { signal });
       const data = await res.json();
+      if (signal?.aborted) return;
       setCustomers(data.data);
       setTotal(data.total);
       setTotalPages(data.totalPages);
-    } catch { toast.error('Erreur lors du chargement des clients'); }
-    finally { setIsLoading(false); }
+      setHasLoadedCustomers(true);
+    } catch {
+      if (signal?.aborted) return;
+      toast.error('Erreur lors du chargement des clients');
+    }
+    finally {
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setHasLoadedCustomers(true);
+      }
+    }
   };
 
   const fetchCustomerTypes = async () => {
@@ -319,11 +335,14 @@ export default function ClientsPage() {
                 </button>
               )}
             </div>
+            {isRefreshingCustomers && (
+              <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+            )}
           </div>
 
           {/* Table */}
           <div className="p-4">
-            {isLoading ? (
+            {isLoading && !hasLoadedCustomers ? (
               <div className="flex items-center justify-center p-12">
                 <span className="loading loading-dots loading-md text-emerald-500" />
               </div>

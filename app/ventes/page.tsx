@@ -37,6 +37,7 @@ export default function FacturesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedInvoices, setHasLoadedInvoices] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -143,6 +144,8 @@ export default function FacturesPage() {
     return () => ac.abort();
   }, []);
 
+  const isRefreshingInvoices = isLoading && hasLoadedInvoices;
+
   const fetchInvoices = async (from?: string, to?: string, signal?: AbortSignal) => {
     setIsLoading(true);
     try {
@@ -157,13 +160,19 @@ export default function FacturesPage() {
       if (to) params.set('to', to);
       const invoicesRes = await fetch('/api/factures?' + params, { signal });
       const invoicesData = await invoicesRes.json();
+      if (signal?.aborted) return;
       setInvoices(invoicesData.data);
       setTotal(invoicesData.total);
       setTotalPages(invoicesData.totalPages);
+      setHasLoadedInvoices(true);
     } catch {
+      if (signal?.aborted) return;
       toast.error('Erreur lors du chargement des donnees');
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setHasLoadedInvoices(true);
+      }
     }
   };
 
@@ -493,7 +502,7 @@ export default function FacturesPage() {
     }
   };
 
-  if (isLoading && invoices.length === 0) {
+  if (isLoading && !hasLoadedInvoices && invoices.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -556,6 +565,9 @@ export default function FacturesPage() {
                   placeholder="Rechercher par N° facture, client, date..."
                 />
               </div>
+              {isRefreshingInvoices && (
+                <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+              )}
             </div>
           </div>
         </div>

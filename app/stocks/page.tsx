@@ -77,8 +77,10 @@ export default function StocksPage() {
   const [products, setProducts] = useState<StockProduct[]>([]);
   const [summary, setSummary] = useState<StockSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedStocks, setHasLoadedStocks] = useState(false);
   const { search, setSearch, currentPage, setCurrentPage } = useSearchFilter(products, ['code', 'name', 'capacity']);
   const ITEMS_PER_PAGE = 10;
+  const isRefreshingStocks = isLoading && hasLoadedStocks;
 
   // Modals
   const [showAdjustModal, setShowAdjustModal] = useState(false);
@@ -94,27 +96,37 @@ export default function StocksPage() {
   const [movementsTotal, setMovementsTotal] = useState(0);
   const [movementsLoading, setMovementsLoading] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       const [stockRes, summaryRes] = await Promise.all([
-        fetch(`/api/stocks?${params}`),
-        fetch('/api/stocks/summary'),
+        fetch(`/api/stocks?${params}`, { signal }),
+        fetch('/api/stocks/summary', { signal }),
       ]);
       const stockData = await stockRes.json();
       const summaryData = await summaryRes.json();
+      if (signal?.aborted) return;
       setProducts(stockData.data || []);
       setSummary(summaryData);
+      setHasLoadedStocks(true);
     } catch {
+      if (signal?.aborted) return;
       toast.error('Erreur lors du chargement des stocks');
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setHasLoadedStocks(true);
+      }
     }
   }, [search]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
 
   const fetchMovements = async (productId: number, page = 1) => {
     setMovementsLoading(true);
@@ -231,10 +243,13 @@ export default function StocksPage() {
             placeholder="Rechercher un produit..."
           />
         </div>
+        {isRefreshingStocks && (
+          <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+        )}
       </div>
 
       {/* Table */}
-      {isLoading ? (
+      {isLoading && !hasLoadedStocks ? (
         <div className="flex items-center justify-center py-8">
           <span className="loading loading-spinner loading-md text-primary"></span>
         </div>

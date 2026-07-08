@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -25,6 +25,17 @@ type Summary = {
   transactionsCount: number;
 };
 
+type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
+
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'today', label: "Aujourd'hui" },
+  { key: 'day', label: 'Jour' },
+  { key: 'week', label: 'Semaine' },
+  { key: 'month', label: 'Mois' },
+  { key: 'year', label: 'Année' },
+  { key: 'total', label: 'Total' },
+];
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
 }
@@ -44,17 +55,53 @@ function toDateInputValue(value: Date | string) {
   return `${year}-${month}-${day}`;
 }
 
+function getDateParams(period: Period, selectedDay: string, selectedMonth?: string): { from?: string; to?: string } {
+  const now = new Date();
+  const todayStr = toDateInputValue(now);
+
+  switch (period) {
+    case 'today':
+      return { from: todayStr, to: todayStr };
+    case 'day': {
+      const dayStr = selectedDay || todayStr;
+      return { from: dayStr, to: dayStr };
+    }
+    case 'week': {
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      return { from: toDateInputValue(weekStart), to: todayStr };
+    }
+    case 'month': {
+      const monthStr = selectedMonth || todayStr.slice(0, 7);
+      const year = parseInt(monthStr.slice(0, 4), 10);
+      const month = parseInt(monthStr.slice(5), 10);
+      const lastDay = new Date(year, month, 0).getDate();
+      return { from: `${monthStr}-01`, to: `${monthStr}-${String(lastDay).padStart(2, '0')}` };
+    }
+    case 'year':
+      return { from: `${todayStr.slice(0, 4)}-01-01`, to: todayStr };
+    case 'total':
+      return {};
+  }
+}
+
 export default function PortefeuillePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [period, setPeriod] = useState<Period>('total');
+  const [selectedDay, setSelectedDay] = useState(() => toDateInputValue(new Date()));
+  const [selectedMonth, setSelectedMonth] = useState(() => toDateInputValue(new Date()).slice(0, 7));
+  const hasLoadedRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   // Formulaire
   const [formType, setFormType] = useState<'income' | 'expense'>('income');
@@ -68,33 +115,91 @@ export default function PortefeuillePage() {
   );
 
   const ITEMS_PER_PAGE = 15;
+  const dateParams = useMemo(
+    () => getDateParams(period, selectedDay, selectedMonth),
+    [period, selectedDay, selectedMonth],
+  );
+  const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
+  const isPeriodFiltered = period !== 'total';
+
+  const transactionColumns = useMemo<Column<Transaction>[]>(() => [
+    { key: 'date', label: 'Date', render: (tx) => <span className="text-sm">{formatDate(tx.createdAt)}</span>, primary: true },
+    { key: 'type', label: 'Type', render: (tx) => (
+      tx.type === 'income' ? (
+        <span className="badge badge-success badge-sm">Entrée</span>
+      ) : (
+        <span className="badge badge-error badge-sm">Sortie</span>
+      )
+    )},
+    { key: 'amount', label: 'Montant', render: (tx) => (
+      <span className={`font-medium ${tx.type === 'income' ? 'text-success' : 'text-error'}`}>
+        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)} GNF
+      </span>
+    ), className: 'text-right'},
+    { key: 'description', label: 'Description', render: (tx) => (
+      <span className="text-sm text-base-content/70 max-w-[200px] truncate block">{tx.description || '—'}</span>
+    ), hideOnMobile: true},
+    { key: 'balance', label: 'Solde après', render: (tx) => (
+      <span className="text-sm font-medium">{formatCurrency(tx.balanceAfter)} GNF</span>
+    ), className: 'text-right', hideOnMobile: true},
+  ], []);
 
   useEffect(() => {
-    fetchData();
-  }, [currentPage, search, filter]);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [currentPage, search, filter, dateParams]);
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchData = async (signal?: AbortSignal) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (hasLoadedRef.current) {
+      setIsRefreshing(true);
+    } else {
+      setIsInitialLoading(true);
+    }
     try {
       const params = new URLSearchParams();
       params.set('page', String(currentPage));
       params.set('limit', String(ITEMS_PER_PAGE));
       if (search) params.set('search', search);
       if (filter) params.set('type', filter);
+      if (dateParams.from) params.set('from', dateParams.from);
+      if (dateParams.to) params.set('to', dateParams.to);
+
+      const summaryParams = new URLSearchParams();
+      if (dateParams.from) summaryParams.set('from', dateParams.from);
+      if (dateParams.to) summaryParams.set('to', dateParams.to);
+      const summaryQuery = summaryParams.toString();
+
       const [txRes, summaryRes] = await Promise.all([
-        fetch(`/api/wallet?${params}`),
-        fetch('/api/wallet/summary'),
+        fetch(`/api/wallet?${params.toString()}`, { signal }),
+        fetch(summaryQuery ? `/api/wallet/summary?${summaryQuery}` : '/api/wallet/summary', { signal }),
       ]);
+
+      if (!txRes.ok || !summaryRes.ok) {
+        throw new Error('Erreur lors du chargement des données');
+      }
+
       const txData = await txRes.json();
       const summaryData = await summaryRes.json();
+
+      if (signal?.aborted || requestId !== requestIdRef.current) return;
+
       setTransactions(txData.data);
       setTotal(txData.total);
       setTotalPages(txData.totalPages);
       setSummary(summaryData);
-    } catch {
-      toast.error('Erreur lors du chargement des données');
+      hasLoadedRef.current = true;
+    } catch (error) {
+      if (signal?.aborted) return;
+      toast.error(error instanceof Error ? error.message : 'Erreur lors du chargement des données');
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted && requestId === requestIdRef.current) {
+        setIsInitialLoading(false);
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -222,7 +327,7 @@ export default function PortefeuillePage() {
     }
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <motion.div
@@ -250,11 +355,53 @@ export default function PortefeuillePage() {
         }
       />
 
+      {/* Period Selector */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-base-content/60 mr-1">Période :</span>
+        <div className="join">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => {
+                setPeriod(p.key);
+                setCurrentPage(1);
+              }}
+              className={`join-item btn btn-sm ${period === p.key ? 'btn-primary' : 'btn-ghost'}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {period === 'day' && (
+          <input
+            type="date"
+            value={selectedDay}
+            onChange={(e) => {
+              setSelectedDay(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="input input-bordered input-sm"
+          />
+        )}
+        {period === 'month' && (
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => {
+              setSelectedMonth(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="input input-bordered input-sm"
+          />
+        )}
+        <span className="text-xs text-base-content/40 ml-2">({periodLabel})</span>
+      </div>
+
       {/* Stats cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="stats shadow bg-base-100 border border-base-200">
           <div className="stat">
-            <div className="stat-title">Solde actuel</div>
+            <div className="stat-title">{isPeriodFiltered ? 'Solde période' : 'Solde actuel'}</div>
             <div className={`stat-value text-2xl ${(summary?.currentBalance ?? 0) >= 0 ? 'text-success' : 'text-error'}`}>
               {formatCurrency(summary?.currentBalance ?? 0)} GNF
             </div>
@@ -262,13 +409,13 @@ export default function PortefeuillePage() {
         </div>
         <div className="stats shadow bg-base-100 border border-base-200">
           <div className="stat">
-            <div className="stat-title">Total entrées</div>
+            <div className="stat-title">{isPeriodFiltered ? 'Entrées période' : 'Total entrées'}</div>
             <div className="stat-value text-2xl text-success">{formatCurrency(summary?.totalIncome ?? 0)} GNF</div>
           </div>
         </div>
         <div className="stats shadow bg-base-100 border border-base-200">
           <div className="stat">
-            <div className="stat-title">Total sorties</div>
+            <div className="stat-title">{isPeriodFiltered ? 'Sorties période' : 'Total sorties'}</div>
             <div className="stat-value text-2xl text-error">{formatCurrency(summary?.totalExpense ?? 0)} GNF</div>
           </div>
         </div>
@@ -281,7 +428,7 @@ export default function PortefeuillePage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
+      <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur" aria-busy={isRefreshing}>
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <div className="flex-1">
             <SearchBar
@@ -300,6 +447,11 @@ export default function PortefeuillePage() {
             ]}
             placeholder="Tous les types"
           />
+          {isRefreshing && (
+            <div className="flex items-center justify-center px-2 text-primary">
+              <span className="loading loading-spinner loading-sm" aria-label="Actualisation" />
+            </div>
+          )}
         </div>
 
         {transactions.length === 0 ? (
@@ -313,27 +465,7 @@ export default function PortefeuillePage() {
         ) : (
           <>
             <ResponsiveTable<Transaction>
-              columns={[
-                { key: 'date', label: 'Date', render: (tx) => <span className="text-sm">{formatDate(tx.createdAt)}</span>, primary: true },
-                { key: 'type', label: 'Type', render: (tx) => (
-                  tx.type === 'income' ? (
-                    <span className="badge badge-success badge-sm">Entrée</span>
-                  ) : (
-                    <span className="badge badge-error badge-sm">Sortie</span>
-                  )
-                )},
-                { key: 'amount', label: 'Montant', render: (tx) => (
-                  <span className={`font-medium ${tx.type === 'income' ? 'text-success' : 'text-error'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)} GNF
-                  </span>
-                ), className: 'text-right'},
-                { key: 'description', label: 'Description', render: (tx) => (
-                  <span className="text-sm text-base-content/70 max-w-[200px] truncate block">{tx.description || '—'}</span>
-                ), hideOnMobile: true},
-                { key: 'balance', label: 'Solde après', render: (tx) => (
-                  <span className="text-sm font-medium">{formatCurrency(tx.balanceAfter)} GNF</span>
-                ), className: 'text-right', hideOnMobile: true},
-              ]}
+              columns={transactionColumns}
               data={transactions}
               getRowKey={(tx) => tx.id}
               actions={(tx) => (

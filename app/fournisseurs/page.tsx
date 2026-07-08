@@ -98,6 +98,7 @@ export default function FournisseursPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedSuppliers, setHasLoadedSuppliers] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -108,6 +109,7 @@ export default function FournisseursPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const { search, setSearch, currentPage, setCurrentPage } = useSearchFilter(suppliers, ['name', 'phone', 'address']);
   const ITEMS_PER_PAGE = 10;
+  const isRefreshingSuppliers = isLoading && hasLoadedSuppliers;
 
   // Stats state
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -151,31 +153,38 @@ export default function FournisseursPage() {
   }, [statsPeriod, statsSupplierId, statsFrom, statsTo, statsMonth]);
 
   useEffect(() => {
-    fetchSuppliers();
+    const controller = new AbortController();
+    fetchSuppliers(controller.signal);
+    return () => controller.abort();
   }, [currentPage, search]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
       params.set('page', String(currentPage));
       params.set('limit', String(ITEMS_PER_PAGE));
       if (search) params.set('search', search);
-      const res = await fetch(`/api/fournisseurs?${params}`);
+      const res = await fetch(`/api/fournisseurs?${params}`, { signal });
       if (!res.ok) throw new Error('Erreur');
       const data = await res.json();
+      if (signal?.aborted) return;
       setSuppliers(Array.isArray(data.data) ? data.data : []);
       setTotal(data.total);
       setTotalPages(data.totalPages);
+      setHasLoadedSuppliers(true);
     } catch {
+      if (signal?.aborted) return;
       toast.error('Erreur lors du chargement');
-      setSuppliers([]);
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setHasLoadedSuppliers(true);
+      }
     }
   };
 
@@ -286,7 +295,7 @@ export default function FournisseursPage() {
 
   const totalAmount = suppliers.reduce((sum, s) => sum + s.totalPurchases, 0);
 
-  if (isLoading && suppliers.length === 0) {
+  if (isLoading && !hasLoadedSuppliers && suppliers.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -311,7 +320,14 @@ export default function FournisseursPage() {
       {/* Search + Stats Dashboard */}
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur overflow-hidden">
         <div className="p-4 lg:p-6">
-          <SearchBar value={search} onChange={setSearch} onClear={() => setSearch('')} placeholder="Rechercher un fournisseur..." />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <SearchBar value={search} onChange={setSearch} onClear={() => setSearch('')} placeholder="Rechercher un fournisseur..." />
+            </div>
+            {isRefreshingSuppliers && (
+              <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+            )}
+          </div>
         </div>
 
         {/* Analytics Dashboard */}
@@ -394,7 +410,7 @@ export default function FournisseursPage() {
 
             {/* Key Metrics */}
             <AnimatePresence mode="wait">
-              {isStatsLoading ? (
+              {isStatsLoading && !stats ? (
                 <motion.div
                   key="loading"
                   initial={{ opacity: 0 }}
@@ -584,7 +600,7 @@ export default function FournisseursPage() {
       {/* Suppliers Table */}
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 shadow-lg shadow-black/5 backdrop-blur">
         <div className="border-b border-base-200 p-4"><h3 className="font-semibold text-lg">Liste des fournisseurs</h3></div>
-          {isLoading ? (
+          {isLoading && !hasLoadedSuppliers ? (
             <div className="flex items-center justify-center p-8"><span className="loading loading-spinner loading-lg text-primary"></span></div>
           ) : (
             <ResponsiveTable<Supplier>

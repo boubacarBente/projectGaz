@@ -104,6 +104,7 @@ export default function CustomerPaymentsPage() {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   const [period, setPeriod] = useState<Period>('total');
   const [selectedDay, setSelectedDay] = useState(() => {
     const now = new Date();
@@ -119,23 +120,32 @@ export default function CustomerPaymentsPage() {
 
   // Build from/to from period and pass to API
   const dateParams = useMemo(() => getDateParams(period, selectedDay, selectedMonth), [period, selectedDay, selectedMonth]);
+  const isRefreshing = loading && hasLoadedData;
 
   useEffect(() => {
+    const controller = new AbortController();
     (async () => {
       setLoading(true);
       try {
         const qs = new URLSearchParams();
         if (dateParams.from) qs.set('from', dateParams.from);
         if (dateParams.to) qs.set('to', dateParams.to);
-        const res = await fetch(`/api/clients/${customerId}/paiements?${qs.toString()}`);
+        const res = await fetch(`/api/clients/${customerId}/paiements?${qs.toString()}`, { signal: controller.signal });
         const d = await res.json();
+        if (controller.signal.aborted) return;
         setData(d);
+        setHasLoadedData(true);
       } catch (e) {
+        if (controller.signal.aborted) return;
         console.error(e);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setHasLoadedData(true);
+        }
       }
     })();
+    return () => controller.abort();
   }, [customerId, dateParams]);
 
   const { customer, invoices, aggregates } = data || {};
@@ -173,7 +183,7 @@ export default function CustomerPaymentsPage() {
 
   const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
 
-  if (loading) {
+  if (loading && !hasLoadedData) {
     return (
       <div className="space-y-6">
         <div className="h-32 rounded-3xl bg-base-200/50 animate-pulse" />
@@ -264,6 +274,9 @@ export default function CustomerPaymentsPage() {
           />
         )}
         <span className="text-xs text-base-content/40 ml-2">({periodLabel})</span>
+        {isRefreshing && (
+          <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+        )}
       </div>
 
       {/* ---------- Global Stats ---------- */}
