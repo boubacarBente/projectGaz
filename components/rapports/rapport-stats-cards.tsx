@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useEffect } from 'react';
+import { memo } from 'react';
 import type { RapportData } from '@/lib/rapports-types';
 
 function formatCurrency(value: number) {
@@ -10,23 +10,12 @@ function formatCurrency(value: number) {
 function RapportStatsCardsInner({
   summary,
   periodLabel,
+  stockInsights,
 }: {
   summary: RapportData['summary'];
   periodLabel: string;
+  stockInsights: RapportData['stockInsights'];
 }) {
-  const [stockSummary, setStockSummary] = useState<{
-    totalStock: number;
-    totalStockValue: number;
-    lowStockCount: number;
-  } | null>(null);
-
-  useEffect(() => {
-    fetch('/api/stocks/summary')
-      .then(res => res.json())
-      .then(setStockSummary)
-      .catch(() => {});
-  }, []);
-
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -52,7 +41,7 @@ function RapportStatsCardsInner({
           <p className={`text-xl font-bold ${summary.grossProfit >= 0 ? 'text-success' : 'text-error'}`}>
             {formatCurrency(summary.grossProfit)} GNF
           </p>
-          <p className="text-xs text-base-content/40 mt-1">marge</p>
+          <p className="text-xs text-base-content/40 mt-1">{summary.grossMarginRate.toFixed(1)}% marge</p>
         </div>
         <div className="rounded-2xl border border-accent/20 bg-accent/10 p-5 shadow-lg shadow-black/5 backdrop-blur">
           <div className="flex items-start justify-between mb-3">
@@ -88,24 +77,22 @@ function RapportStatsCardsInner({
       </div>
 
       {/* Stock summary row */}
-      {stockSummary && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
-            <p className="text-xs text-base-content/60">Stock total (unites)</p>
-            <p className="text-lg font-bold text-primary">{stockSummary.totalStock}</p>
-          </div>
-          <div className="rounded-2xl border border-info/20 bg-info/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
-            <p className="text-xs text-base-content/60">Valeur du stock</p>
-            <p className="text-lg font-bold text-info">{formatCurrency(stockSummary.totalStockValue)} GNF</p>
-          </div>
-          <div className="rounded-2xl border border-warning/20 bg-warning/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
-            <p className="text-xs text-base-content/60">Alertes stock</p>
-            <p className={`text-lg font-bold ${stockSummary.lowStockCount > 0 ? 'text-warning' : 'text-success'}`}>
-              {stockSummary.lowStockCount > 0 ? `${stockSummary.lowStockCount} produit(s)` : 'Aucune'}
-            </p>
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
+          <p className="text-xs text-base-content/60">Stock total (unites)</p>
+          <p className="text-lg font-bold text-primary">{stockInsights.totalStock}</p>
         </div>
-      )}
+        <div className="rounded-2xl border border-info/20 bg-info/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
+          <p className="text-xs text-base-content/60">Valeur du stock</p>
+          <p className="text-lg font-bold text-info">{formatCurrency(stockInsights.totalStockValue)} GNF</p>
+        </div>
+        <div className="rounded-2xl border border-warning/20 bg-warning/5 p-4 shadow-lg shadow-black/5 backdrop-blur">
+          <p className="text-xs text-base-content/60">Alertes stock</p>
+          <p className={`text-lg font-bold ${stockInsights.lowStockCount > 0 ? 'text-warning' : 'text-success'}`}>
+            {stockInsights.lowStockCount > 0 ? `${stockInsights.lowStockCount} produit(s)` : 'Aucune'}
+          </p>
+        </div>
+      </div>
     </>
   );
 }

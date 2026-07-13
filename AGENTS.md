@@ -104,6 +104,8 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 
 ### Rapports
 - `GET /api/rapports` - Données analytiques complètes
+  - Query: `?from=&to=&previousFrom=&previousTo=&productId=&customerId=&supplierId=&paymentStatus=paid|partial|pending|unpaid`
+  - Retourne `summary`, `comparison`, `monthlyData`, `soldByProduct`, `productMargins`, `topCustomers`, `receivables`, `payables`, `stockInsights`, `decisionSummary`
 
 ### Authentification
 - `POST /api/auth/login` - Connexion
@@ -158,11 +160,25 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 - `listPaginatedPurchaseInvoices(page, limit, { from, to, search, isPaid, supplierId })` → `{ data, total, page, limit, totalPages }`
 - `listPaginatedSalesInvoices(page, limit, { from, to, search, type })` → `{ data, total, page, limit, totalPages }`
 - `listWalletTransactions({ page, limit, search, type })` → `{ data, total, page, limit, totalPages }`
+- `getRapportData({ from, to, previousFrom, previousTo, productId, customerId, supplierId, paymentStatus })` → données analytiques complètes avec comparaison, marges, dettes et stock
 
 **Toutes les API GET paginées retournent le format :**
 ```json
 { "data": [...], "total": 100, "page": 1, "limit": 10, "totalPages": 10 }
 ```
+
+### Rapports analytiques
+
+- `app/api/rapports/route.ts` parse les filtres et appelle `getRapportData()` avec un objet `RapportFilters`.
+- Les types partagés des rapports sont dans `lib/rapports-types.ts`.
+- Les composants principaux de la page `/rapports` sont :
+  - `components/rapports/rapport-executive-summary.tsx`
+  - `components/rapports/rapport-comparison.tsx`
+  - `components/rapports/rapport-debts.tsx`
+  - `components/rapports/rapport-stock-insights.tsx`
+  - `components/rapports/rapport-product-table.tsx`
+  - `components/rapports/rapport-stats-cards.tsx`
+- La page `/rapports` propose une période personnalisée, des filtres par produit/client/fournisseur/statut de paiement, un export PDF complet et un export CSV.
 
 ### Création de factures
 
@@ -226,12 +242,21 @@ Composant dropdown réutilisable avec 3 options : PDF, Image, WhatsApp.
 
 **Fonctions utilitaires exportées :**
 - `generateInvoiceBlob(invoiceHTML: string): Promise<Blob | null>` — Génère un PNG Blob à partir du HTML de la facture via html2canvas
-- `shareOnWhatsApp(invoiceHTML: string, textMessage: string): Promise<void>` — Partage via Web Share API (mobile) ou fallback WhatsApp Web (desktop)
+- `shareOnWhatsApp(invoiceHTML: string, textMessage: string, fileName?: string): Promise<void>` — Partage via Web Share API (mobile) ou fallback WhatsApp Web (desktop)
 
 ### Pages utilisatrices
 - `app/ventes/page.tsx` — `handleShareWhatsApp` pour les factures de vente
 - `app/factures-usine/page.tsx` — `handleShareWhatsApp` pour les factures d'achat
 - `components/ventes/ventes-table.tsx` — Passe `onShareWhatsApp` au dropdown
+
+---
+
+## Documents terrain
+
+- `Bon_de_livraison_journalier_Gestion_Gaz.docx` — Fiche Word imprimable pour les livraisons journalières.
+- `Bon_de_livraison_journalier_Gestion_Gaz.pdf` — Version PDF de la même fiche.
+- La fiche contient une colonne `Vides récup.` pour le suivi manuel terrain.
+- Important : les bouteilles vides récupérées ne sont pas encore modélisées dans `db/schema.ts`, `sales_invoice_items`, `stock_movements` ni les API de vente. Ne pas supposer que cette donnée existe dans le système applicatif avant une future évolution de schéma.
 
 ---
 

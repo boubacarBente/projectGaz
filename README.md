@@ -80,6 +80,17 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Graphiques d'évolution mensuelle
 - Répartition des ventes par produit
 - Top clients et fournisseurs
+- Filtres avancés par période personnalisée, produit, client, fournisseur et statut de paiement
+- Résumé décisionnel, comparaison avec la période précédente et suivi des variations
+- Analyse des marges par produit, dettes clients, achats fournisseurs non payés et alertes de réapprovisionnement
+- Export des rapports en PDF et CSV
+
+### 🧾 Documents Terrain
+- Modèle Word/PDF de bon de livraison journalier à imprimer pour les livreurs terrain :
+  - `Bon_de_livraison_journalier_Gestion_Gaz.docx`
+  - `Bon_de_livraison_journalier_Gestion_Gaz.pdf`
+- Le bon de livraison inclut une colonne "Vides récup." pour le suivi manuel terrain.
+- Cette colonne est uniquement présente sur la fiche imprimable pour le moment : les bouteilles vides récupérées ne sont pas encore enregistrées dans la base de données ni dans les factures de vente.
 
 ### 🔐 Authentification & Utilisateurs
 - Système d'authentification par cookie (hachage SHA-256)
@@ -273,6 +284,8 @@ projectGaz/
 │   ├── operations.ts             # Fonctions métier (CRUD + rapports)
 │   ├── products.ts               # Fonctions produits
 │   └── seed-data.ts              # Données de démonstration
+├── Bon_de_livraison_journalier_Gestion_Gaz.docx # Fiche terrain Word
+├── Bon_de_livraison_journalier_Gestion_Gaz.pdf  # Fiche terrain PDF
 ├── data/                         # Anciennes données JSON (archivé)
 ├── TUTO.md                       # Guide complet pour l'app desktop
 └── middleware.ts                 # Protection des routes (auth)
@@ -414,7 +427,7 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 | Méthode | Route | Description |
 |---------|-------|-------------|
 | GET | `/api/operations/snapshot` | Statistiques pour le dashboard |
-| GET | `/api/rapports` | Données analytiques complètes |
+| GET | `/api/rapports` | Données analytiques complètes (`from`, `to`, `previousFrom`, `previousTo`, `productId`, `customerId`, `supplierId`, `paymentStatus`) |
 | GET | `/api/parametres` | Récupérer les paramètres |
 | PUT | `/api/parametres` | Mettre à jour les paramètres |
 | POST | `/api/parametres/seed-data` | Insérer les données de démonstration |
@@ -432,6 +445,10 @@ npm run build            # Builder Next.js pour production
 npm run build:desktop:win # Builder pour Windows (.exe)
 npm run build:desktop:mac # Builder pour macOS (.dmg)
 npm run build:desktop:linux # Builder pour Linux (.AppImage)
+npm run release          # Commit applicatif, bump patch, tag et push la release
+npm run release:patch    # Même flux en patch explicite
+npm run release:minor    # Publier une version mineure
+npm run release:major    # Publier une version majeure
 npm run db:generate      # Générer les migrations Drizzle
 npm run db:push          # Pousser le schéma vers la DB
 npm run db:studio        # Ouvrir Drizzle Studio
@@ -502,14 +519,19 @@ Composant dropdown réutilisable regroupant les options d'export :
 - **PDF** : Génération via jsPDF + html2canvas
 - **Image** : Téléchargement PNG via html2canvas
 - **WhatsApp** : Partage direct avec image de la facture
+- Le nom du fichier partagé peut être personnalisé via `shareOnWhatsApp(html, text, fileName)`
+
+### Rapports
+- Export PDF complet depuis `/rapports` avec résumé, comparaison, marges, dettes, stock et top clients
+- Export CSV pour exploitation dans Excel ou autre tableur
 
 ### Partage WhatsApp
 - **Mobile** : Utilise l'API Web Share (`navigator.share()`) pour partager l'image de la facture via les applications natives (WhatsApp, etc.)
 - **Desktop** : Fallback vers WhatsApp Web avec un message texte pré-formaté contenant les informations clés de la facture
 - **Fonctions utilitaires** :
   - `generateInvoiceBlob(html)` : Génère un Blob PNG à partir du HTML de la facture
-  - `shareOnWhatsApp(html, text)` : Partage via Web Share API ou fallback WhatsApp Web
+  - `shareOnWhatsApp(html, text, fileName?)` : Partage via Web Share API ou fallback WhatsApp Web
 
 ---
 
-*Dernière mise à jour : 05/07/2026*
+*Dernière mise à jour : 13/07/2026*

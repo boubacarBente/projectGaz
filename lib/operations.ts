@@ -22,6 +22,7 @@ import {
 import { eq, desc, asc, like, sql, and, or, gte, lte, inArray } from "drizzle-orm";
 import { listProducts } from "@/lib/products";
 import { addStockMovement } from "@/lib/stock";
+import type { RapportData, RapportFilters, RapportMetricSnapshot, RapportPaymentStatus } from "@/lib/rapports-types";
 
 export type PurchaseInvoiceItem = {
   productId: number;
@@ -34,6 +35,7 @@ export type PurchaseInvoiceItem = {
 
 export type PurchaseInvoice = {
   id: number;
+  supplierId?: number | null;
   reference: string;
   supplier: string;
   date: string;
@@ -1265,32 +1267,176 @@ export async function getOperationsSnapshot() {
 
 // --- CODE JSON (commenté - utilisation SQLite) ---
 
-export async function getRapportData(from?: string, to?: string) {
-  const [purchases, sales] = await Promise.all([
-    listPurchaseInvoices(from, to),
-    listSalesInvoices(from, to),
-  ]);
+type ReportProduct = Awaited<ReturnType<typeof listProducts>>[number];
 
+function normalizeReportFilters(fromOrFilters?: string | RapportFilters, to?: string): RapportFilters {
+  if (typeof fromOrFilters === 'object' && fromOrFilters !== null) {
+    return fromOrFilters;
+  }
+
+  return {
+    from: fromOrFilters,
+    to,
+  };
+}
+
+function calculatePaymentStatusFromAmounts(
+  totalAmount: number,
+  amountPaid: number,
+): SalesInvoice['paymentStatus'] {
+  const remainingAmount = Math.max(totalAmount - amountPaid, 0);
+
+  if (amountPaid <= 0) return 'En attente';
+  if (remainingAmount > 0) return 'Partiel';
+  return 'Payée';
+}
+
+function matchesSalesPaymentStatus(invoice: SalesInvoice, status?: RapportPaymentStatus) {
+  if (!status || status === 'all') return true;
+  if (status === 'paid') return invoice.paymentStatus === 'Payée';
+  if (status === 'partial') return invoice.paymentStatus === 'Partiel';
+  if (status === 'pending') return invoice.paymentStatus === 'En attente';
+  if (status === 'unpaid') return invoice.remainingAmount > 0;
+  return true;
+}
+
+function matchesPurchasePaymentStatus(invoice: PurchaseInvoice, status?: RapportPaymentStatus) {
+  if (!status || status === 'all') return true;
+  if (status === 'paid') return invoice.isPaid;
+  if (status === 'partial') return false;
+  if (status === 'pending' || status === 'unpaid') return !invoice.isPaid;
+  return true;
+}
+
+function applySalesReportFilters(sales: SalesInvoice[], filters: RapportFilters) {
+  const productId = filters.productId;
+
+  return sales
+    .filter((invoice) => !filters.customerId || invoice.customerId === filters.customerId)
+    .filter((invoice) => matchesSalesPaymentStatus(invoice, filters.paymentStatus))
+    .map((invoice) => {
+      if (!productId) return invoice;
+
+      const items = invoice.items.filter((item) => item.productId === productId);
+      const totalAmount = roundAmount(items.reduce((sum, item) => sum + item.totalPrice, 0));
+      const ratio = invoice.totalAmount > 0 ? totalAmount / invoice.totalAmount : 0;
+      const amountPaid = roundAmount(Math.min(totalAmount, invoice.amountPaid * ratio));
+      const remainingAmount = roundAmount(Math.max(totalAmount - amountPaid, 0));
+
+      return {
+        ...invoice,
+        items,
+        totalAmount,
+        amountPaid,
+        remainingAmount,
+        paymentStatus: calculatePaymentStatusFromAmounts(totalAmount, amountPaid),
+      };
+    })
+    .filter((invoice) => !productId || invoice.items.length > 0);
+}
+
+function applyPurchaseReportFilters(purchases: PurchaseInvoice[], filters: RapportFilters) {
+  const productId = filters.productId;
+
+  return purchases
+    .filter((invoice) => !filters.supplierId || invoice.supplierId === filters.supplierId)
+    .filter((invoice) => matchesPurchasePaymentStatus(invoice, filters.paymentStatus))
+    .map((invoice) => {
+      if (!productId) return invoice;
+
+      const items = invoice.items.filter((item) => item.productId === productId);
+      const totalAmount = roundAmount(items.reduce((sum, item) => sum + item.totalCost, 0));
+
+      return {
+        ...invoice,
+        items,
+        totalAmount,
+      };
+    })
+    .filter((invoice) => !productId || invoice.items.length > 0);
+}
+
+function getPercentageChange(current: number, previous: number) {
+  if (previous === 0) {
+    return current === 0 ? 0 : 100;
+  }
+
+  return roundAmount(((current - previous) / Math.abs(previous)) * 100);
+}
+
+function buildMetricSnapshot(report: Omit<RapportData, 'comparison'>): RapportMetricSnapshot {
+  return {
+    totalPurchases: report.summary.totalPurchases,
+    totalSales: report.summary.totalSales,
+    grossProfit: report.summary.grossProfit,
+    totalBottlesSold: report.summary.totalBottlesSold,
+    totalReceivables: report.summary.totalReceivables,
+    totalPayables: report.summary.totalPayables,
+  };
+}
+
+function buildReportCore(
+  purchases: PurchaseInvoice[],
+  sales: SalesInvoice[],
+  productsList: ReportProduct[],
+  filters: RapportFilters,
+): Omit<RapportData, 'comparison'> {
   const { salesWithProfit, totalGrossProfit, monthlyProfit } = calculateSalesProfitMetrics(purchases, sales);
-  const totalPurchases = purchases.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const totalSales = salesWithProfit.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const grossProfit = totalGrossProfit;
+  const totalPurchases = roundAmount(purchases.reduce((sum, inv) => sum + inv.totalAmount, 0));
+  const totalSales = roundAmount(salesWithProfit.reduce((sum, inv) => sum + inv.totalAmount, 0));
+  const grossProfit = roundAmount(totalGrossProfit);
+  const grossMarginRate = totalSales > 0 ? roundAmount((grossProfit / totalSales) * 100) : 0;
 
-  // Sales by product
-  const soldByProduct = salesWithProfit.flatMap((inv) => inv.items).reduce<
-    Record<string, { productCode: string; productName: string; quantity: number; revenue: number }>
-  >((acc, item) => {
-    const existing = acc[item.productCode];
-    acc[item.productCode] = {
-      productCode: item.productCode,
-      productName: item.productName,
-      quantity: (existing?.quantity ?? 0) + item.quantity,
-      revenue: (existing?.revenue ?? 0) + item.totalPrice,
-    };
-    return acc;
-  }, {});
+  const productMap = new Map(productsList.map((product) => [product.id, product]));
+  const averageCostByProductId = new Map<number, { quantity: number; cost: number }>();
 
-  // Monthly data (last 12 months)
+  for (const invoice of purchases) {
+    for (const item of invoice.items) {
+      const existing = averageCostByProductId.get(item.productId) ?? { quantity: 0, cost: 0 };
+      existing.quantity += item.quantity;
+      existing.cost += item.totalCost;
+      averageCostByProductId.set(item.productId, existing);
+    }
+  }
+
+  const productMarginsById = new Map<number, RapportData['productMargins'][number]>();
+
+  for (const invoice of salesWithProfit) {
+    for (const item of invoice.items) {
+      const averageCost = averageCostByProductId.get(item.productId);
+      const unitCost = averageCost && averageCost.quantity > 0 ? averageCost.cost / averageCost.quantity : 0;
+      const estimatedCost = unitCost * item.quantity;
+      const product = productMap.get(item.productId);
+      const existing = productMarginsById.get(item.productId);
+      const revenue = (existing?.revenue ?? 0) + item.totalPrice;
+      const cost = (existing?.estimatedCost ?? 0) + estimatedCost;
+      const profit = revenue - cost;
+
+      productMarginsById.set(item.productId, {
+        productId: item.productId,
+        productCode: item.productCode,
+        productName: item.productName,
+        quantity: (existing?.quantity ?? 0) + item.quantity,
+        revenue: roundAmount(revenue),
+        estimatedCost: roundAmount(cost),
+        grossProfit: roundAmount(profit),
+        marginRate: revenue > 0 ? roundAmount((profit / revenue) * 100) : 0,
+        stock: product?.stock ?? 0,
+        stockMin: product?.stockMin ?? 0,
+      });
+    }
+  }
+
+  const productMargins = Array.from(productMarginsById.values())
+    .sort((a, b) => b.revenue - a.revenue);
+
+  const soldByProduct = productMargins.map((product) => ({
+    productCode: product.productCode,
+    productName: product.productName,
+    quantity: product.quantity,
+    revenue: product.revenue,
+  }));
+
   const months: Record<string, { purchases: number; sales: number }> = {};
   const now = new Date();
   for (let i = 11; i >= 0; i--) {
@@ -1315,47 +1461,236 @@ export async function getRapportData(from?: string, to?: string) {
     }
   });
 
-  // Top customers by revenue
   const customersRevenue = salesWithProfit.reduce<
-    Record<string, { name: string; totalSpent: number; invoiceCount: number }>
+    Record<string, { customerId: number | null; name: string; totalSpent: number; invoiceCount: number; remainingAmount: number }>
   >((acc, inv) => {
-    const existing = acc[inv.customerName];
-    acc[inv.customerName] = {
+    const key = inv.customerId ? String(inv.customerId) : `name:${inv.customerName}`;
+    const existing = acc[key];
+    acc[key] = {
+      customerId: inv.customerId,
       name: inv.customerName,
-      totalSpent: (existing?.totalSpent ?? 0) + inv.totalAmount,
+      totalSpent: roundAmount((existing?.totalSpent ?? 0) + inv.totalAmount),
       invoiceCount: (existing?.invoiceCount ?? 0) + 1,
+      remainingAmount: roundAmount((existing?.remainingAmount ?? 0) + inv.remainingAmount),
     };
     return acc;
   }, {});
 
+  const receivablesByCustomer = salesWithProfit
+    .filter((invoice) => invoice.remainingAmount > 0)
+    .reduce<
+      Record<string, RapportData['receivables'][number]>
+    >((acc, inv) => {
+      const key = inv.customerId ? String(inv.customerId) : `name:${inv.customerName}`;
+      const existing = acc[key];
+
+      acc[key] = {
+        customerId: inv.customerId,
+        customerName: inv.customerName,
+        invoiceCount: (existing?.invoiceCount ?? 0) + 1,
+        totalAmount: roundAmount((existing?.totalAmount ?? 0) + inv.totalAmount),
+        amountPaid: roundAmount((existing?.amountPaid ?? 0) + inv.amountPaid),
+        remainingAmount: roundAmount((existing?.remainingAmount ?? 0) + inv.remainingAmount),
+        lastInvoiceDate: !existing || inv.date > existing.lastInvoiceDate ? inv.date : existing.lastInvoiceDate,
+      };
+
+      return acc;
+    }, {});
+
+  const payablesBySupplier = purchases
+    .filter((invoice) => !invoice.isPaid)
+    .reduce<
+      Record<string, RapportData['payables'][number]>
+    >((acc, inv) => {
+      const key = inv.supplierId ? String(inv.supplierId) : `name:${inv.supplier}`;
+      const existing = acc[key];
+
+      acc[key] = {
+        supplierId: inv.supplierId ?? null,
+        supplierName: inv.supplier || 'Fournisseur inconnu',
+        invoiceCount: (existing?.invoiceCount ?? 0) + 1,
+        totalAmount: roundAmount((existing?.totalAmount ?? 0) + inv.totalAmount),
+        lastInvoiceDate: !existing || inv.date > existing.lastInvoiceDate ? inv.date : existing.lastInvoiceDate,
+      };
+
+      return acc;
+    }, {});
+
+  const receivables = Object.values(receivablesByCustomer).sort((a, b) => b.remainingAmount - a.remainingAmount);
+  const payables = Object.values(payablesBySupplier).sort((a, b) => b.totalAmount - a.totalAmount);
+  const totalReceivables = roundAmount(receivables.reduce((sum, item) => sum + item.remainingAmount, 0));
+  const totalPayables = roundAmount(payables.reduce((sum, item) => sum + item.totalAmount, 0));
+
+  const activeProducts = productsList.filter((product) =>
+    (filters.productId ? product.id === filters.productId : true) && product.isActive !== false
+  );
+  const soldQuantityByProductId = new Map<number, number>();
+  for (const invoice of salesWithProfit) {
+    for (const item of invoice.items) {
+      soldQuantityByProductId.set(
+        item.productId,
+        (soldQuantityByProductId.get(item.productId) ?? 0) + item.quantity,
+      );
+    }
+  }
+
+  const fastestMovingProducts = Array.from(soldQuantityByProductId.entries())
+    .map(([productId, quantity]) => {
+      const product = productMap.get(productId);
+      return product ? {
+        productId,
+        productCode: product.code,
+        productName: product.name,
+        quantity,
+        stock: product.stock,
+      } : null;
+    })
+    .filter((product): product is NonNullable<typeof product> => product !== null)
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 5);
+
+  const slowMovingProducts = activeProducts
+    .filter((product) => (product.stock ?? 0) > 0 && (soldQuantityByProductId.get(product.id) ?? 0) === 0)
+    .map((product) => ({
+      productId: product.id,
+      productCode: product.code,
+      productName: product.name,
+      stock: product.stock ?? 0,
+      stockValue: roundAmount((product.stock ?? 0) * product.unitPrice),
+    }))
+    .sort((a, b) => b.stockValue - a.stockValue)
+    .slice(0, 5);
+
+  const reorderSuggestions = activeProducts
+    .filter((product) => (product.stockMin ?? 0) > 0 && (product.stock ?? 0) <= (product.stockMin ?? 0))
+    .map((product) => ({
+      productId: product.id,
+      productCode: product.code,
+      productName: product.name,
+      stock: product.stock ?? 0,
+      stockMin: product.stockMin ?? 0,
+      suggestedOrder: Math.max((product.stockMin ?? 0) * 2 - (product.stock ?? 0), product.stockMin ?? 0),
+    }))
+    .sort((a, b) => b.suggestedOrder - a.suggestedOrder);
+
+  const totalBottlesSold = salesWithProfit.reduce((sum, inv) =>
+    sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
+  );
+  const averageBasket = salesWithProfit.length > 0 ? totalSales / salesWithProfit.length : 0;
   const topCustomers = Object.values(customersRevenue)
     .sort((a, b) => b.totalSpent - a.totalSpent)
     .slice(0, 5);
 
-  // Summary stats
-  const totalBottlesSold = salesWithProfit.reduce((sum, inv) => 
-    sum + inv.items.reduce((s, item) => s + item.quantity, 0), 0
-  );
-  const averageBasket = salesWithProfit.length > 0 ? totalSales / salesWithProfit.length : 0;
+  const bestProduct = productMargins[0]
+    ? {
+        productCode: productMargins[0].productCode,
+        productName: productMargins[0].productName,
+        revenue: productMargins[0].revenue,
+        quantity: productMargins[0].quantity,
+      }
+    : null;
+  const bestCustomer = topCustomers[0]
+    ? { name: topCustomers[0].name, totalSpent: topCustomers[0].totalSpent }
+    : null;
 
   return {
     summary: {
       totalPurchases,
       totalSales,
       grossProfit,
+      grossMarginRate,
       totalBottlesSold,
-      averageBasket,
+      averageBasket: roundAmount(averageBasket),
       totalPurchaseInvoices: purchases.length,
       totalSalesInvoices: salesWithProfit.length,
       totalCustomers: Object.keys(customersRevenue).length,
+      totalReceivables,
+      totalPayables,
     },
     monthlyData: Object.entries(months).map(([month, data]) => ({
       month,
-      ...data,
+      purchases: roundAmount(data.purchases),
+      sales: roundAmount(data.sales),
       profit: roundAmount(monthlyProfit.get(month) ?? 0),
     })),
-    soldByProduct: Object.values(soldByProduct).sort((a, b) => b.quantity - a.quantity),
+    soldByProduct,
+    productMargins,
     topCustomers,
+    receivables,
+    payables,
+    stockInsights: {
+      totalStock: activeProducts.reduce((sum, product) => sum + (product.stock ?? 0), 0),
+      totalStockValue: roundAmount(activeProducts.reduce((sum, product) => sum + ((product.stock ?? 0) * product.unitPrice), 0)),
+      totalSaleValue: roundAmount(activeProducts.reduce((sum, product) => sum + ((product.stock ?? 0) * product.salePrice), 0)),
+      lowStockCount: activeProducts.filter((product) => (product.stockMin ?? 0) > 0 && (product.stock ?? 0) <= (product.stockMin ?? 0)).length,
+      outOfStockCount: activeProducts.filter((product) => (product.stock ?? 0) === 0).length,
+      fastestMovingProducts,
+      slowMovingProducts,
+      reorderSuggestions,
+    },
+    decisionSummary: {
+      bestProduct,
+      bestCustomer,
+      totalReceivables,
+      totalPayables,
+      lowStockCount: reorderSuggestions.length,
+      grossMarginRate,
+    },
+  };
+}
+
+export async function getRapportData(from?: string, to?: string): Promise<RapportData>;
+export async function getRapportData(filters?: RapportFilters): Promise<RapportData>;
+export async function getRapportData(fromOrFilters?: string | RapportFilters, to?: string): Promise<RapportData> {
+  const filters = normalizeReportFilters(fromOrFilters, to);
+  const [purchases, sales] = await Promise.all([
+    listPurchaseInvoices(filters.from, filters.to),
+    listSalesInvoices(filters.from, filters.to),
+  ]);
+
+  const [productsList] = await Promise.all([
+    listProducts(true),
+  ]);
+
+  const filteredPurchases = applyPurchaseReportFilters(purchases, filters);
+  const filteredSales = applySalesReportFilters(sales, filters);
+  const report = buildReportCore(filteredPurchases, filteredSales, productsList, filters);
+
+  let comparison: RapportData['comparison'] = null;
+  if (filters.previousFrom || filters.previousTo) {
+    const [previousPurchases, previousSales] = await Promise.all([
+      listPurchaseInvoices(filters.previousFrom, filters.previousTo),
+      listSalesInvoices(filters.previousFrom, filters.previousTo),
+    ]);
+
+    const previousReport = buildReportCore(
+      applyPurchaseReportFilters(previousPurchases, filters),
+      applySalesReportFilters(previousSales, filters),
+      productsList,
+      filters,
+    );
+    const current = buildMetricSnapshot(report);
+    const previous = buildMetricSnapshot(previousReport);
+
+    comparison = {
+      previousFrom: filters.previousFrom,
+      previousTo: filters.previousTo,
+      current,
+      previous,
+      changes: {
+        totalPurchases: getPercentageChange(current.totalPurchases, previous.totalPurchases),
+        totalSales: getPercentageChange(current.totalSales, previous.totalSales),
+        grossProfit: getPercentageChange(current.grossProfit, previous.grossProfit),
+        totalBottlesSold: getPercentageChange(current.totalBottlesSold, previous.totalBottlesSold),
+        totalReceivables: getPercentageChange(current.totalReceivables, previous.totalReceivables),
+        totalPayables: getPercentageChange(current.totalPayables, previous.totalPayables),
+      },
+    };
+  }
+
+  return {
+    ...report,
+    comparison,
   };
 }
 

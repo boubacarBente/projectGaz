@@ -8,21 +8,21 @@ function formatCurrency(value: number) {
 }
 
 function RapportProductTableInner({
-  soldByProduct,
+  productMargins,
   totalSales,
   periodLabel,
 }: {
-  soldByProduct: RapportData['soldByProduct'];
+  productMargins: RapportData['productMargins'];
   totalSales: number;
   periodLabel: string;
 }) {
-  if (soldByProduct.length === 0) {
+  if (productMargins.length === 0) {
     return (
       <div className="rounded-2xl border border-base-200/80 bg-base-100/80 p-5 shadow-lg shadow-black/5 backdrop-blur">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-semibold text-lg">Detail des ventes par produit</h3>
-            <p className="text-sm text-base-content/60">{periodLabel} &middot; 0 produit(s)</p>
+          <h3 className="font-semibold text-lg">Detail des ventes par produit</h3>
+          <p className="text-sm text-base-content/60">{periodLabel} &middot; 0 produit(s)</p>
           </div>
         </div>
         <div className="rounded-xl border border-dashed border-base-300 bg-base-200 px-4 py-8 text-center text-sm text-base-content/50">
@@ -37,7 +37,7 @@ function RapportProductTableInner({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold text-lg">Detail des ventes par produit</h3>
-          <p className="text-sm text-base-content/60">{periodLabel} &middot; {soldByProduct.length} produit(s)</p>
+          <p className="text-sm text-base-content/60">{periodLabel} &middot; {productMargins.length} produit(s)</p>
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -47,11 +47,14 @@ function RapportProductTableInner({
               <th>Produit</th>
               <th className="text-right">Quantite</th>
               <th className="text-right">Chiffre d&apos;affaires</th>
+              <th className="text-right">Cout estime</th>
+              <th className="text-right">Benefice</th>
+              <th className="text-right">Marge</th>
               <th className="text-right">Part</th>
             </tr>
           </thead>
           <tbody>
-            {soldByProduct.map((product) => {
+            {productMargins.map((product) => {
               const percentage = totalSales > 0 ? (product.revenue / totalSales) * 100 : 0;
               return (
                 <tr key={product.productCode}>
@@ -63,6 +66,13 @@ function RapportProductTableInner({
                   </td>
                   <td className="text-right font-medium">{product.quantity}</td>
                   <td className="text-right font-semibold text-success">{formatCurrency(product.revenue)}</td>
+                  <td className="text-right text-base-content/70">{formatCurrency(product.estimatedCost)}</td>
+                  <td className={`text-right font-semibold ${product.grossProfit >= 0 ? 'text-success' : 'text-error'}`}>
+                    {formatCurrency(product.grossProfit)}
+                  </td>
+                  <td className={`text-right font-semibold ${product.marginRate >= 0 ? 'text-success' : 'text-error'}`}>
+                    {product.marginRate.toFixed(1)}%
+                  </td>
                   <td className="text-right">
                     <div className="flex items-center gap-2 justify-end">
                       <div className="w-16 h-2 bg-base-200 rounded-full overflow-hidden">

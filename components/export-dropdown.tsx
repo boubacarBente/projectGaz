@@ -39,6 +39,7 @@ export async function generateInvoiceBlob(
 export async function shareOnWhatsApp(
   invoiceHTML: string,
   textMessage: string,
+  fileName = 'facture.png',
 ): Promise<void> {
   const blob = await generateInvoiceBlob(invoiceHTML);
   if (!blob) {
@@ -49,15 +50,16 @@ export async function shareOnWhatsApp(
 
   // Try Web Share API (mobile browsers → includes WhatsApp)
   if (navigator.share && navigator.canShare) {
-    const file = new File([blob], 'facture.png', { type: 'image/png' });
+    const file = new File([blob], fileName, { type: 'image/png' });
     const shareData = { title: 'Facture', text: textMessage, files: [file] };
     if (navigator.canShare(shareData)) {
       try {
         await navigator.share(shareData);
         return;
-      } catch (err: any) {
+      } catch (err) {
         // User cancelled or share failed — fall through to fallback
-        if (err.name !== 'AbortError') console.error('Share error:', err);
+        const isAbortError = err instanceof Error && err.name === 'AbortError';
+        if (!isAbortError) console.error('Share error:', err);
       }
     }
   }
