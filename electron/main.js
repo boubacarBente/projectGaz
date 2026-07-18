@@ -273,7 +273,10 @@ function setupAutoUpdater() {
       buttons: ['Redemarrer', 'Plus tard'],
       defaultId: 0,
     });
-    if (response === 0) autoUpdater.quitAndInstall();
+    if (response === 0) {
+      // Windows NSIS shows the full installer UI unless quitAndInstall is silent.
+      autoUpdater.quitAndInstall(true, true);
+    }
   });
 
   autoUpdater.on('error', (err) => {
