@@ -677,7 +677,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
                   Voulez-vous vraiment réinitialiser les données opérationnelles ?
                   <br />
                   <span className="text-sm">
-                    Les clients, les factures et les fournisseurs seront supprimés. Les utilisateurs, le portefeuille et les produits seront conservés.
+                    Les clients, les factures, les fournisseurs et les transactions du portefeuille seront supprimés. Les utilisateurs et les produits seront conservés.
                   </span>
                 </p>
               </div>
@@ -729,7 +729,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
                   </svg>
                 </div>
                 <p className="text-base-content/70">
-                  Préremplir la base avec 5 clients et 5 fournisseurs&nbsp;?
+                  Préremplir la base avec 5 clients, 5 fournisseurs et jusqu&apos;à 1&nbsp;200 transactions portefeuille&nbsp;?
                   <br />
                   <span className="text-sm">
                     Cette action n&apos;affectera pas les données existantes.

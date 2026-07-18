@@ -16,12 +16,25 @@ export async function generateInvoiceBlob(
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
     if (!iframeDoc) throw new Error('Cannot access iframe');
 
+    const isCompleteDocument = /<(?:!doctype|html)(?:\s|>)/i.test(invoiceHTML);
+
     iframeDoc.open();
-    iframeDoc.write(`<!DOCTYPE html><html><head><style>
+    iframeDoc.write(isCompleteDocument ? invoiceHTML : `<!DOCTYPE html><html><head><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: Arial, Helvetica, sans-serif; background: rgb(255,255,255); padding: 40px; }
     </style></head><body>${invoiceHTML}</body></html>`);
     iframeDoc.close();
+
+    await Promise.all(
+      Array.from(iframeDoc.images).map((image) => {
+        if (image.complete) return Promise.resolve();
+
+        return new Promise<void>((resolve) => {
+          image.addEventListener('load', () => resolve(), { once: true });
+          image.addEventListener('error', () => resolve(), { once: true });
+        });
+      }),
+    );
 
     const canvas = await hc(iframeDoc.body, {
       scale: 2, useCORS: true, allowTaint: true, backgroundColor: 'rgb(255,255,255)', logging: false,
@@ -36,22 +49,39 @@ export async function generateInvoiceBlob(
   }
 }
 
+type ShareOnWhatsAppOptions = {
+  photoOnly?: boolean;
+};
+
 export async function shareOnWhatsApp(
   invoiceHTML: string,
   textMessage: string,
   fileName = 'facture.png',
+  shareTitle = 'Facture',
+  options: ShareOnWhatsAppOptions = {},
 ): Promise<void> {
+  const shouldIncludeText = !options.photoOnly && textMessage.trim().length > 0;
+  const shouldIncludeTitle = !options.photoOnly && shareTitle.trim().length > 0;
+
   const blob = await generateInvoiceBlob(invoiceHTML);
   if (!blob) {
-    // Fallback: open WhatsApp with text only
+    if (!shouldIncludeText) {
+      throw new Error("Impossible de générer la photo à partager.");
+    }
+
     window.open(`https://wa.me/?text=${encodeURIComponent(textMessage)}`, '_blank');
     return;
   }
 
   // Try Web Share API (mobile browsers → includes WhatsApp)
+  const file = new File([blob], fileName, { type: 'image/png' });
+
   if (navigator.share && navigator.canShare) {
-    const file = new File([blob], fileName, { type: 'image/png' });
-    const shareData = { title: 'Facture', text: textMessage, files: [file] };
+    const shareData: ShareData = { files: [file] };
+
+    if (shouldIncludeTitle) shareData.title = shareTitle;
+    if (shouldIncludeText) shareData.text = textMessage;
+
     if (navigator.canShare(shareData)) {
       try {
         await navigator.share(shareData);
@@ -59,12 +89,18 @@ export async function shareOnWhatsApp(
       } catch (err) {
         // User cancelled or share failed — fall through to fallback
         const isAbortError = err instanceof Error && err.name === 'AbortError';
-        if (!isAbortError) console.error('Share error:', err);
+        if (isAbortError) return;
+
+        console.error('Share error:', err);
       }
     }
   }
 
   // Fallback: open WhatsApp Web with the image URL + text
+  if (!shouldIncludeText) {
+    throw new Error("Le partage direct de la photo seule n'est pas disponible sur cet appareil.");
+  }
+
   const blobUrl = URL.createObjectURL(blob);
   const message = `${textMessage}\n${blobUrl}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');

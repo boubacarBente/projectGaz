@@ -1841,8 +1841,10 @@ export async function resetDatabaseExceptProtectedTables() {
     await rawRun('DELETE FROM customer_types', [], client);
     // Supprimer les mouvements de stock tout en conservant les produits.
     await rawRun('DELETE FROM stock_movements', [], client);
+    // Supprimer toutes les transactions du portefeuille.
+    await rawRun('DELETE FROM wallet_transactions', [], client);
     // Réinitialiser uniquement les séquences des tables vidées.
-    await rawRun("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'suppliers', 'stock_movements')", [], client);
+    await rawRun("DELETE FROM sqlite_sequence WHERE name IN ('customers', 'customer_types', 'purchase_invoices', 'purchase_invoice_items', 'sales_invoices', 'sales_invoice_items', 'suppliers', 'stock_movements', 'wallet_transactions')", [], client);
     // Supprimer les paramètres
     await rawRun('DELETE FROM settings', [], client);
 

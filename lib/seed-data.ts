@@ -1,8 +1,55 @@
 import { rawAll, rawGet, rawRun, withRawTransaction } from "@/db";
 
+const WALLET_SEED_TARGET = 1_200;
+const WALLET_SEED_BATCH_SIZE = 125;
+
+type WalletSeedRow = {
+  amount: number;
+  type: 'income' | 'expense';
+  description: string;
+  createdAt: number;
+};
+
 function randomDateBetween(start: Date, end: Date): string {
   const d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
   return d.toISOString().slice(0, 10);
+}
+
+function buildWalletSeedRows(count: number): WalletSeedRow[] {
+  const now = new Date();
+  const start = new Date(now.getFullYear() - 1, 0, 1, 8, 0, 0);
+  const startTimestamp = Math.floor(start.getTime() / 1000);
+  const endTimestamp = Math.floor(now.getTime() / 1000);
+  const interval = Math.max(1, Math.floor((endTimestamp - startTimestamp) / (count + 1)));
+  const incomeDescriptions = [
+    '[Démo] Vente comptant',
+    '[Démo] Règlement client',
+    '[Démo] Encaissement livraison',
+    '[Démo] Paiement Mobile Money',
+  ];
+  const expenseDescriptions = [
+    '[Démo] Achat de gaz',
+    '[Démo] Transport et livraison',
+    '[Démo] Charge d’exploitation',
+    '[Démo] Paiement fournisseur',
+  ];
+
+  return Array.from({ length: count }, (_, index) => {
+    const type: WalletSeedRow['type'] = index % 5 === 1 || index % 5 === 4
+      ? 'expense'
+      : 'income';
+    const descriptions = type === 'income' ? incomeDescriptions : expenseDescriptions;
+    const amount = type === 'income'
+      ? 100_000 + ((index * 37) % 40) * 25_000
+      : 50_000 + ((index * 29) % 24) * 25_000;
+
+    return {
+      amount,
+      type,
+      description: descriptions[index % descriptions.length],
+      createdAt: Math.min(endTimestamp, startTimestamp + interval * (index + 1)),
+    };
+  });
 }
 
 export const seedClients = [
@@ -140,12 +187,14 @@ export async function seedDatabase() {
     existingProducts,
     existingPurchaseInvoices,
     existingSalesInvoices,
+    existingWalletTransactions,
   ] = await Promise.all([
     rawGet<{ count: number }>("SELECT COUNT(*) as count FROM customers"),
     rawGet<{ count: number }>("SELECT COUNT(*) as count FROM suppliers"),
     rawGet<{ count: number }>("SELECT COUNT(*) as count FROM products"),
     rawGet<{ count: number }>("SELECT COUNT(*) as count FROM purchase_invoices"),
     rawGet<{ count: number }>("SELECT COUNT(*) as count FROM sales_invoices"),
+    rawGet<{ count: number }>("SELECT COUNT(*) as count FROM wallet_transactions"),
   ]);
 
   // ── Clients ──
@@ -200,6 +249,55 @@ export async function seedDatabase() {
     results.push(`✓ ${seedProducts.length} produits créés avec stock initial`);
   } else {
     results.push("→ Produits ignorés (déjà existants)");
+  }
+
+  // ── Portefeuille (1 200 transactions de démonstration) ──
+  const existingWalletCount = Number(existingWalletTransactions?.count ?? 0);
+  const walletTransactionsToCreate = Math.max(0, WALLET_SEED_TARGET - existingWalletCount);
+
+  if (walletTransactionsToCreate > 0) {
+    const walletRows = buildWalletSeedRows(walletTransactionsToCreate);
+
+    await withRawTransaction(async (client) => {
+      for (let offset = 0; offset < walletRows.length; offset += WALLET_SEED_BATCH_SIZE) {
+        const batch = walletRows.slice(offset, offset + WALLET_SEED_BATCH_SIZE);
+        const placeholders = batch.map(() => '(?, ?, ?, 0, ?, ?)').join(', ');
+        const args: Array<string | number> = [];
+
+        for (const row of batch) {
+          args.push(row.amount, row.type, row.description, row.createdAt, row.createdAt);
+        }
+
+        await rawRun(
+          `INSERT INTO wallet_transactions (amount, type, description, balance_after, created_at, updated_at)
+           VALUES ${placeholders}`,
+          args,
+          client,
+        );
+      }
+
+      await rawRun(`
+        WITH ledger AS (
+          SELECT
+            id,
+            SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END) OVER (
+              ORDER BY created_at ASC, id ASC
+              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS recalculated_balance
+          FROM wallet_transactions
+        )
+        UPDATE wallet_transactions
+        SET balance_after = (
+          SELECT recalculated_balance
+          FROM ledger
+          WHERE ledger.id = wallet_transactions.id
+        )
+      `, [], client);
+    });
+
+    results.push(`✓ ${walletTransactionsToCreate} transactions portefeuille ajoutées (${WALLET_SEED_TARGET} au total)`);
+  } else {
+    results.push(`→ Portefeuille ignoré (${existingWalletCount} transactions déjà présentes)`);
   }
 
   // ── Factures d'achat (20) ──
