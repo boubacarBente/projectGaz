@@ -53,6 +53,20 @@ function formatDate(ts: string) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function formatExportTimestamp(date = new Date()) {
+  const pad = (value: number, size = 2) => value.toString().padStart(size, '0');
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join('')
+    + `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}-${pad(date.getMilliseconds(), 3)}`;
+}
+
+function buildExportFileName(baseName: string) {
+  return `${baseName}-${formatExportTimestamp()}`;
+}
+
 function escapeHTML(value: string | number | null | undefined) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -320,7 +334,7 @@ export default function PortefeuillePage() {
     () => getDetailedPeriodLabel(period, selectedMonth, dateParams),
     [period, selectedMonth, dateParams],
   );
-  const reportFileName = useMemo(() => {
+  const reportFileBaseName = useMemo(() => {
     const datePart = dateParams.from
       ? `${dateParams.from}${dateParams.to && dateParams.to !== dateParams.from ? `-${dateParams.to}` : ''}`
       : 'total';
@@ -601,7 +615,7 @@ export default function PortefeuillePage() {
         remainingHeight -= contentHeight;
       }
 
-      pdf.save(`${reportFileName}.pdf`);
+      pdf.save(`${buildExportFileName(reportFileBaseName)}.pdf`);
       toast.success('Rapport PDF téléchargé avec succès');
     } catch (error) {
       console.error('Wallet report PDF export error:', error);
@@ -619,8 +633,9 @@ export default function PortefeuillePage() {
       toast.info("Génération de l'image du rapport...");
       const report = await prepareWalletReport();
       const canvas = await renderWalletReport(report.html);
+      const fileName = buildExportFileName(reportFileBaseName);
       const link = document.createElement('a');
-      link.download = `${reportFileName}.png`;
+      link.download = `${fileName}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       toast.success('Image du rapport téléchargée avec succès');
@@ -643,7 +658,7 @@ export default function PortefeuillePage() {
       await shareOnWhatsApp(
         report.html,
         '',
-        `${reportFileName}.png`,
+        `${buildExportFileName(reportFileBaseName)}.png`,
         '',
         { photoOnly: true },
       );
