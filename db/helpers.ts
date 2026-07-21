@@ -58,7 +58,7 @@ export async function findPurchaseInvoices() {
       supplier: { columns: { id: true, name: true } },
       items: true,
     },
-    orderBy: [desc(purchaseInvoices.date)],
+    orderBy: [desc(purchaseInvoices.date), desc(purchaseInvoices.createdAt), desc(purchaseInvoices.id)],
   });
 }
 
@@ -81,7 +81,7 @@ export async function findSalesInvoices() {
       customer: { columns: { id: true, name: true } },
       items: true,
     },
-    orderBy: [desc(salesInvoices.date)],
+    orderBy: [desc(salesInvoices.date), desc(salesInvoices.createdAt), desc(salesInvoices.id)],
   });
 }
 

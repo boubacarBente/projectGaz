@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'month';
 
     const conditions: string[] = [];
-    const params: unknown[] = [];
+    const params: string[] = [];
     if (from) { conditions.push('date >= ?'); params.push(from); }
     if (to) { conditions.push('date <= ?'); params.push(to); }
     if (type === 'paid') conditions.push("payment_status = 'Payée'");
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       SELECT id, invoice_number as invoiceNumber, customer_name as customerName, date, total_amount as totalAmount, amount_paid as amountPaid, remaining_amount as remainingAmount, payment_status as paymentStatus
       FROM sales_invoices
       ${whereClause}
-      ORDER BY date DESC
+      ORDER BY created_at DESC, id DESC, date DESC
       LIMIT 10
     `, params);
 

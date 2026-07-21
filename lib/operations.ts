@@ -233,7 +233,7 @@ export async function listPurchaseInvoices(from?: string, to?: string) {
 
   const invoices = await db.query.purchaseInvoices.findMany({
     where: conditions.length > 0 ? and(...conditions) : undefined,
-    orderBy: [desc(purchaseInvoices.date)],
+    orderBy: [desc(purchaseInvoices.date), desc(purchaseInvoices.createdAt), desc(purchaseInvoices.id)],
     with: {
       supplier: true,
       items: true,
@@ -279,7 +279,7 @@ export async function listPaginatedPurchaseInvoices(
   const [invoices, totalResult] = await Promise.all([
     db.query.purchaseInvoices.findMany({
       where,
-      orderBy: [desc(purchaseInvoices.date)],
+      orderBy: [desc(purchaseInvoices.createdAt), desc(purchaseInvoices.id), desc(purchaseInvoices.date)],
       with: { supplier: true, items: true },
       limit,
       offset,
@@ -321,7 +321,7 @@ export async function listSalesInvoices(from?: string, to?: string) {
 
   const invoices = await db.query.salesInvoices.findMany({
     where: conditions.length > 0 ? and(...conditions) : undefined,
-    orderBy: [desc(salesInvoices.date)],
+    orderBy: [desc(salesInvoices.date), desc(salesInvoices.createdAt), desc(salesInvoices.id)],
     with: { items: true },
   });
 
@@ -375,7 +375,7 @@ export async function listPaginatedSalesInvoices(
   const [invoices, totalResult] = await Promise.all([
     db.query.salesInvoices.findMany({
       where,
-      orderBy: [desc(salesInvoices.date)],
+      orderBy: [desc(salesInvoices.createdAt), desc(salesInvoices.id), desc(salesInvoices.date)],
       with: { items: true },
       limit,
       offset,

@@ -35,7 +35,7 @@ export async function GET(
     // Get all invoices for this supplier
     const invoices = await db.select().from(purchaseInvoices)
       .where(eq(purchaseInvoices.supplierId, supplierId))
-      .orderBy(desc(purchaseInvoices.date));
+      .orderBy(desc(purchaseInvoices.date), desc(purchaseInvoices.createdAt), desc(purchaseInvoices.id));
     
     // Get items for each invoice
     const invoicesWithItems = await Promise.all(invoices.map(async (inv) => {

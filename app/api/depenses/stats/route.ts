@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const to = searchParams.get('to');
 
     const conditions: string[] = [];
-    const params: unknown[] = [];
+    const params: Array<string | number> = [];
     if (supplierId) { conditions.push('pi.supplier_id = ?'); params.push(Number(supplierId)); }
     if (paid === 'true') { conditions.push('pi.is_paid = 1'); }
     if (paid === 'false') { conditions.push('pi.is_paid = 0'); }

@@ -12,9 +12,9 @@ export async function GET(request: Request) {
 
     // Build WHERE clause
     const conditions: string[] = [];
-    const params: unknown[] = [];
+    const params: Array<string | number> = [];
     const supplierConditions: string[] = [];
-    const supplierParams: unknown[] = [];
+    const supplierParams: Array<string | number> = [];
 
     if (supplierId) {
       conditions.push('pi.supplier_id = ?');
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
       "s.name as supplierName, COALESCE((SELECT SUM(quantity) FROM purchase_invoice_items WHERE invoice_id = pi.id), 0) as totalItems " +
       'FROM purchase_invoices pi JOIN suppliers s ON s.id = pi.supplier_id' +
       whereClause +
-      ' ORDER BY pi.created_at DESC LIMIT 10',
+      ' ORDER BY pi.created_at DESC, pi.id DESC, pi.date DESC LIMIT 10',
       params,
     );
 

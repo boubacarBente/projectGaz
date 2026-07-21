@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
     // Build WHERE clause
     const conditions: string[] = [];
-    const params: unknown[] = [];
+    const params: string[] = [];
 
     if (customerName) {
       conditions.push('si.customer_name LIKE ?');
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
       'si.remaining_amount as remainingAmount, si.payment_status as paymentStatus, ' +
       "COALESCE((SELECT SUM(quantity) FROM sales_invoice_items WHERE invoice_id = si.id), 0) as totalItems " +
       'FROM sales_invoices si' + whereClause +
-      ' ORDER BY si.created_at DESC LIMIT 10',
+      ' ORDER BY si.created_at DESC, si.id DESC, si.date DESC LIMIT 10',
       params,
     );
 
