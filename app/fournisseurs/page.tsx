@@ -78,6 +78,181 @@ function formatPeriodLabel(label: string) {
   return label;
 }
 
+type SupplierFormMode = 'add' | 'edit';
+
+const supplierInputClass =
+  'input input-bordered w-full border-base-300 bg-base-100 pl-10 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15';
+const supplierTextareaClass =
+  'textarea textarea-bordered min-h-28 w-full resize-y border-base-300 bg-base-100 pl-10 text-sm leading-6 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15';
+
+function SupplierModalTitle({
+  mode,
+  supplierName,
+}: {
+  mode: SupplierFormMode;
+  supplierName?: string;
+}) {
+  const isEdit = mode === 'edit';
+
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        {isEdit ? (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.651-1.651a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 7.125L16.875 4.5" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-3.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM3 20.25a7.5 7.5 0 0115 0v.75H3v-.75z" />
+          </svg>
+        )}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-base font-bold sm:text-lg">
+          {isEdit ? 'Modifier le fournisseur' : 'Nouveau fournisseur'}
+        </span>
+        <span className="mt-0.5 block truncate text-xs font-medium text-base-content/50">
+          {isEdit ? supplierName || 'Fiche fournisseur' : 'Fiche fournisseur'}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function SupplierForm({
+  mode,
+  formData,
+  isSubmitting,
+  onSubmit,
+  onCancel,
+  onChange,
+}: {
+  mode: SupplierFormMode;
+  formData: FormData;
+  isSubmitting: boolean;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
+  onChange: (data: FormData) => void;
+}) {
+  const isEdit = mode === 'edit';
+  const setField = (field: keyof FormData, value: string) => onChange({ ...formData, [field]: value });
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-5">
+      <div className="overflow-hidden rounded-lg border border-base-200 bg-base-100 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-base-200 bg-base-200/30 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0" />
+            </svg>
+            Coordonnées
+          </div>
+          <span className="badge badge-soft badge-primary badge-sm whitespace-nowrap">
+            {isEdit ? 'Édition' : 'Création'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5">
+          <label className="form-control gap-1.5">
+            <span className="label-text text-sm font-medium text-base-content/70">
+              Nom <span className="text-error">*</span>
+            </span>
+            <span className="relative block">
+              <svg xmlns="http://www.w3.org/2000/svg" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M8.25 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m4.5-6h1.5m-1.5 3h1.5m-1.5 3h1.5M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+              </svg>
+              <input
+                type="text"
+                required
+                autoFocus
+                value={formData.name}
+                onChange={(event) => setField('name', event.target.value)}
+                className={supplierInputClass}
+                placeholder="Nom de l'usine ou du fournisseur"
+              />
+            </span>
+          </label>
+
+          <label className="form-control gap-1.5">
+            <span className="label-text text-sm font-medium text-base-content/70">Téléphone</span>
+            <span className="relative block">
+              <svg xmlns="http://www.w3.org/2000/svg" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106a1.125 1.125 0 00-1.173.417l-.97 1.293a1.125 1.125 0 01-1.21.38 12.035 12.035 0 01-7.143-7.143 1.125 1.125 0 01.38-1.21l1.293-.97c.37-.277.538-.754.417-1.173L6.963 3.102A1.125 1.125 0 005.872 2.25H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+              </svg>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(event) => setField('phone', event.target.value)}
+                className={supplierInputClass}
+                placeholder="+224 6XX XXXXXX"
+              />
+            </span>
+          </label>
+
+          <label className="form-control gap-1.5 sm:col-span-2">
+            <span className="label-text text-sm font-medium text-base-content/70">Adresse</span>
+            <span className="relative block">
+              <svg xmlns="http://www.w3.org/2000/svg" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(event) => setField('address', event.target.value)}
+                className={supplierInputClass}
+                placeholder="Adresse du fournisseur"
+              />
+            </span>
+          </label>
+
+          <label className="form-control gap-1.5 sm:col-span-2">
+            <span className="label-text text-sm font-medium text-base-content/70">Notes (optionnel)</span>
+            <span className="relative block">
+              <svg xmlns="http://www.w3.org/2000/svg" className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-base-content/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3h6m-8.25 8.25l-3 3v-15A2.25 2.25 0 014.5 5.25h15A2.25 2.25 0 0121.75 7.5v9a2.25 2.25 0 01-2.25 2.25H5.25z" />
+              </svg>
+              <textarea
+                value={formData.notes}
+                onChange={(event) => setField('notes', event.target.value)}
+                className={supplierTextareaClass}
+                rows={4}
+                placeholder="Informations supplémentaires..."
+              />
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div className="flex flex-col-reverse gap-2 border-t border-base-200 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+        <button type="button" onClick={onCancel} className="btn btn-ghost w-full sm:w-auto">
+          Annuler
+        </button>
+        <button type="submit" disabled={isSubmitting} className="btn btn-primary w-full gap-2 shadow-md shadow-primary/20 sm:w-auto">
+          {isSubmitting ? (
+            <span className="loading loading-spinner loading-sm" />
+          ) : isEdit ? (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              Enregistrer
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Ajouter
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function SparklineBar({ values, max, color }: { values: number[]; max: number; color: string }) {
   const h = 32;
   return (
@@ -658,57 +833,18 @@ export default function FournisseursPage() {
       <Modal
         isOpen={showAddModal}
         onClose={() => { setShowAddModal(false); resetForm(); }}
-        title={
-          <div className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
-            Nouveau fournisseur
-          </div>
-        }
+        title={<SupplierModalTitle mode="add" />}
         size="lg"
+        fullScreenMobile
       >
-        <form onSubmit={handleAddSupplier} className="space-y-6">
-          <div className="bg-base-200/30 rounded-xl p-4">
-            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Informations
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="form-control">
-                <label className="label"><span className="label-text font-medium">Nom *</span></label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Nom de l'usine ou du fournisseur" />
-              </div>
-              <div className="form-control">
-                <label className="label"><span className="label-text font-medium">Téléphone</span></label>
-                <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="+224 6XX XXXXXX" />
-              </div>
-              <div className="form-control md:col-span-2">
-                <label className="label"><span className="label-text font-medium block">Adresse</span></label>
-                <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus w-full" placeholder="Adresse du fournisseur" />
-              </div>
-            </div>
-          </div>
-
-          <div className="form-control">
-            <label className="label block"><span className="label-text font-medium">Notes (optionnel)</span></label>
-            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-primary focus:textarea-focus w-full" rows={2} placeholder="Informations supplémentaires..." />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
-            <button type="button" onClick={() => { setShowAddModal(false); resetForm(); }} className="btn btn-ghost">Annuler</button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
-              {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : (
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  Ajouter le fournisseur
-                </div>
-              )}
-            </button>
-          </div>
-        </form>
+        <SupplierForm
+          mode="add"
+          formData={formData}
+          isSubmitting={isSubmitting}
+          onSubmit={handleAddSupplier}
+          onCancel={() => { setShowAddModal(false); resetForm(); }}
+          onChange={setFormData}
+        />
       </Modal>
 
       {/* Detail Modal */}
@@ -889,57 +1025,18 @@ export default function FournisseursPage() {
       <Modal
         isOpen={showEditModal}
         onClose={() => { setShowEditModal(false); setSelectedSupplier(null); resetForm(); }}
-        title={
-          <div className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Modifier le fournisseur
-          </div>
-        }
+        title={<SupplierModalTitle mode="edit" supplierName={selectedSupplier?.supplier.name} />}
         size="lg"
+        fullScreenMobile
       >
-        <form onSubmit={handleEditSupplier} className="space-y-6">
-          <div className="bg-base-200/30 rounded-xl p-4">
-            <h4 className="font-semibold text-sm text-base-content/70 mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Informations
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="form-control">
-                <label className="label"><span className="label-text font-medium">Nom *</span></label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Nom de l'usine ou du fournisseur" />
-              </div>
-              <div className="form-control">
-                <label className="label"><span className="label-text font-medium">Téléphone</span></label>
-                <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="+224 6XX XXXXXX" />
-              </div>
-              <div className="form-control md:col-span-2">
-                <label className="label"><span className="label-text font-medium">Adresse</span></label>
-                <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input input-bordered input-primary focus:input-focus" placeholder="Adresse du fournisseur" />
-              </div>
-            </div>
-          </div>
-
-          <div className="form-control">
-            <label className="label block"><span className="label-text font-medium">Notes (optionnel)</span></label>
-            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea textarea-bordered textarea-primary focus:textarea-focus w-full" rows={2} placeholder="Informations supplémentaires..." />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
-            <button type="button" onClick={() => { setShowEditModal(false); setSelectedSupplier(null); resetForm(); }} className="btn btn-ghost">Annuler</button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
-              {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : (
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  Enregistrer les modifications
-                </div>
-              )}
-            </button>
-          </div>
-        </form>
+        <SupplierForm
+          mode="edit"
+          formData={formData}
+          isSubmitting={isSubmitting}
+          onSubmit={handleEditSupplier}
+          onCancel={() => { setShowEditModal(false); setSelectedSupplier(null); resetForm(); }}
+          onChange={setFormData}
+        />
       </Modal>
 
       {/* Delete Modal */}

@@ -30,6 +30,12 @@ export type SalesInvoiceRow = {
   invoiceNumber: string;
   customerId: number | null;
   customer: { id: number; name: string } | null;
+  purchaseInvoiceId: number | null;
+  purchaseInvoice: {
+    id: number;
+    reference: string;
+    supplier: { id: number; name: string } | null;
+  } | null;
   customerName: string;
   date: string;
   paymentMethod: string | null;
@@ -79,6 +85,10 @@ export async function findSalesInvoices() {
   return db.query.salesInvoices.findMany({
     with: {
       customer: { columns: { id: true, name: true } },
+      purchaseInvoice: {
+        columns: { id: true, reference: true },
+        with: { supplier: { columns: { id: true, name: true } } },
+      },
       items: true,
     },
     orderBy: [desc(salesInvoices.date), desc(salesInvoices.createdAt), desc(salesInvoices.id)],
@@ -118,6 +128,10 @@ export async function findSalesInvoiceById(id: number) {
     where: (si, { eq }) => eq(si.id, id),
     with: {
       customer: { columns: { id: true, name: true } },
+      purchaseInvoice: {
+        columns: { id: true, reference: true },
+        with: { supplier: { columns: { id: true, name: true } } },
+      },
       items: true,
     },
   });

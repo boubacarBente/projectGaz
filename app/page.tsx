@@ -579,7 +579,7 @@ export default function DashboardPage() {
               { key: 'products', label: 'Produits', render: (s) => (
                 <div className="flex gap-1 flex-wrap">
                   {s.items.map((item, i) => (
-                    <span key={i} className="badge badge-outline badge-xs">{item.productName} x{item.quantity}</span>
+                    <span key={i} className="badge badge-outline badge-xs">{item.productCode} x{item.quantity}</span>
                   ))}
                 </div>
               )},
@@ -616,7 +616,7 @@ export default function DashboardPage() {
               { key: 'products', label: 'Produits', render: (p) => (
                 <div className="flex gap-1 flex-wrap">
                   {p.items.map((item, i) => (
-                    <span key={i} className="badge badge-outline badge-xs">{item.productName} x{item.quantity}</span>
+                    <span key={i} className="badge badge-outline badge-xs">{item.productCode} x{item.quantity}</span>
                   ))}
                 </div>
               )},

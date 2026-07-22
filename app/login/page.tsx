@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/components/auth-provider';
 
 // ─── Floating particles ───
 function ParticleField() {
@@ -79,6 +80,7 @@ function GeometricBg() {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [step, setStep] = useState<'name' | 'password'>('name');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -160,6 +162,7 @@ export default function LoginPage() {
       }
 
       toast.success('Connexion réussie !');
+      await refreshUser();
       router.push('/');
     } catch (err: any) {
       console.error('[login] /api/auth/login fetch error:', err);

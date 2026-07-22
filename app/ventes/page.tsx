@@ -14,10 +14,11 @@ import {
   DetailInvoiceModal,
   DeleteInvoiceModal,
 } from '@/components/ventes/ventes-modals';
-import type { Period, SalesInvoice, Product, Customer, VentesStats, InvoiceLine, InvoiceFormData } from '@/lib/ventes-types';
+import type { Period, SalesInvoice, Product, Customer, PurchaseInvoiceOption, VentesStats, InvoiceLine, InvoiceFormData } from '@/lib/ventes-types';
 
 const initialFormData: InvoiceFormData = {
   customerName: '',
+  purchaseInvoiceId: '',
   date: new Date().toISOString().slice(0, 10),
   paymentMethod: 'Espèces',
   notes: '',
@@ -36,6 +37,7 @@ export default function FacturesPage() {
   const [ventesStats, setVentesStats] = useState<VentesStats | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoiceOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedInvoices, setHasLoadedInvoices] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -133,12 +135,15 @@ export default function FacturesPage() {
     Promise.all([
       fetch('/api/produits?all=true&limit=100', { signal: ac.signal }),
       fetch('/api/clients?limit=100', { signal: ac.signal }),
+      fetch('/api/depenses?limit=100000', { signal: ac.signal }),
     ])
-      .then(async ([prodRes, custRes]) => {
+      .then(async ([prodRes, custRes, purchaseRes]) => {
         const productsData = await prodRes.json();
         const customersData = await custRes.json();
+        const purchaseData = await purchaseRes.json();
         setProducts(Array.isArray(productsData.data) ? productsData.data : []);
         setCustomers(Array.isArray(customersData.data) ? customersData.data : []);
+        setPurchaseInvoices(Array.isArray(purchaseData.data) ? purchaseData.data : []);
       })
       .catch(() => {});
     return () => ac.abort();
@@ -198,6 +203,7 @@ export default function FacturesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: formData.customerName,
+          purchaseInvoiceId: formData.purchaseInvoiceId ? parseInt(formData.purchaseInvoiceId, 10) : null,
           date: formData.date,
           paymentMethod: formData.paymentMethod,
           notes: formData.notes,
@@ -243,6 +249,7 @@ export default function FacturesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: formData.customerName,
+          purchaseInvoiceId: formData.purchaseInvoiceId ? parseInt(formData.purchaseInvoiceId, 10) : null,
           date: formData.date,
           paymentMethod: formData.paymentMethod,
           notes: formData.notes,
@@ -293,6 +300,7 @@ export default function FacturesPage() {
     setSelectedInvoice(invoice);
     setFormData({
       customerName: invoice.customerName,
+      purchaseInvoiceId: invoice.purchaseInvoiceId?.toString() || '',
       date: invoice.date,
       paymentMethod: invoice.paymentMethod,
       notes: invoice.notes,
@@ -671,6 +679,7 @@ export default function FacturesPage() {
         onFormDataChange={setFormData}
         products={products}
         customers={customers}
+        purchaseInvoices={purchaseInvoices}
         isSubmitting={isSubmitting}
         onSubmit={handleAddInvoice}
         onAddLine={addLine}
@@ -689,6 +698,7 @@ export default function FacturesPage() {
         onFormDataChange={setFormData}
         products={products}
         customers={customers}
+        purchaseInvoices={purchaseInvoices}
         isSubmitting={isSubmitting}
         onSubmit={handleEditInvoice}
         onAddLine={addLine}

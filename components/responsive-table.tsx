@@ -24,6 +24,10 @@ interface ResponsiveTableProps<T> {
   emptyMessage?: string;
   /** Called when a row is clicked */
   onRowClick?: (item: T) => void;
+  /** Optional desktop table sizing and layout classes */
+  tableClassName?: string;
+  /** Keeps the desktop actions column at a predictable width */
+  actionsClassName?: string;
 }
 
 function CardView<T>({
@@ -95,9 +99,11 @@ function TableView<T>({
   getRowKey,
   actions,
   onRowClick,
+  tableClassName,
+  actionsClassName,
 }: ResponsiveTableProps<T>) {
   return (
-    <table className="table">
+    <table className={`table ${tableClassName || ''}`}>
       <thead>
         <tr className="bg-base-200">
           {columns.map((col) => (
@@ -105,7 +111,7 @@ function TableView<T>({
               {col.label}
             </th>
           ))}
-          {actions && <th className="font-semibold text-right">Actions</th>}
+          {actions && <th className={`font-semibold text-right ${actionsClassName || ''}`}>Actions</th>}
         </tr>
       </thead>
       <tbody>
@@ -121,7 +127,7 @@ function TableView<T>({
               </td>
             ))}
             {actions && (
-              <td>
+              <td className={actionsClassName}>
                 <div className="flex justify-end gap-1">{actions(item)}</div>
               </td>
             )}

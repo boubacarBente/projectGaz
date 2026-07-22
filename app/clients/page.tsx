@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from '@/components/modal';
-import { ResponsiveTable, type Column } from '@/components/responsive-table';
+import { ResponsiveTable } from '@/components/responsive-table';
 
 type Customer = {
   id: number;
@@ -51,21 +51,18 @@ const item = {
 // ---------- Stat Card ----------
 function StatCard({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: boolean }) {
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 ${
+    <div className={`rounded-lg border p-4 transition-colors ${
       accent
-        ? 'border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/20 dark:to-base-100/60 dark:border-emerald-800/30'
-        : 'border-base-200/70 bg-white/60 dark:bg-base-100/40 dark:border-base-700/50'
+        ? 'border-success/25 bg-success/5'
+        : 'border-base-200 bg-base-100'
     }`}>
-      <div className="relative z-10">
-        <p className="text-xs font-medium uppercase tracking-[0.08em] text-base-content/40">{label}</p>
-        <p className={`mt-2 text-2xl font-bold tracking-tight ${
-          accent ? 'text-emerald-700 dark:text-emerald-400' : 'text-base-content'
+      <div>
+        <p className="text-[11px] font-semibold uppercase text-base-content/50">{label}</p>
+        <p className={`mt-2 text-2xl font-semibold tracking-tight ${
+          accent ? 'text-success' : 'text-base-content'
         }`}>{value}</p>
         {hint && <p className="mt-1 text-xs text-base-content/35">{hint}</p>}
       </div>
-      {accent && (
-        <div className="absolute -bottom-4 -right-4 h-20 w-20 rounded-full bg-emerald-500/5 dark:bg-emerald-400/5 blur-2xl" />
-      )}
     </div>
   );
 }
@@ -83,13 +80,13 @@ function TopBadge({ rank }: { rank: number }) {
 // ---------- Status Badge ----------
 function StatusBadge({ active }: { active: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
       active
-        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+        ? 'bg-success/10 text-success'
         : 'bg-base-200 text-base-content/40 dark:bg-base-800'
     }`}>
       <span className={`inline-block h-1.5 w-1.5 rounded-full ${
-        active ? 'bg-emerald-500' : 'bg-base-content/20'
+        active ? 'bg-success' : 'bg-base-content/20'
       }`} />
       {active ? 'Actif' : 'Inactif'}
     </span>
@@ -273,138 +270,186 @@ export default function ClientsPage() {
   const topCustomers = clientsStats?.topCustomers || [];
   const totalAll = clientsStats?.totalPurchases ?? 0;
   const activeCount = clientsStats?.activeCount ?? 0;
+  const inactiveCount = Math.max((clientsStats?.total ?? total) - activeCount, 0);
+  const displayedFrom = total === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const displayedTo = Math.min(total, currentPage * ITEMS_PER_PAGE);
+  const selectedTypeLabel = selectedType
+    ? customerTypes.find((type) => String(type.id) === selectedType)?.name
+    : null;
 
   return (
     <motion.div
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-8"
+      className="space-y-5"
     >
-      {/* ---------- Header ---------- */}
-      <motion.section variants={item} className="rounded-3xl border border-base-200/80 bg-base-100/80 p-6 md:p-8 shadow-lg shadow-black/5 backdrop-blur">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
-              Clients
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Gestion des clients</h1>
-            <p className="max-w-2xl text-sm leading-7 text-base-content/50">
-              Consultation et gestion de la clientèle avec recherche rapide et suivi des meilleurs comptes.
+      <motion.section variants={item} className="rounded-lg border border-base-200 bg-base-100 p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">Clients</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-base-content sm:text-3xl">
+              Gestion des clients
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-base-content/55">
+              Suivi des contacts, segments et volumes d'achat de la clientèle.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowAddTypeModal(true)} className="btn btn-outline btn-sm gap-1.5 rounded-xl">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button onClick={() => setShowAddTypeModal(true)} className="btn btn-outline btn-sm gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.582 9.582a2.25 2.25 0 003.182 0l4.318-4.318a2.25 2.25 0 000-3.182L11.159 3.659A2.25 2.25 0 009.568 3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.008v.008H6.75V6.75z" />
+              </svg>
               Types
             </button>
-            <button onClick={() => { resetForm(); setShowAddModal(true); }} className="btn btn-primary btn-sm gap-1.5 rounded-xl shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            <button onClick={() => { resetForm(); setShowAddModal(true); }} className="btn btn-primary btn-sm gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
               Nouveau client
             </button>
           </div>
         </div>
       </motion.section>
 
-      {/* ---------- Stats ---------- */}
-      <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Clients" value={fCF(total)} hint="Total enregistrés" />
-        <StatCard label="Actifs" value={fCF(activeCount)} hint="En activité" />
-        <StatCard label="Volume d'achats" value={fCF(totalAll) + " F"} hint="Cumulé toutes factures" accent />
+      <motion.div variants={item} className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Clients" value={fCF(total)} hint="Total dans la sélection" />
+        <StatCard label="Actifs" value={fCF(activeCount)} hint={`${inactiveCount} inactif${inactiveCount > 1 ? 's' : ''}`} />
+        <StatCard label="Types" value={fCF(customerTypes.length)} hint={selectedTypeLabel ? `Filtre: ${selectedTypeLabel}` : 'Catégories disponibles'} />
+        <StatCard label="Volume d'achats" value={`${fCF(totalAll)} F`} hint="Cumulé toutes factures" accent />
       </motion.div>
 
-      {/* ---------- Search + Table + Top Clients ---------- */}
-      <motion.div variants={item} className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-
-        {/* Main Table */}
-        <div className="lg:col-span-2 rounded-2xl border border-base-200/70 bg-white/80 dark:bg-base-100/50 shadow-md shadow-black/5 overflow-hidden">
-          {/* Toolbar */}
-          <div className="flex items-center gap-3 p-4 border-b border-base-200/50">
-            <div className="relative flex-1">
-              <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <input
-                type="text"
-                placeholder="Rechercher un client..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="input input-bordered input-sm w-full pl-9 text-sm rounded-xl"
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 hover:text-base-content/60">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              )}
+      <motion.div variants={item} className="space-y-5">
+        <section className="min-w-0 overflow-hidden rounded-lg border border-base-200 bg-base-100 shadow-sm">
+          <div className="border-b border-base-200 px-4 py-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-base-content">Répertoire clients</h2>
+                <p className="mt-1 text-xs text-base-content/45">
+                  {displayedFrom}-{displayedTo} sur {total} client{total > 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[minmax(240px,1fr)_200px_auto] lg:w-auto">
+                <div className="relative lg:w-72">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Rechercher un client..."
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                    className="input input-bordered input-sm w-full pl-9 pr-9 text-sm"
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => { setSearch(''); setCurrentPage(1); }}
+                      className="btn btn-ghost btn-xs btn-square absolute right-1.5 top-1/2 -translate-y-1/2"
+                      aria-label="Effacer la recherche"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <select
+                  value={selectedType}
+                  onChange={(e) => { setSelectedType(e.target.value); setCurrentPage(1); }}
+                  className="select select-bordered select-sm w-full"
+                  aria-label="Filtrer par type"
+                >
+                  <option value="">Tous les types</option>
+                  {customerTypes.map((type) => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+                {(search || selectedType) && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearch(''); setSelectedType(''); setCurrentPage(1); }}
+                    className="btn btn-ghost btn-sm whitespace-nowrap"
+                  >
+                    Réinitialiser
+                  </button>
+                )}
+                {isRefreshingCustomers && (
+                  <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
+                )}
+              </div>
             </div>
-            {isRefreshingCustomers && (
-              <span className="loading loading-spinner loading-sm text-primary" aria-label="Actualisation" />
-            )}
           </div>
 
-          {/* Table */}
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             {isLoading && !hasLoadedCustomers ? (
               <div className="flex items-center justify-center p-12">
-                <span className="loading loading-dots loading-md text-emerald-500" />
+                <span className="loading loading-spinner loading-md text-primary" />
               </div>
             ) : (
               <ResponsiveTable
+                tableClassName="w-full"
+                actionsClassName="w-[124px] min-w-[124px] whitespace-nowrap"
                 columns={[
-                  { key: 'name', label: 'Client', primary: true, render: (c) => (
+                  { key: 'name', label: 'Client', primary: true, className: 'min-w-0', render: (c) => (
                     <div className="flex items-center gap-3">
                       <div className="avatar placeholder">
-                        <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 w-9 rounded-xl text-sm font-bold">
+                        <div className="w-9 rounded-lg bg-primary/10 text-sm font-bold text-primary">
                           {c.name.charAt(0).toUpperCase()}
                         </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-sm">{c.name}</div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">{c.name}</div>
                         <StatusBadge active={c.isActive} />
                       </div>
                     </div>
                   )},
                   { key: 'phone', label: 'Contact', hideOnMobile: true, render: (c) => (
-                    <span className="text-sm text-base-content/60">{c.phone || '—'}</span>
+                    <span className="whitespace-nowrap text-sm text-base-content/60">{c.phone || '—'}</span>
                   )},
-                  { key: 'city', label: 'Ville', hideOnMobile: true, render: (c) => (
-                    <span className="text-base-content/60">{c.city || '—'}</span>
+                  { key: 'city', label: 'Ville', hideOnMobile: true, className: 'hidden xl:table-cell', render: (c) => (
+                    <span className="text-sm text-base-content/60">{c.city || '—'}</span>
                   )},
                   { key: 'type', label: 'Type', render: (c) => c.type ? (
-                    <span className="inline-flex items-center rounded-full bg-base-200/70 px-2.5 py-0.5 text-[11px] font-medium text-base-content/60">{c.type.name}</span>
-                  ) : <span className="text-base-content/20">—</span> },
-                  { key: 'totalPurchases', label: 'Achats', className: 'text-right font-semibold tabular-nums', render: (c) => `${fCF(c.totalPurchases)} F` },
+                    <span className="badge badge-ghost badge-sm whitespace-nowrap">{c.type.name}</span>
+                  ) : <span className="text-base-content/25">—</span> },
+                  { key: 'totalPurchases', label: 'Achats', className: 'whitespace-nowrap text-right font-semibold tabular-nums', render: (c) => `${fCF(c.totalPurchases)} F` },
                 ]}
                 data={customers}
                 getRowKey={(c) => c.id}
                 actions={(c) => (
-                  <div className="flex items-center gap-0.5">
-                    <button onClick={() => openDetailModal(c)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Détails">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  <div className="inline-flex h-9 items-center justify-end gap-0.5 rounded-md border border-base-200 bg-base-100 p-0.5 shadow-xs">
+                    <button onClick={() => openDetailModal(c)} className="btn btn-ghost btn-xs btn-square h-7 min-h-7 w-7" title="Détails" aria-label={`Voir ${c.name}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
-                    <button onClick={() => openEditModal(c)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Modifier">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    <button onClick={() => openEditModal(c)} className="btn btn-ghost btn-xs btn-square h-7 min-h-7 w-7" title="Modifier" aria-label={`Modifier ${c.name}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.651-1.651a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 7.125L16.875 4.5" /></svg>
                     </button>
-                    <button onClick={() => openDeleteModal(c)} className="btn btn-ghost btn-xs btn-square rounded-lg" title="Supprimer">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400/60 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    <button onClick={() => openDeleteModal(c)} className="btn btn-ghost btn-xs btn-square h-7 min-h-7 w-7 text-error" title="Supprimer" aria-label={`Supprimer ${c.name}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673A2.25 2.25 0 0115.916 21H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                     </button>
                   </div>
                 )}
-                emptyMessage="Aucun client trouvé"
+                emptyMessage={search || selectedType ? 'Aucun client ne correspond aux filtres.' : 'Aucun client enregistré.'}
               />
             )}
           </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-base-200/50 px-4 py-3">
-            <p className="text-xs text-base-content/40">
-              {total} client{total !== 1 ? 's' : ''}
+          <div className="flex flex-col gap-3 border-t border-base-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-base-content/45">
+              Page {totalPages === 0 ? 0 : currentPage} sur {totalPages}
             </p>
-            <div className="flex items-center gap-1.5">
+            <div className="join">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="btn btn-ghost btn-xs btn-square rounded-lg disabled:opacity-20"
+                className="btn btn-ghost btn-xs join-item disabled:opacity-30"
+                aria-label="Page précédente"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
               </button>
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let start = Math.max(0, currentPage - 3);
@@ -415,11 +460,7 @@ export default function ClientsPage() {
                   <button
                     key={pageIndex}
                     onClick={() => setCurrentPage(pageIndex + 1)}
-                    className={`btn btn-xs btn-square rounded-lg ${
-                      currentPage === pageIndex + 1
-                        ? 'btn-primary'
-                        : 'btn-ghost'
-                    }`}
+                    className={`btn btn-xs join-item ${currentPage === pageIndex + 1 ? 'btn-primary' : 'btn-ghost'}`}
                   >
                     {pageIndex + 1}
                   </button>
@@ -428,60 +469,48 @@ export default function ClientsPage() {
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage >= totalPages}
-                className="btn btn-ghost btn-xs btn-square rounded-lg disabled:opacity-20"
+                className="btn btn-ghost btn-xs join-item disabled:opacity-30"
+                aria-label="Page suivante"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
               </button>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* ---------- Top Clients Sidebar ---------- */}
-        <div className="rounded-2xl border border-base-200/70 bg-white/80 dark:bg-base-100/50 shadow-md shadow-black/5 overflow-hidden">
-          <div className="px-5 py-4 border-b border-base-200/50">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-              </div>
+        <section className="overflow-hidden rounded-lg border border-base-200 bg-base-100 shadow-sm">
+          <div className="border-b border-base-200 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="font-semibold text-sm">Top 5 clients</h3>
-                <p className="text-[11px] text-base-content/40">Meilleurs acheteurs</p>
+                <h2 className="text-base font-semibold">Classement clients</h2>
+                <p className="mt-1 text-xs text-base-content/45">Les comptes les plus actifs par volume d'achats</p>
               </div>
+              <span className="badge badge-soft badge-warning badge-sm">{topCustomers.length}</span>
             </div>
           </div>
-          <div className="p-4 space-y-1">
+          <div className="grid grid-cols-1 gap-px bg-base-200 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
             {topCustomers.length === 0 ? (
-              <p className="text-sm text-base-content/40 py-6 text-center">Aucun client</p>
+              <p className="col-span-full bg-base-100 px-4 py-8 text-center text-sm text-base-content/45">Aucun client à afficher</p>
             ) : (
               topCustomers.map((customer, index) => (
-                <div
-                  key={customer.id}
-                  className={`flex items-center gap-3 rounded-xl p-3 transition-colors ${
-                    index === 0
-                      ? 'bg-amber-50/80 dark:bg-amber-900/10'
-                      : 'hover:bg-base-200/40'
-                  }`}
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
-                    style={{
-                      backgroundColor: index === 0 ? '#f59e0b20' : index === 1 ? '#94a3b820' : index === 2 ? '#d9770620' : 'transparent',
-                      color: index === 0 ? '#d97706' : index === 1 ? '#64748b' : index === 2 ? '#b45309' : '#94a3b8',
-                    }}
-                  >
+                <div key={customer.id} className={`flex min-w-0 items-center gap-3 px-4 py-3 ${index === 0 ? 'bg-warning/5' : 'bg-base-100'}`}>
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-base-200 text-xs font-bold">
                     <TopBadge rank={index + 1} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{customer.name}</p>
-                    <p className="text-[11px] text-base-content/40 truncate">{customer.city || 'N/A'}</p>
+                    <p className="truncate text-sm font-semibold">{customer.name}</p>
+                    <p className="truncate text-xs text-base-content/40">{customer.city || customer.type?.name || 'Non renseigné'}</p>
                   </div>
-                  <span className="text-sm font-bold tabular-nums text-emerald-700 dark:text-emerald-400 shrink-0">
+                  <span className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums text-success">
                     {fCF(customer.totalPurchases)} F
                   </span>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </section>
       </motion.div>
 
       {/* ---------- Add Modal ---------- */}

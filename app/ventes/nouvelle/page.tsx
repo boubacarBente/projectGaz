@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { PageHeader } from "@/components/page-header";
 import { SurfaceCard } from "@/components/surface-card";
+import type { PurchaseInvoiceOption } from "@/lib/ventes-types";
 
 type Product = {
   id: number;
@@ -27,7 +28,9 @@ function formatCurrency(value: number) {
 export default function NouvelleFacturePage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoiceOption[]>([]);
   const [customerName, setCustomerName] = useState("");
+  const [purchaseInvoiceId, setPurchaseInvoiceId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState("Especes");
   const [amountPaid, setAmountPaid] = useState("");
@@ -38,15 +41,24 @@ export default function NouvelleFacturePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/produits")
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data);
-        if (data.length > 0) {
-          setLines([{ productId: data[0].id.toString(), quantity: "1", unitPrice: data[0].salePrice.toString() }]);
-          setAmountPaid(data[0].salePrice.toString());
+    const controller = new AbortController();
+    Promise.all([
+      fetch("/api/produits?all=true&limit=100", { signal: controller.signal }),
+      fetch("/api/depenses?limit=100000", { signal: controller.signal }),
+    ])
+      .then(async ([productsResponse, purchaseResponse]) => {
+        const productsPayload = await productsResponse.json();
+        const purchasePayload = await purchaseResponse.json();
+        const availableProducts = Array.isArray(productsPayload.data) ? productsPayload.data : [];
+        setProducts(availableProducts);
+        setPurchaseInvoices(Array.isArray(purchasePayload.data) ? purchasePayload.data : []);
+        if (availableProducts.length > 0) {
+          setLines([{ productId: availableProducts[0].id.toString(), quantity: "1", unitPrice: availableProducts[0].salePrice.toString() }]);
+          setAmountPaid(availableProducts[0].salePrice.toString());
         }
-      });
+      })
+      .catch(() => {});
+    return () => controller.abort();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,6 +82,7 @@ export default function NouvelleFacturePage() {
         method: "POST",
         body: JSON.stringify({
           customerName,
+          purchaseInvoiceId: purchaseInvoiceId ? parseInt(purchaseInvoiceId, 10) : null,
           date,
           paymentMethod,
           amountPaid: amountPaid || 0,
@@ -154,7 +167,7 @@ export default function NouvelleFacturePage() {
         >
           <form onSubmit={handleSubmit} className="grid gap-4">
             {/* Client & Date */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <label className="grid gap-2 text-sm font-medium text-base-content/80">
                 Nom du client
                 <input
@@ -166,6 +179,25 @@ export default function NouvelleFacturePage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                 />
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-base-content/80">
+                <span>
+                  Facture d&apos;usine liée
+                  <span className="ml-2 text-xs font-normal text-base-content/45">Facultatif</span>
+                </span>
+                <select
+                  value={purchaseInvoiceId}
+                  onChange={(e) => setPurchaseInvoiceId(e.target.value)}
+                  className="select select-bordered w-full rounded-lg"
+                >
+                  <option value="">Aucune facture d&apos;usine</option>
+                  {purchaseInvoices.map((invoice) => (
+                    <option key={invoice.id} value={invoice.id}>
+                      {invoice.reference} - {invoice.supplierName} - {new Date(`${invoice.date}T00:00:00`).toLocaleDateString('fr-FR')}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="grid gap-2 text-sm font-medium text-base-content/80">

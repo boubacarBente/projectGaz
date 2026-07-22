@@ -40,9 +40,24 @@ export async function PUT(
 
     const body = await request.json();
     const { customerId, customerName, date, paymentMethod, notes, amountPaid, lines } = body;
+    const hasPurchaseInvoiceId = Object.prototype.hasOwnProperty.call(body, 'purchaseInvoiceId');
+    const purchaseInvoiceId = !hasPurchaseInvoiceId
+      ? undefined
+      : body.purchaseInvoiceId == null || body.purchaseInvoiceId === ''
+        ? null
+        : Number(body.purchaseInvoiceId);
+
+    if (
+      purchaseInvoiceId !== undefined &&
+      purchaseInvoiceId !== null &&
+      (!Number.isInteger(purchaseInvoiceId) || purchaseInvoiceId <= 0)
+    ) {
+      return NextResponse.json({ error: 'Invalid purchase invoice ID' }, { status: 400 });
+    }
 
     const invoice = await updateSalesInvoice(invoiceId, {
       ...(customerId && { customerId }),
+      ...(hasPurchaseInvoiceId && { purchaseInvoiceId }),
       ...(customerName && { customerName }),
       ...(date && { date }),
       ...(paymentMethod && { paymentMethod }),
@@ -55,7 +70,7 @@ export async function PUT(
   } catch (error: any) {
     console.error('Error updating sales invoice:', error);
     const message = error instanceof Error ? error.message : 'Failed to update invoice';
-    const status = message.includes('Stock insuffisant') ? 400 : 500;
+    const status = message.includes('Stock insuffisant') || message.includes("facture d'usine liée") ? 400 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

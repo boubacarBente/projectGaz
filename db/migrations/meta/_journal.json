@@ -29,6 +29,13 @@
       "when": 1781538183970,
       "tag": "0003_secret_angel",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1784728696628,
+      "tag": "0004_ambiguous_star_brand",
+      "breakpoints": true
     }
   ]
 }

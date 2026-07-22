@@ -272,7 +272,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
 
           <div className='flex flex-wrap justify-center gap-4'>
-            <div className="form-control flex-1 min-w-[200px]">
+            <div className="form-control flex-1 min-w-50">
               <label className="label block">
                 <span className="label-text font-medium text-sm">Nom de l'entreprise</span>
               </label>
@@ -284,7 +284,7 @@ function SettingsForm({ onSave, initialSettings, isSubmitting, setIsSubmitting }
                 placeholder="Mini-Centre Distribution"
               />
             </div>
-            <div className="form-control flex-1 min-w-[200px]">
+            <div className="form-control flex-1 min-w-50">
               <label className="label block">
                 <span className="label-text font-medium text-sm">Téléphone</span>
               </label>
@@ -785,7 +785,7 @@ export default function ParametresPage() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
     async function loadSettings() {
@@ -824,7 +824,7 @@ export default function ParametresPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isAuthLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <span className="loading loading-spinner loading-lg text-primary" />

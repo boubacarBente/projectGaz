@@ -12,6 +12,9 @@ export type SalesInvoiceItem = {
 export type SalesInvoice = {
   id: number;
   invoiceNumber: string;
+  purchaseInvoiceId: number | null;
+  purchaseInvoiceReference: string | null;
+  purchaseInvoiceSupplierName: string | null;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -40,6 +43,25 @@ export type Customer = {
   name: string;
 };
 
+export type PurchaseInvoiceOption = {
+  id: number;
+  reference: string;
+  supplierName: string;
+  date: string;
+  totalAmount: number;
+};
+
+export type LinkedSalesInvoice = {
+  id: number;
+  invoiceNumber: string;
+  customerName: string;
+  date: string;
+  totalAmount: number;
+  amountPaid: number;
+  remainingAmount: number;
+  paymentStatus: 'Payée' | 'Partiel' | 'En attente';
+};
+
 export type VentesStats = {
   total: { total: number; paid: number; remaining: number; count: number; paidCount: number };
   byStatus: Array<{ status: string; count: number; total: number }>;
@@ -60,6 +82,7 @@ export type InvoiceLine = {
 
 export type InvoiceFormData = {
   customerName: string;
+  purchaseInvoiceId: string;
   date: string;
   paymentMethod: string;
   notes: string;

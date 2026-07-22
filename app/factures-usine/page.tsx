@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
+import { PurchasePaymentStatusBadge } from '@/components/purchase-payment-status-badge';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 // DatePicker removed
 
@@ -631,12 +632,8 @@ export default function DepensesPage() {
                   </div>
                 )},
                 { key: 'total', label: 'Total', render: (inv) => <span className="font-semibold text-warning">{formatCurrency(inv.totalAmount)} GNF</span> },
-                { key: 'status', label: 'Statut', render: (inv) => (
-                  inv.isPaid ? (
-                    <span className="badge badge-primary">Payée</span>
-                  ) : (
-                    <span className="badge bg-danger">Non payée</span>
-                  )
+                { key: 'status', label: 'Statut', className: 'whitespace-nowrap', render: (inv) => (
+                  <PurchasePaymentStatusBadge isPaid={inv.isPaid} />
                 )},
               ]}
               data={invoices}
@@ -1179,11 +1176,7 @@ export default function DepensesPage() {
               </div>
               <div>
                 <p className="text-xs text-base-content/60">Statut</p>
-                {selectedInvoice.isPaid ? (
-                  <span className="badge badge-primary">Payée</span>
-                ) : (
-                  <span className="badge badge-primary">Non payée</span>
-                )}
+                <PurchasePaymentStatusBadge isPaid={selectedInvoice.isPaid} className="mt-1" />
               </div>
             </div>
 

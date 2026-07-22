@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
+import { PurchaseLinkedSales } from "@/components/purchase-linked-sales";
+import { PurchasePaymentStatusBadge } from "@/components/purchase-payment-status-badge";
 import { SurfaceCard } from "@/components/surface-card";
-import { getPurchaseInvoice } from "@/lib/operations";
+import { getPurchaseInvoice, listSalesInvoicesByPurchaseInvoiceId } from "@/lib/operations";
 
 type FactureUsineDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -16,7 +18,13 @@ export default async function FactureUsineDetailPage({
   params,
 }: FactureUsineDetailPageProps) {
   const { id } = await params;
-  const invoice = await getPurchaseInvoice(parseInt(id));
+  const invoiceId = parseInt(id, 10);
+  const [invoice, linkedSales] = Number.isInteger(invoiceId)
+    ? await Promise.all([
+        getPurchaseInvoice(invoiceId),
+        listSalesInvoicesByPurchaseInvoiceId(invoiceId),
+      ])
+    : [null, []];
 
   if (!invoice) {
     return (
@@ -35,6 +43,8 @@ export default async function FactureUsineDetailPage({
     );
   }
 
+  const linkedSalesTotal = linkedSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -46,9 +56,7 @@ export default async function FactureUsineDetailPage({
             <Link href="/factures-usine" className="btn btn-outline">
               Retour
             </Link>
-            <span className={`badge ${invoice.isPaid ? 'badge-success' : 'badge-warning'} text-xs p-3`}>
-              {invoice.isPaid ? 'Payée' : 'Impayée'}
-            </span>
+            <PurchasePaymentStatusBadge isPaid={invoice.isPaid} />
           </div>
         }
       />
@@ -56,7 +64,11 @@ export default async function FactureUsineDetailPage({
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <SurfaceCard title="Total">{formatCurrency(invoice.totalAmount)} F</SurfaceCard>
         <SurfaceCard title="Fournisseur">{invoice.supplierName}</SurfaceCard>
-        <SurfaceCard title="Statut">{invoice.isPaid ? 'Payée' : 'Impayée'}</SurfaceCard>
+        <SurfaceCard title="Statut"><PurchasePaymentStatusBadge isPaid={invoice.isPaid} /></SurfaceCard>
+        <SurfaceCard title="Ventes liées">
+          <p className="text-xl font-semibold">{linkedSales.length}</p>
+          <p className="mt-1 text-xs text-base-content/55">{formatCurrency(linkedSalesTotal)} F au total</p>
+        </SurfaceCard>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -102,6 +114,13 @@ export default async function FactureUsineDetailPage({
             </tfoot>
           </table>
         </div>
+      </SurfaceCard>
+
+      <SurfaceCard
+        title="Ventes liées"
+        description="Toutes les ventes rattachées directement à cette facture d'usine."
+      >
+        <PurchaseLinkedSales sales={linkedSales} />
       </SurfaceCard>
     </div>
   );

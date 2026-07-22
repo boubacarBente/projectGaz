@@ -109,6 +109,7 @@ export const salesInvoices = sqliteTable('sales_invoices', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   invoiceNumber: text('invoice_number').notNull(),
   customerId: integer('customer_id').references(() => customers.id),
+  purchaseInvoiceId: integer('purchase_invoice_id').references(() => purchaseInvoices.id, { onDelete: 'set null' }),
   customerName: text('customer_name').notNull(),
   date: text('date').notNull(),
   paymentMethod: text('payment_method').default('Espèces'),
@@ -191,6 +192,7 @@ export const purchaseInvoiceRelations = relations(purchaseInvoices, ({ one, many
     references: [suppliers.id],
   }),
   items: many(purchaseInvoiceItems),
+  salesInvoices: many(salesInvoices),
 }));
 
 export const purchaseInvoiceItemRelations = relations(purchaseInvoiceItems, ({ one }) => ({
@@ -208,6 +210,10 @@ export const salesInvoiceRelations = relations(salesInvoices, ({ one, many }) =>
   customer: one(customers, {
     fields: [salesInvoices.customerId],
     references: [customers.id],
+  }),
+  purchaseInvoice: one(purchaseInvoices, {
+    fields: [salesInvoices.purchaseInvoiceId],
+    references: [purchaseInvoices.id],
   }),
   items: many(salesInvoiceItems),
 }));

@@ -1,8 +1,9 @@
 'use client';
 
 import { memo } from 'react';
+import Link from 'next/link';
 import { Modal } from '@/components/modal';
-import type { SalesInvoice, Product, Customer, InvoiceLine, InvoiceFormData } from '@/lib/ventes-types';
+import type { SalesInvoice, Product, Customer, PurchaseInvoiceOption, InvoiceLine, InvoiceFormData } from '@/lib/ventes-types';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
@@ -200,6 +201,37 @@ function PaymentFields({
 
 const MemoPaymentFields = memo(PaymentFields);
 
+function PurchaseInvoiceField({
+  formData,
+  purchaseInvoices,
+  onChange,
+}: {
+  formData: InvoiceFormData;
+  purchaseInvoices: PurchaseInvoiceOption[];
+  onChange: (data: InvoiceFormData) => void;
+}) {
+  return (
+    <div className="form-control">
+      <label className="label block">
+        <span className="label-text font-medium">Facture d&apos;usine liée</span>
+        <span className="ml-2 text-xs font-normal text-base-content/45">Facultatif</span>
+      </label>
+      <select
+        value={formData.purchaseInvoiceId}
+        onChange={(e) => onChange({ ...formData, purchaseInvoiceId: e.target.value })}
+        className="select select-bordered w-full"
+      >
+        <option value="">Aucune facture d&apos;usine</option>
+        {purchaseInvoices.map((invoice) => (
+          <option key={invoice.id} value={invoice.id}>
+            {invoice.reference} - {invoice.supplierName} - {new Date(`${invoice.date}T00:00:00`).toLocaleDateString('fr-FR')}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 // ─── Add Invoice Modal ────────────────────────────────────────────────
 
 export function AddInvoiceModal({
@@ -209,6 +241,7 @@ export function AddInvoiceModal({
   onFormDataChange,
   products,
   customers,
+  purchaseInvoices,
   isSubmitting,
   onSubmit,
   onAddLine,
@@ -221,6 +254,7 @@ export function AddInvoiceModal({
   onFormDataChange: (data: InvoiceFormData) => void;
   products: Product[];
   customers: Customer[];
+  purchaseInvoices: PurchaseInvoiceOption[];
   isSubmitting: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onAddLine: () => void;
@@ -230,7 +264,7 @@ export function AddInvoiceModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Nouvelle facture de vente" size="xl">
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px]">
           <div className="form-control">
             <label className="label block">
               <span className="label-text font-medium">Client *</span>
@@ -248,6 +282,11 @@ export function AddInvoiceModal({
               {customers.map(c => <option key={c.id} value={c.name} />)}
             </datalist>
           </div>
+          <PurchaseInvoiceField
+            formData={formData}
+            purchaseInvoices={purchaseInvoices}
+            onChange={onFormDataChange}
+          />
           <div className="form-control">
             <label className="label block">
               <span className="label-text font-medium">Date</span>
@@ -299,6 +338,7 @@ export function EditInvoiceModal({
   onFormDataChange,
   products,
   customers,
+  purchaseInvoices,
   isSubmitting,
   onSubmit,
   onAddLine,
@@ -312,6 +352,7 @@ export function EditInvoiceModal({
   onFormDataChange: (data: InvoiceFormData) => void;
   products: Product[];
   customers: Customer[];
+  purchaseInvoices: PurchaseInvoiceOption[];
   isSubmitting: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onAddLine: () => void;
@@ -322,7 +363,7 @@ export function EditInvoiceModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Modifier: ${invoiceNumber ?? ''}`} size="xl">
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px]">
           <div className="form-control">
             <label className="label block">
               <span className="label-text font-medium">Client *</span>
@@ -339,6 +380,11 @@ export function EditInvoiceModal({
               ))}
             </select>
           </div>
+          <PurchaseInvoiceField
+            formData={formData}
+            purchaseInvoices={purchaseInvoices}
+            onChange={onFormDataChange}
+          />
           <div className="form-control">
             <label className="label block">
               <span className="label-text font-medium">Date</span>
@@ -415,6 +461,20 @@ export function DetailInvoiceModal({
                 {statusLabels[invoice.paymentStatus] ?? invoice.paymentStatus}
               </span>
             </div>
+            {invoice.purchaseInvoiceId && (
+              <div className="sm:col-span-2">
+                <span className="text-base-content/60">Facture d&apos;usine liée:</span>
+                <p>
+                  <Link
+                    href={`/factures-usine/${invoice.purchaseInvoiceId}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {invoice.purchaseInvoiceReference || `Facture #${invoice.purchaseInvoiceId}`}
+                    {invoice.purchaseInvoiceSupplierName ? ` - ${invoice.purchaseInvoiceSupplierName}` : ''}
+                  </Link>
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-b border-base-200 py-4">

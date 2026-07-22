@@ -59,6 +59,9 @@ export type SalesInvoice = {
   id: number;
   invoiceNumber: string;
   customerId: number | null;
+  purchaseInvoiceId: number | null;
+  purchaseInvoiceReference: string | null;
+  purchaseInvoiceSupplierName: string | null;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -75,6 +78,19 @@ export type SalesInvoice = {
 
 function roundAmount(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+async function assertPurchaseInvoiceExists(purchaseInvoiceId: number | null | undefined) {
+  if (purchaseInvoiceId == null) return;
+
+  const [invoice] = await db.select({ id: purchaseInvoices.id })
+    .from(purchaseInvoices)
+    .where(eq(purchaseInvoices.id, purchaseInvoiceId))
+    .limit(1);
+
+  if (!invoice) {
+    throw new Error("La facture d'usine liée est introuvable");
+  }
 }
 
 async function recalculateSupplierTotalPurchases(supplierId: number) {
@@ -322,12 +338,18 @@ export async function listSalesInvoices(from?: string, to?: string) {
   const invoices = await db.query.salesInvoices.findMany({
     where: conditions.length > 0 ? and(...conditions) : undefined,
     orderBy: [desc(salesInvoices.date), desc(salesInvoices.createdAt), desc(salesInvoices.id)],
-    with: { items: true },
+    with: {
+      items: true,
+      purchaseInvoice: { with: { supplier: true } },
+    },
   });
 
   return invoices.map((inv) => ({
     id: inv.id,
     customerId: inv.customerId,
+    purchaseInvoiceId: inv.purchaseInvoiceId,
+    purchaseInvoiceReference: inv.purchaseInvoice?.reference ?? null,
+    purchaseInvoiceSupplierName: inv.purchaseInvoice?.supplier?.name ?? null,
     invoiceNumber: inv.invoiceNumber,
     customerName: inv.customerName,
     date: inv.date,
@@ -376,7 +398,10 @@ export async function listPaginatedSalesInvoices(
     db.query.salesInvoices.findMany({
       where,
       orderBy: [desc(salesInvoices.createdAt), desc(salesInvoices.id), desc(salesInvoices.date)],
-      with: { items: true },
+      with: {
+        items: true,
+        purchaseInvoice: { with: { supplier: true } },
+      },
       limit,
       offset,
     }),
@@ -388,6 +413,9 @@ export async function listPaginatedSalesInvoices(
   const data: SalesInvoice[] = invoices.map((inv) => ({
     id: inv.id,
     customerId: inv.customerId,
+    purchaseInvoiceId: inv.purchaseInvoiceId,
+    purchaseInvoiceReference: inv.purchaseInvoice?.reference ?? null,
+    purchaseInvoiceSupplierName: inv.purchaseInvoice?.supplier?.name ?? null,
     invoiceNumber: inv.invoiceNumber,
     customerName: inv.customerName,
     date: inv.date,
@@ -410,6 +438,30 @@ export async function listPaginatedSalesInvoices(
 
   const total = Number(totalResult[0].count);
   return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+}
+
+export async function listSalesInvoicesByPurchaseInvoiceId(purchaseInvoiceId: number) {
+  const invoices = await db.select({
+    id: salesInvoices.id,
+    invoiceNumber: salesInvoices.invoiceNumber,
+    customerName: salesInvoices.customerName,
+    date: salesInvoices.date,
+    totalAmount: salesInvoices.totalAmount,
+    amountPaid: salesInvoices.amountPaid,
+    remainingAmount: salesInvoices.remainingAmount,
+    paymentStatus: salesInvoices.paymentStatus,
+  })
+    .from(salesInvoices)
+    .where(eq(salesInvoices.purchaseInvoiceId, purchaseInvoiceId))
+    .orderBy(desc(salesInvoices.date), desc(salesInvoices.createdAt), desc(salesInvoices.id));
+
+  return invoices.map((invoice) => ({
+    ...invoice,
+    totalAmount: invoice.totalAmount ?? 0,
+    amountPaid: invoice.amountPaid ?? 0,
+    remainingAmount: invoice.remainingAmount ?? 0,
+    paymentStatus: (invoice.paymentStatus as SalesInvoice['paymentStatus']) || 'En attente',
+  }));
 }
 
 type LineInput = {
@@ -626,6 +678,7 @@ export async function createPurchaseInvoice(input: {
 
 export async function createSalesInvoice(input: {
   customerId?: number | null;
+  purchaseInvoiceId?: number | null;
   customerName: string;
   date: string;
   paymentMethod: string;
@@ -665,6 +718,8 @@ export async function createSalesInvoice(input: {
   // return invoice;
 
   // --- CODE SQL ---
+  await assertPurchaseInvoiceExists(input.purchaseInvoiceId);
+
   const items = await buildSalesItems(input.lines);
   const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
   const remainingAmount = Math.max(totalAmount - input.amountPaid, 0);
@@ -687,6 +742,7 @@ export async function createSalesInvoice(input: {
 
   const result = await db.insert(salesInvoices).values({
     invoiceNumber,
+    purchaseInvoiceId: input.purchaseInvoiceId ?? null,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -744,6 +800,9 @@ export async function createSalesInvoice(input: {
   return {
     id: invoiceId,
     invoiceNumber,
+    purchaseInvoiceId: input.purchaseInvoiceId ?? null,
+    purchaseInvoiceReference: null,
+    purchaseInvoiceSupplierName: null,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -930,6 +989,10 @@ export async function deletePurchaseInvoice(id: number) {
 
   // Supprimer les items
   await db.delete(purchaseInvoiceItems).where(eq(purchaseInvoiceItems.invoiceId, id));
+  // Conserver les ventes tout en retirant leur liaison documentaire.
+  await db.update(salesInvoices)
+    .set({ purchaseInvoiceId: null })
+    .where(eq(salesInvoices.purchaseInvoiceId, id));
   // Supprimer la facture
   await db.delete(purchaseInvoices).where(eq(purchaseInvoices.id, id));
 
@@ -945,7 +1008,10 @@ export async function getSalesInvoice(id: number) {
   // --- CODE SQL ---
   const inv = await db.query.salesInvoices.findFirst({
     where: eq(salesInvoices.id, id),
-    with: { items: true },
+    with: {
+      items: true,
+      purchaseInvoice: { with: { supplier: true } },
+    },
   });
   if (!inv) return null;
 
@@ -953,6 +1019,9 @@ export async function getSalesInvoice(id: number) {
     id: inv.id,
     invoiceNumber: inv.invoiceNumber,
     customerId: inv.customerId,
+    purchaseInvoiceId: inv.purchaseInvoiceId,
+    purchaseInvoiceReference: inv.purchaseInvoice?.reference ?? null,
+    purchaseInvoiceSupplierName: inv.purchaseInvoice?.supplier?.name ?? null,
     customerName: inv.customerName,
     date: inv.date,
     paymentMethod: inv.paymentMethod || "Espèces",
@@ -1008,6 +1077,7 @@ export async function getSalesInvoice(id: number) {
 }
 
 export async function updateSalesInvoice(id: number, input: {
+  purchaseInvoiceId?: number | null;
   customerName?: string;
   date?: string;
   paymentMethod?: string;
@@ -1061,6 +1131,8 @@ export async function updateSalesInvoice(id: number, input: {
     throw new Error('Invoice not found');
   }
 
+  await assertPurchaseInvoiceExists(input.purchaseInvoiceId);
+
   const oldSaleItems = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, id));
   const oldQuantityByProductId = new Map<number, number>();
   for (const item of oldSaleItems) {
@@ -1088,6 +1160,7 @@ export async function updateSalesInvoice(id: number, input: {
         : "Payée";
 
   await db.update(salesInvoices).set({
+    purchaseInvoiceId: input.purchaseInvoiceId,
     customerName: input.customerName,
     date: input.date,
     paymentMethod: input.paymentMethod,
@@ -1145,6 +1218,11 @@ export async function updateSalesInvoice(id: number, input: {
   return {
     id,
     invoiceNumber: existing[0].invoiceNumber,
+    purchaseInvoiceId: input.purchaseInvoiceId !== undefined
+      ? input.purchaseInvoiceId
+      : existing[0].purchaseInvoiceId,
+    purchaseInvoiceReference: null,
+    purchaseInvoiceSupplierName: null,
     customerName: input.customerName ?? existing[0].customerName,
     date: input.date ?? existing[0].date,
     paymentMethod: input.paymentMethod ?? existing[0].paymentMethod,
