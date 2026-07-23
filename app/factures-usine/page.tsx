@@ -865,15 +865,24 @@ export default function DepensesPage() {
           </div>
 
           {/* Notes */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Notes (optionnel)</span>
-            </label>
+          <div className="rounded-xl border border-base-300/70 bg-base-100 p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <label htmlFor="purchase-notes-add" className="flex items-center gap-2 text-sm font-semibold text-base-content/75">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h6m-6 4h8M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                </svg>
+                Notes
+              </label>
+              <span className="rounded-full bg-base-200 px-3 py-1 text-xs font-medium text-base-content/60">
+                Optionnel
+              </span>
+            </div>
             <textarea
+              id="purchase-notes-add"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="textarea textarea-bordered textarea-primary focus:textarea-focus"
-              rows={2}
+              className="textarea textarea-bordered min-h-24 w-full resize-y rounded-lg border-base-300 bg-base-100 text-sm leading-relaxed placeholder:text-base-content/35 focus:border-primary focus:outline-none"
+              rows={4}
               placeholder="Ajouter des notes ou remarques..."
             />
           </div>
@@ -1103,15 +1112,24 @@ export default function DepensesPage() {
           </div>
 
           {/* Notes */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Notes (optionnel)</span>
-            </label>
+          <div className="rounded-xl border border-base-300/70 bg-base-100 p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <label htmlFor="purchase-notes-edit" className="flex items-center gap-2 text-sm font-semibold text-base-content/75">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h6m-6 4h8M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                </svg>
+                Notes
+              </label>
+              <span className="rounded-full bg-base-200 px-3 py-1 text-xs font-medium text-base-content/60">
+                Optionnel
+              </span>
+            </div>
             <textarea
+              id="purchase-notes-edit"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="textarea textarea-bordered textarea-primary focus:textarea-focus"
-              rows={2}
+              className="textarea textarea-bordered min-h-24 w-full resize-y rounded-lg border-base-300 bg-base-100 text-sm leading-relaxed placeholder:text-base-content/35 focus:border-primary focus:outline-none"
+              rows={4}
               placeholder="Ajouter des notes ou remarques..."
             />
           </div>
