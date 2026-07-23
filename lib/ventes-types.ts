@@ -56,6 +56,7 @@ export type LinkedSalesInvoice = {
   invoiceNumber: string;
   customerName: string;
   date: string;
+  items: SalesInvoiceItem[];
   totalAmount: number;
   amountPaid: number;
   remainingAmount: number;

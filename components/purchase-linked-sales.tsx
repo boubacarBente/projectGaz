@@ -13,6 +13,19 @@ function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR');
 }
 
+function formatDeliveredQuantity(items: LinkedSalesInvoice['items']) {
+  const quantitiesByCode = new Map<string, number>();
+
+  for (const item of items) {
+    const code = item.productCode || item.productName;
+    quantitiesByCode.set(code, (quantitiesByCode.get(code) ?? 0) + item.quantity);
+  }
+
+  return Array.from(quantitiesByCode.entries())
+    .map(([code, quantity]) => `${code}x${quantity}`)
+    .join(', ');
+}
+
 function SalesPaymentStatus({ status }: { status: LinkedSalesInvoice['paymentStatus'] }) {
   const styles = status === 'Payée'
     ? 'bg-success/10 text-success'
@@ -30,6 +43,11 @@ function SalesPaymentStatus({ status }: { status: LinkedSalesInvoice['paymentSta
 export function PurchaseLinkedSales({ sales }: { sales: LinkedSalesInvoice[] }) {
   const columns: Column<LinkedSalesInvoice>[] = [
     {
+      key: 'date',
+      label: 'Date',
+      render: (sale) => <span className="whitespace-nowrap text-base-content/60">{formatDate(sale.date)}</span>,
+    },
+    {
       key: 'invoiceNumber',
       label: 'Facture',
       primary: true,
@@ -45,10 +63,13 @@ export function PurchaseLinkedSales({ sales }: { sales: LinkedSalesInvoice[] }) 
       render: (sale) => <span className="font-medium">{sale.customerName}</span>,
     },
     {
-      key: 'date',
-      label: 'Date',
-      hideOnMobile: true,
-      render: (sale) => <span className="whitespace-nowrap text-base-content/60">{formatDate(sale.date)}</span>,
+      key: 'deliveredQuantity',
+      label: 'Quantité livrée',
+      render: (sale) => (
+        <span className="text-sm font-medium text-base-content/70">
+          {formatDeliveredQuantity(sale.items) || 'Aucune'}
+        </span>
+      ),
     },
     {
       key: 'totalAmount',

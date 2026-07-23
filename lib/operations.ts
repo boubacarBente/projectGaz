@@ -441,22 +441,29 @@ export async function listPaginatedSalesInvoices(
 }
 
 export async function listSalesInvoicesByPurchaseInvoiceId(purchaseInvoiceId: number) {
-  const invoices = await db.select({
-    id: salesInvoices.id,
-    invoiceNumber: salesInvoices.invoiceNumber,
-    customerName: salesInvoices.customerName,
-    date: salesInvoices.date,
-    totalAmount: salesInvoices.totalAmount,
-    amountPaid: salesInvoices.amountPaid,
-    remainingAmount: salesInvoices.remainingAmount,
-    paymentStatus: salesInvoices.paymentStatus,
-  })
-    .from(salesInvoices)
-    .where(eq(salesInvoices.purchaseInvoiceId, purchaseInvoiceId))
-    .orderBy(desc(salesInvoices.date), desc(salesInvoices.createdAt), desc(salesInvoices.id));
+  const invoices = await db.query.salesInvoices.findMany({
+    where: eq(salesInvoices.purchaseInvoiceId, purchaseInvoiceId),
+    orderBy: [desc(salesInvoices.date), desc(salesInvoices.createdAt), desc(salesInvoices.id)],
+    with: {
+      items: {
+        orderBy: [asc(salesInvoiceItems.id)],
+      },
+    },
+  });
 
   return invoices.map((invoice) => ({
-    ...invoice,
+    id: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    customerName: invoice.customerName,
+    date: invoice.date,
+    items: (invoice.items || []).map(item => ({
+      productId: item.productId,
+      productCode: item.productCode,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    })),
     totalAmount: invoice.totalAmount ?? 0,
     amountPaid: invoice.amountPaid ?? 0,
     remainingAmount: invoice.remainingAmount ?? 0,
