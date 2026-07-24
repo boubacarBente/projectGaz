@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
+import { PurchaseInvoiceReportExport } from "@/components/purchase-invoice-report-export";
 import { PurchaseLinkedSales } from "@/components/purchase-linked-sales";
 import { PurchasePaymentStatusBadge } from "@/components/purchase-payment-status-badge";
 import { SurfaceCard } from "@/components/surface-card";
@@ -53,6 +54,7 @@ export default async function FactureUsineDetailPage({
         description={`Créée le ${new Date(invoice.date).toLocaleDateString('fr-FR')}`}
         actions={
           <div className="flex gap-2">
+            <PurchaseInvoiceReportExport invoice={invoice} linkedSales={linkedSales} />
             <Link href="/factures-usine" className="btn btn-outline">
               Retour
             </Link>
