@@ -18,14 +18,6 @@ function isValidDateInput(date: unknown): date is string {
   );
 }
 
-function parseOptionalPurchaseInvoiceId(value: unknown) {
-  if (value === undefined || value === null || value === '') return null;
-  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
-    return undefined;
-  }
-  return value;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -52,7 +44,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { amount, type, description, date } = body;
-    const purchaseInvoiceId = parseOptionalPurchaseInvoiceId(body.purchaseInvoiceId);
 
     if (amount == null || !type || !['income', 'expense'].includes(type)) {
       return NextResponse.json({ error: 'Montant et type requis (income/expense)' }, { status: 400 });
@@ -66,15 +57,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Date invalide' }, { status: 400 });
     }
 
-    if (purchaseInvoiceId === undefined) {
-      return NextResponse.json({ error: "Facture d'usine liée invalide" }, { status: 400 });
-    }
-
     const transaction = await createWalletTransaction({
       amount,
       type,
       description: description || '',
-      purchaseInvoiceId,
       ...(date !== undefined && { date }),
     });
 
@@ -82,7 +68,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating wallet transaction:', error);
     const message = error instanceof Error ? error.message : 'Failed to create transaction';
-    const status = message.includes("facture d'usine liée") ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

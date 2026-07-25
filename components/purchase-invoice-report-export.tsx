@@ -40,8 +40,6 @@ type PurchaseInvoiceReportExportProps = {
   invoice: PurchaseInvoiceReport;
   linkedSales: LinkedSalesInvoice[];
   companyName?: string;
-  cashGivenAmount?: number;
-  cashGivenTransactionCount?: number;
 };
 
 function formatCurrency(value: number) {
@@ -142,8 +140,6 @@ function buildReportHTML(
   invoice: PurchaseInvoiceReport,
   linkedSales: LinkedSalesInvoice[],
   companyName = 'Gestion Gaz',
-  cashGivenAmount = 0,
-  cashGivenTransactionCount = 0,
 ) {
   const escapedCompanyName = escapeHtml(companyName || 'Gestion Gaz');
   const productRows = buildProductRows(invoice, linkedSales);
@@ -274,14 +270,6 @@ function buildReportHTML(
           display: block;
           font-size: 18px;
           line-height: 1.25;
-        }
-        .tile small {
-          color: #64748b;
-          display: block;
-          font-size: 10px;
-          font-weight: 700;
-          line-height: 1.3;
-          margin-top: 5px;
         }
         .grid {
           display: grid;
@@ -416,11 +404,6 @@ function buildReportHTML(
 
         <section class="summary">
           <div class="tile"><span>Total achat</span><strong>${formatCurrency(invoice.totalAmount)} GNF</strong></div>
-          <div class="tile">
-            <span>Montant espece donnee</span>
-            <strong class="warning">${formatCurrency(cashGivenAmount)} GNF</strong>
-            <small>${cashGivenTransactionCount} transaction${cashGivenTransactionCount > 1 ? 's' : ''} liee${cashGivenTransactionCount > 1 ? 's' : ''}</small>
-          </div>
           <div class="tile"><span>Ventes liees</span><strong>${linkedSales.length}</strong></div>
           <div class="tile"><span>Total ventes</span><strong>${formatCurrency(linkedSalesTotal)} GNF</strong></div>
           <div class="tile"><span>Marge estimee</span><strong class="${estimatedMargin >= 0 ? 'success' : 'danger'}">${formatCurrency(estimatedMargin)} GNF</strong></div>
@@ -563,16 +546,12 @@ export function PurchaseInvoiceReportExport({
   invoice,
   linkedSales,
   companyName,
-  cashGivenAmount = 0,
-  cashGivenTransactionCount = 0,
 }: PurchaseInvoiceReportExportProps) {
   const fileBase = `rapport-facture-usine-${getFileReference(invoice.reference)}`;
   const reportHTML = () => buildReportHTML(
     invoice,
     linkedSales,
     companyName,
-    cashGivenAmount,
-    cashGivenTransactionCount,
   );
 
   const handleExportImage = async () => {

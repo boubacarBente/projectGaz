@@ -43,6 +43,13 @@
       "when": 1784998887039,
       "tag": "0005_gray_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1785013489535,
+      "tag": "0006_calm_chameleon",
+      "breakpoints": true
     }
   ]
 }
