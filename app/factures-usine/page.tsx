@@ -10,6 +10,7 @@ import { Modal } from '@/components/modal';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
 import { PurchasePaymentStatusBadge } from '@/components/purchase-payment-status-badge';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
+import { useSettings } from '@/app/parametres/page';
 // DatePicker removed
 
 // Dynamic import for PDF/image generation
@@ -82,6 +83,8 @@ function formatCurrency(value: number) {
 }
 
 export default function DepensesPage() {
+  const { settings } = useSettings();
+  const companyName = settings.companyName || 'Gestion Gaz';
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -493,12 +496,12 @@ export default function DepensesPage() {
         </div>
         ${invoice.notes ? `
         <div style="margin-top:20px;padding:15px;background:#f8fafc;border-radius:8px;">
-          <p style="font-size:12px;color:#64748b;margin:0 0 5px 0;">Notes</p>
+          <p style="font-size:12px;color:#64748b;margin:0 0 5px 0;">Agent livreur</p>
           <p style="font-size:14px;margin:0;">${invoice.notes}</p>
         </div>` : ''}
         <div style="margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;">
           <p style="font-size:12px;color:#64748b;margin:0;">Facture d'usine - Achat produits</p>
-          <p style="font-size:14px;font-weight:bold;margin:10px 0 0 0;">ProjectGaz</p>
+          <p style="font-size:14px;font-weight:bold;margin:10px 0 0 0;">${companyName}</p>
         </div>
       </div>
     `;
@@ -864,14 +867,14 @@ export default function DepensesPage() {
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Agent livreur */}
           <div className="rounded-xl border border-base-300/70 bg-base-100 p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <label htmlFor="purchase-notes-add" className="flex items-center gap-2 text-sm font-semibold text-base-content/75">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h6m-6 4h8M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
                 </svg>
-                Notes
+                Agent livreur
               </label>
               <span className="rounded-full bg-base-200 px-3 py-1 text-xs font-medium text-base-content/60">
                 Optionnel
@@ -883,7 +886,7 @@ export default function DepensesPage() {
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="textarea textarea-bordered min-h-24 w-full resize-y rounded-lg border-base-300 bg-base-100 text-sm leading-relaxed placeholder:text-base-content/35 focus:border-primary focus:outline-none"
               rows={4}
-              placeholder="Ajouter des notes ou remarques..."
+              placeholder="Nom de l'agent livreur..."
             />
           </div>
 
@@ -1111,14 +1114,14 @@ export default function DepensesPage() {
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Agent livreur */}
           <div className="rounded-xl border border-base-300/70 bg-base-100 p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <label htmlFor="purchase-notes-edit" className="flex items-center gap-2 text-sm font-semibold text-base-content/75">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h6m-6 4h8M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
                 </svg>
-                Notes
+                Agent livreur
               </label>
               <span className="rounded-full bg-base-200 px-3 py-1 text-xs font-medium text-base-content/60">
                 Optionnel
@@ -1130,7 +1133,7 @@ export default function DepensesPage() {
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="textarea textarea-bordered min-h-24 w-full resize-y rounded-lg border-base-300 bg-base-100 text-sm leading-relaxed placeholder:text-base-content/35 focus:border-primary focus:outline-none"
               rows={4}
-              placeholder="Ajouter des notes ou remarques..."
+              placeholder="Nom de l'agent livreur..."
             />
           </div>
 
@@ -1223,7 +1226,7 @@ export default function DepensesPage() {
 
             {selectedInvoice.notes && (
               <div>
-                <p className="text-xs text-base-content/60">Notes</p>
+                <p className="text-xs text-base-content/60">Agent livreur</p>
                 <p className="text-sm">{selectedInvoice.notes}</p>
               </div>
             )}

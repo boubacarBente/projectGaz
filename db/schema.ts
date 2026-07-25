@@ -151,6 +151,10 @@ export const walletTransactions = sqliteTable('wallet_transactions', {
   amount: real('amount').notNull(),
   type: text('type', { enum: ['income', 'expense'] }).notNull(),
   description: text('description'),
+  purchaseInvoiceId: integer('purchase_invoice_id').references(() => purchaseInvoices.id, { onDelete: 'set null' }),
+  purchaseInvoiceReference: text('purchase_invoice_reference'),
+  purchaseInvoiceSupplierName: text('purchase_invoice_supplier_name'),
+  purchaseInvoiceDate: text('purchase_invoice_date'),
   balanceAfter: real('balance_after').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
@@ -193,6 +197,7 @@ export const purchaseInvoiceRelations = relations(purchaseInvoices, ({ one, many
   }),
   items: many(purchaseInvoiceItems),
   salesInvoices: many(salesInvoices),
+  walletTransactions: many(walletTransactions),
 }));
 
 export const purchaseInvoiceItemRelations = relations(purchaseInvoiceItems, ({ one }) => ({
@@ -226,6 +231,13 @@ export const salesInvoiceItemRelations = relations(salesInvoiceItems, ({ one }) 
   product: one(products, {
     fields: [salesInvoiceItems.productId],
     references: [products.id],
+  }),
+}));
+
+export const walletTransactionRelations = relations(walletTransactions, ({ one }) => ({
+  purchaseInvoice: one(purchaseInvoices, {
+    fields: [walletTransactions.purchaseInvoiceId],
+    references: [purchaseInvoices.id],
   }),
 }));
 

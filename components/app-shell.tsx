@@ -108,11 +108,11 @@ const navigation = [
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { settings, isLoading } = useSettings();
-  const { theme } = useTheme();
-  const { user, logout } = useAuth();
+  const { settings, isLoading: isSettingsLoading } = useSettings();
+  const { theme, isLoading: isThemeLoading } = useTheme();
+  const { user, isLoading: isAuthLoading, logout } = useAuth();
   const isDark = theme === 'dark';
-  const companyName = isLoading ? "Gestion Gaz" : settings.companyName;
+  const companyName = isSettingsLoading ? "Gestion Gaz" : settings.companyName;
   const isActive = (href: string) => {
     if (href === "/") return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
@@ -121,6 +121,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Login page → render children without sidebar
   if (pathname === '/login') {
     return <>{children}</>;
+  }
+
+  if (isAuthLoading || isSettingsLoading || isThemeLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-base-100">
+        <span className="loading loading-spinner loading-lg text-base-content/30" />
+      </div>
+    );
   }
 
   // Main content background

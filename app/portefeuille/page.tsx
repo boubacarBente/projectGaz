@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
@@ -14,9 +15,22 @@ type Transaction = {
   amount: number;
   type: 'income' | 'expense';
   description: string | null;
+  purchaseInvoiceId: number | null;
+  purchaseInvoiceReference: string | null;
+  purchaseInvoiceSupplierName: string | null;
+  purchaseInvoiceDate: string | null;
   balanceAfter: number;
   createdAt: string;
   updatedAt: string;
+};
+
+type PurchaseInvoiceOption = {
+  id: number;
+  reference: string;
+  supplierName?: string;
+  supplier?: string;
+  date: string;
+  totalAmount?: number;
 };
 
 type Summary = {
@@ -74,6 +88,20 @@ function escapeHTML(value: string | number | null | undefined) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function getPurchaseInvoiceOptionLabel(invoice: PurchaseInvoiceOption) {
+  const supplierName = invoice.supplierName || invoice.supplier || 'Fournisseur inconnu';
+  return `${invoice.reference} - ${supplierName} - ${formatDate(`${invoice.date}T00:00:00`)}`;
+}
+
+function getLinkedPurchaseInvoiceLabel(transaction: Transaction) {
+  if (!transaction.purchaseInvoiceReference && !transaction.purchaseInvoiceSupplierName) return null;
+
+  return [
+    transaction.purchaseInvoiceReference || 'Facture usine',
+    transaction.purchaseInvoiceSupplierName,
+  ].filter(Boolean).join(' - ');
 }
 
 function toDateInputValue(value: Date | string) {
@@ -210,17 +238,27 @@ function buildWalletReportHTML({
   const generatedAt = new Date().toLocaleString('fr-FR');
   const hiddenTransactionsCount = Math.max(0, summary.transactionsCount - displayedTransactions.length);
 
-  const rows = displayedTransactions.map((transaction) => `
-    <tr>
-      <td>${formatDate(transaction.createdAt)}</td>
-      <td><span class="type ${transaction.type}">${transaction.type === 'income' ? 'Entrée' : 'Sortie'}</span></td>
-      <td>${escapeHTML(transaction.description || 'Sans description')}</td>
-      <td class="right ${transaction.type === 'income' ? 'success' : 'danger'}">
-        ${transaction.type === 'income' ? '+' : '-'}${formatCurrency(transaction.amount)} GNF
-      </td>
-      <td class="right">${formatCurrency(transaction.balanceAfter)} GNF</td>
-    </tr>
-  `).join('');
+  const rows = displayedTransactions.map((transaction) => {
+    const linkedInvoiceLabel = getLinkedPurchaseInvoiceLabel(transaction);
+    const linkedInvoiceHTML = linkedInvoiceLabel
+      ? `<div class="linked-invoice">${transaction.purchaseInvoiceId ? 'Facture usine' : 'Facture usine supprimée'} : ${escapeHTML(linkedInvoiceLabel)}</div>`
+      : '';
+
+    return `
+      <div class="report-row">
+        <div>${formatDate(transaction.createdAt)}</div>
+        <div class="type-cell"><span class="type ${transaction.type}">${transaction.type === 'income' ? 'Entrée' : 'Sortie'}</span></div>
+        <div>
+          <div>${escapeHTML(transaction.description || 'Sans description')}</div>
+          ${linkedInvoiceHTML}
+        </div>
+        <div class="right ${transaction.type === 'income' ? 'success' : 'danger'}">
+          ${transaction.type === 'income' ? '+' : '-'}${formatCurrency(transaction.amount)} GNF
+        </div>
+        <div class="right">${formatCurrency(transaction.balanceAfter)} GNF</div>
+      </div>
+    `;
+  }).join('');
 
   return `<!DOCTYPE html>
     <html lang="fr">
@@ -242,15 +280,67 @@ function buildWalletReportHTML({
           .value { color: #111827; font-size: 19px; font-weight: 700; }
           .success { color: #15803d; }
           .danger { color: #dc2626; }
-          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-          th { padding: 11px 8px; text-align: left; font-size: 12px; color: #475569; background: #eef3f8; border-bottom: 2px solid #dbe4ef; }
-          td { padding: 10px 8px; font-size: 12px; line-height: 1.35; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
-          tr { break-inside: avoid; }
-          tbody tr:nth-child(even) { background: #fcfdff; }
+          .report-table { margin-top: 8px; width: 100%; }
+          .report-row {
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            break-inside: avoid;
+            display: grid;
+            grid-template-columns: 120px 110px minmax(0, 1fr) 165px 170px;
+            min-height: 44px;
+          }
+          .report-row > div {
+            font-size: 12px;
+            line-height: 1.35;
+            min-width: 0;
+            padding: 10px 8px;
+          }
+          .report-head {
+            background: #eef3f8;
+            border-bottom: 2px solid #dbe4ef;
+            color: #475569;
+            font-weight: 700;
+            min-height: 38px;
+          }
+          .report-head > div {
+            font-size: 12px;
+            padding-bottom: 11px;
+            padding-top: 11px;
+          }
+          .report-body .report-row:nth-child(even) { background: #fcfdff; }
           .right { text-align: right; white-space: nowrap; }
-          .type { display: inline-block; min-width: 58px; text-align: center; border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 700; }
+          .type-head,
+          .type-cell {
+            display: grid;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            place-items: center;
+            text-align: center;
+          }
+          .type {
+            background-clip: padding-box;
+            border-radius: 999px;
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            height: 22px;
+            line-height: 22px;
+            margin: 0 auto;
+            padding: 0;
+            text-align: center;
+            white-space: nowrap;
+            width: 64px;
+          }
           .type.income { color: #166534; background: #dcfce7; }
           .type.expense { color: #991b1b; background: #fee2e2; }
+          .linked-invoice {
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-top: 3px;
+          }
+          .empty-row { color: #64748b; padding: 14px 8px; }
           .note { margin-top: 12px; color: #64748b; font-size: 12px; }
           .footer { margin-top: 24px; padding-top: 14px; border-top: 1px solid #e2e8f0; text-align: center; }
         </style>
@@ -278,12 +368,16 @@ function buildWalletReportHTML({
           </section>
 
           <h2>Détail des transactions</h2>
-          <table>
-            <thead>
-              <tr><th>Date</th><th>Type</th><th>Description</th><th class="right">Montant</th><th class="right">Solde après</th></tr>
-            </thead>
-            <tbody>${rows || '<tr><td colspan="5">Aucune transaction sur cette période.</td></tr>'}</tbody>
-          </table>
+          <div class="report-table">
+            <div class="report-row report-head">
+              <div>Date</div>
+              <div class="type-head">Type</div>
+              <div>Description</div>
+              <div class="right">Montant</div>
+              <div class="right">Solde après</div>
+            </div>
+            <div class="report-body">${rows || '<div class="empty-row">Aucune transaction sur cette période.</div>'}</div>
+          </div>
           ${hiddenTransactionsCount > 0 ? `<p class="note">Le détail affiche les ${WALLET_REPORT_TRANSACTION_LIMIT} transactions les plus récentes sur ${formatCurrency(summary.transactionsCount)}. Les totaux restent calculés sur toute la période.</p>` : ''}
 
           <footer class="footer">
@@ -294,8 +388,78 @@ function buildWalletReportHTML({
     </html>`;
 }
 
+function WalletTypeBadge({ type }: { type: Transaction['type'] }) {
+  const isIncome = type === 'income';
+
+  return (
+    <span
+      className={`inline-flex h-6 min-w-[4.75rem] items-center justify-center whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold leading-none ${
+        isIncome
+          ? 'border-success/20 bg-success/15 text-success'
+          : 'border-error/20 bg-error/15 text-error'
+      }`}
+    >
+      {isIncome ? 'Entrée' : 'Sortie'}
+    </span>
+  );
+}
+
+function WalletPurchaseInvoiceLink({ transaction }: { transaction: Transaction }) {
+  const label = getLinkedPurchaseInvoiceLabel(transaction);
+  if (!label) return null;
+
+  if (transaction.purchaseInvoiceId) {
+    return (
+      <Link
+        href={`/factures-usine/${transaction.purchaseInvoiceId}`}
+        className="mt-1 block truncate text-[11px] font-semibold text-primary hover:underline"
+      >
+        Facture usine: {label}
+      </Link>
+    );
+  }
+
+  return (
+    <span className="mt-1 block truncate text-[11px] font-semibold text-base-content/45">
+      Facture usine supprimée: {label}
+    </span>
+  );
+}
+
+function PurchaseInvoiceSelect({
+  value,
+  onChange,
+  purchaseInvoices,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  purchaseInvoices: PurchaseInvoiceOption[];
+}) {
+  return (
+    <div className="form-control">
+      <label className="label block">
+        <span className="label-text font-medium">Facture d&apos;usine liée</span>
+        <span className="ml-2 text-xs font-normal text-base-content/45">Facultatif</span>
+      </label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="select select-bordered w-full"
+      >
+        <option value="">Aucune facture d&apos;usine</option>
+        {purchaseInvoices.map((invoice) => (
+          <option key={invoice.id} value={invoice.id}>
+            {getPurchaseInvoiceOptionLabel(invoice)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function PortefeuillePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoiceOption[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -318,6 +482,7 @@ export default function PortefeuillePage() {
   const [formAmount, setFormAmount] = useState('');
   const [formDate, setFormDate] = useState(() => toDateInputValue(new Date()));
   const [formDescription, setFormDescription] = useState('');
+  const [formPurchaseInvoiceId, setFormPurchaseInvoiceId] = useState('');
 
   const { search, setSearch, filter, setFilter, currentPage, setCurrentPage } = useSearchFilter(
     transactions,
@@ -344,21 +509,18 @@ export default function PortefeuillePage() {
 
   const transactionColumns = useMemo<Column<Transaction>[]>(() => [
     { key: 'date', label: 'Date', render: (tx) => <span className="text-sm">{formatDate(tx.createdAt)}</span>, primary: true },
-    { key: 'type', label: 'Type', render: (tx) => (
-      tx.type === 'income' ? (
-        <span className="badge badge-success badge-sm">Entrée</span>
-      ) : (
-        <span className="badge badge-error badge-sm">Sortie</span>
-      )
-    )},
+    { key: 'type', label: 'Type', render: (tx) => <WalletTypeBadge type={tx.type} />, className: 'w-28 text-center align-middle' },
     { key: 'amount', label: 'Montant', render: (tx) => (
       <span className={`font-medium ${tx.type === 'income' ? 'text-success' : 'text-error'}`}>
         {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)} GNF
       </span>
     ), className: 'text-right'},
     { key: 'description', label: 'Description', render: (tx) => (
-      <span className="text-sm text-base-content/70 max-w-[200px] truncate block">{tx.description || '—'}</span>
-    ), hideOnMobile: true},
+      <div className="max-w-[260px]">
+        <span className="block truncate text-sm text-base-content/70">{tx.description || '—'}</span>
+        <WalletPurchaseInvoiceLink transaction={tx} />
+      </div>
+    )},
     { key: 'balance', label: 'Solde après', render: (tx) => (
       <span className="text-sm font-medium">{formatCurrency(tx.balanceAfter)} GNF</span>
     ), className: 'text-right', hideOnMobile: true},
@@ -369,6 +531,23 @@ export default function PortefeuillePage() {
     fetchData(controller.signal);
     return () => controller.abort();
   }, [currentPage, search, filter, dateParams]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch('/api/depenses?limit=100000', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error()))
+      .then((data) => {
+        setPurchaseInvoices(Array.isArray(data.data) ? data.data : []);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setPurchaseInvoices([]);
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const fetchData = async (signal?: AbortSignal) => {
     const requestId = requestIdRef.current + 1;
@@ -428,6 +607,7 @@ export default function PortefeuillePage() {
     setFormAmount('');
     setFormDate(toDateInputValue(new Date()));
     setFormDescription('');
+    setFormPurchaseInvoiceId('');
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -454,6 +634,7 @@ export default function PortefeuillePage() {
           type: formType,
           date: formDate,
           description: formDescription,
+          purchaseInvoiceId: formPurchaseInvoiceId ? parseInt(formPurchaseInvoiceId, 10) : null,
         }),
       });
       if (!res.ok) {
@@ -477,6 +658,7 @@ export default function PortefeuillePage() {
     setFormAmount(tx.amount.toString());
     setFormDate(toDateInputValue(tx.createdAt));
     setFormDescription(tx.description || '');
+    setFormPurchaseInvoiceId(tx.purchaseInvoiceId?.toString() || '');
     setShowEditModal(true);
   };
 
@@ -505,6 +687,7 @@ export default function PortefeuillePage() {
           type: formType,
           date: formDate,
           description: formDescription,
+          purchaseInvoiceId: formPurchaseInvoiceId ? parseInt(formPurchaseInvoiceId, 10) : null,
         }),
       });
       if (!res.ok) {
@@ -786,7 +969,7 @@ export default function PortefeuillePage() {
               value={search}
               onChange={setSearch}
               onClear={() => setSearch('')}
-              placeholder="Rechercher par description..."
+              placeholder="Rechercher par description, référence ou fournisseur..."
             />
           </div>
           <FilterSelect
@@ -929,6 +1112,12 @@ export default function PortefeuillePage() {
             />
           </div>
 
+          <PurchaseInvoiceSelect
+            value={formPurchaseInvoiceId}
+            onChange={setFormPurchaseInvoiceId}
+            purchaseInvoices={purchaseInvoices}
+          />
+
           <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
             <button
               type="button"
@@ -1032,6 +1221,12 @@ export default function PortefeuillePage() {
               rows={2}
             />
           </div>
+
+          <PurchaseInvoiceSelect
+            value={formPurchaseInvoiceId}
+            onChange={setFormPurchaseInvoiceId}
+            purchaseInvoices={purchaseInvoices}
+          />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-base-300">
             <button

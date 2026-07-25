@@ -18,6 +18,14 @@ function isValidDateInput(date: unknown): date is string {
   );
 }
 
+function parseOptionalPurchaseInvoiceId(value: unknown) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    return undefined;
+  }
+  return value;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -56,6 +64,10 @@ export async function PUT(
 
     const body = await request.json();
     const { amount, type, description, date } = body;
+    const hasPurchaseInvoiceId = Object.prototype.hasOwnProperty.call(body, 'purchaseInvoiceId');
+    const purchaseInvoiceId = hasPurchaseInvoiceId
+      ? parseOptionalPurchaseInvoiceId(body.purchaseInvoiceId)
+      : undefined;
 
     if (amount != null && (typeof amount !== 'number' || amount <= 0)) {
       return NextResponse.json({ error: 'Montant invalide' }, { status: 400 });
@@ -69,18 +81,27 @@ export async function PUT(
       return NextResponse.json({ error: 'Date invalide' }, { status: 400 });
     }
 
+    if (hasPurchaseInvoiceId && purchaseInvoiceId === undefined) {
+      return NextResponse.json({ error: "Facture d'usine liée invalide" }, { status: 400 });
+    }
+
     const transaction = await updateWalletTransaction(txId, {
       ...(amount !== undefined && { amount }),
       ...(type !== undefined && { type }),
       ...(description !== undefined && { description }),
       ...(date !== undefined && { date }),
+      ...(hasPurchaseInvoiceId && { purchaseInvoiceId }),
     });
 
     return NextResponse.json(transaction);
   } catch (error) {
     console.error('Error updating wallet transaction:', error);
     const message = error instanceof Error ? error.message : 'Failed to update transaction';
-    const status = message === 'Transaction introuvable' ? 404 : 500;
+    const status = message === 'Transaction introuvable'
+      ? 404
+      : message.includes("facture d'usine liée")
+        ? 400
+        : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

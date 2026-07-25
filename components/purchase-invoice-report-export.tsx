@@ -2,7 +2,7 @@
 
 import { toast } from 'react-toastify';
 
-import { ExportDropdown } from '@/components/export-dropdown';
+import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
 import type { LinkedSalesInvoice } from '@/lib/ventes-types';
 
 type PurchaseInvoiceReportItem = {
@@ -39,6 +39,9 @@ type ProductReportRow = {
 type PurchaseInvoiceReportExportProps = {
   invoice: PurchaseInvoiceReport;
   linkedSales: LinkedSalesInvoice[];
+  companyName?: string;
+  cashGivenAmount?: number;
+  cashGivenTransactionCount?: number;
 };
 
 function formatCurrency(value: number) {
@@ -63,7 +66,7 @@ function getFileReference(reference: string) {
   return reference.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, '-');
 }
 
-function summarizeSaleItems(items: LinkedSalesInvoice['items']) {
+function renderSaleItemBadges(items: LinkedSalesInvoice['items']) {
   const quantitiesByCode = new Map<string, number>();
 
   for (const item of items) {
@@ -72,8 +75,18 @@ function summarizeSaleItems(items: LinkedSalesInvoice['items']) {
   }
 
   return Array.from(quantitiesByCode.entries())
-    .map(([code, quantity]) => `${escapeHtml(code)} x${quantity}`)
-    .join(', ');
+    .map(
+      ([code, quantity]) =>
+        `<span class="quantity-badge">${escapeHtml(code)} x${quantity}</span>`,
+    )
+    .join('');
+}
+
+function getSalesStatusBadgeClass(status: string) {
+  const normalizedStatus = status.toLowerCase();
+  if (status === 'Paye' || normalizedStatus.startsWith('pay')) return 'badge-success';
+  if (normalizedStatus.includes('partiel')) return 'badge-warning';
+  return 'badge-pending';
 }
 
 function buildProductRows(
@@ -125,7 +138,14 @@ function buildProductRows(
   );
 }
 
-function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSalesInvoice[]) {
+function buildReportHTML(
+  invoice: PurchaseInvoiceReport,
+  linkedSales: LinkedSalesInvoice[],
+  companyName = 'Gestion Gaz',
+  cashGivenAmount = 0,
+  cashGivenTransactionCount = 0,
+) {
+  const escapedCompanyName = escapeHtml(companyName || 'Gestion Gaz');
   const productRows = buildProductRows(invoice, linkedSales);
   const purchasedQuantity = invoice.items.reduce((sum, item) => sum + item.quantity, 0);
   const soldQuantity = linkedSales.reduce(
@@ -168,11 +188,11 @@ function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSale
         <td>${formatDate(sale.date)}</td>
         <td>${escapeHtml(sale.invoiceNumber)}</td>
         <td>${escapeHtml(sale.customerName)}</td>
-        <td>${summarizeSaleItems(sale.items) || 'Aucun article'}</td>
+        <td><div class="quantity-badges">${renderSaleItemBadges(sale.items) || 'Aucun article'}</div></td>
         <td class="num">${formatCurrency(sale.totalAmount)} GNF</td>
         <td class="num success">${formatCurrency(sale.amountPaid)} GNF</td>
         <td class="num warning">${formatCurrency(sale.remainingAmount)} GNF</td>
-        <td><span class="badge">${escapeHtml(sale.paymentStatus)}</span></td>
+        <td><span class="badge ${getSalesStatusBadgeClass(sale.paymentStatus)}">${escapeHtml(sale.paymentStatus === 'Paye' ? 'Payee' : sale.paymentStatus)}</span></td>
       </tr>
     `).join('')
     : '<tr><td colspan="8" class="empty">Aucune vente liee a cette facture usine.</td></tr>';
@@ -255,6 +275,14 @@ function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSale
           font-size: 18px;
           line-height: 1.25;
         }
+        .tile small {
+          color: #64748b;
+          display: block;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1.3;
+          margin-top: 5px;
+        }
         .grid {
           display: grid;
           grid-template-columns: 1.1fr .9fr;
@@ -308,8 +336,27 @@ function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSale
           text-align: right;
           white-space: nowrap;
         }
+        .quantity-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+        .quantity-badge {
+          align-items: center;
+          background: #ffffff;
+          border: 1px solid #64748b;
+          border-radius: 6px;
+          color: #334155;
+          display: inline-flex;
+          font-size: 10px;
+          font-weight: 600;
+          line-height: 1;
+          padding: 4px 7px;
+          white-space: nowrap;
+        }
         .badge {
           background: #eef2ff;
+          border: 1px solid #c7d2fe;
           border-radius: 999px;
           color: #1d4ed8;
           display: inline-block;
@@ -317,6 +364,21 @@ function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSale
           font-weight: 700;
           padding: 4px 8px;
           white-space: nowrap;
+        }
+        .badge-success {
+          background: #ecfdf5;
+          border-color: #a7f3d0;
+          color: #047857;
+        }
+        .badge-warning {
+          background: #fffbeb;
+          border-color: #fde68a;
+          color: #b45309;
+        }
+        .badge-pending {
+          background: #fff1f2;
+          border-color: #fecdd3;
+          color: #be123c;
         }
         .section {
           break-inside: avoid;
@@ -346,7 +408,7 @@ function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSale
             <p class="muted" style="margin: 10px 0 0;">${escapeHtml(invoice.supplierName)} - ${formatDate(invoice.date)}</p>
           </div>
           <div class="meta">
-            <div>ProjectGaz</div>
+            <div>${escapedCompanyName}</div>
             <div>Genere le ${escapeHtml(generatedAt)}</div>
             <div>Statut achat: <strong style="color:#172033;">${invoice.isPaid ? 'Payee' : 'En attente'}</strong></div>
           </div>
@@ -354,6 +416,11 @@ function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSale
 
         <section class="summary">
           <div class="tile"><span>Total achat</span><strong>${formatCurrency(invoice.totalAmount)} GNF</strong></div>
+          <div class="tile">
+            <span>Montant espece donnee</span>
+            <strong class="warning">${formatCurrency(cashGivenAmount)} GNF</strong>
+            <small>${cashGivenTransactionCount} transaction${cashGivenTransactionCount > 1 ? 's' : ''} liee${cashGivenTransactionCount > 1 ? 's' : ''}</small>
+          </div>
           <div class="tile"><span>Ventes liees</span><strong>${linkedSales.length}</strong></div>
           <div class="tile"><span>Total ventes</span><strong>${formatCurrency(linkedSalesTotal)} GNF</strong></div>
           <div class="tile"><span>Marge estimee</span><strong class="${estimatedMargin >= 0 ? 'success' : 'danger'}">${formatCurrency(estimatedMargin)} GNF</strong></div>
@@ -372,8 +439,8 @@ function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSale
             <div class="line"><span class="muted">Paiement usine</span><strong>${invoice.isPaid ? 'Payee' : 'En attente'}</strong></div>
           </div>
           <div class="box">
-            <h2>Notes</h2>
-            <p style="font-size:13px;line-height:1.6;margin:0;">${invoice.notes ? escapeHtml(invoice.notes) : 'Aucune note.'}</p>
+            <h2>Agent livreur</h2>
+            <p style="font-size:13px;line-height:1.6;margin:0;">${invoice.notes ? escapeHtml(invoice.notes) : 'Aucun agent livreur.'}</p>
           </div>
         </section>
 
@@ -443,7 +510,7 @@ function buildReportHTML(invoice: PurchaseInvoiceReport, linkedSales: LinkedSale
           </table>
         </section>
 
-        <p class="footer">Rapport genere depuis Gestion Gaz - Facture usine ${escapeHtml(invoice.reference)}</p>
+        <p class="footer">Rapport genere depuis ${escapedCompanyName} - Facture usine ${escapeHtml(invoice.reference)}</p>
       </main>
     </body>
     </html>
@@ -495,13 +562,23 @@ async function renderReportCanvas(html: string) {
 export function PurchaseInvoiceReportExport({
   invoice,
   linkedSales,
+  companyName,
+  cashGivenAmount = 0,
+  cashGivenTransactionCount = 0,
 }: PurchaseInvoiceReportExportProps) {
   const fileBase = `rapport-facture-usine-${getFileReference(invoice.reference)}`;
+  const reportHTML = () => buildReportHTML(
+    invoice,
+    linkedSales,
+    companyName,
+    cashGivenAmount,
+    cashGivenTransactionCount,
+  );
 
   const handleExportImage = async () => {
     try {
       toast.info("Generation de l'image en cours...");
-      const canvas = await renderReportCanvas(buildReportHTML(invoice, linkedSales));
+      const canvas = await renderReportCanvas(reportHTML());
       const link = document.createElement('a');
       link.download = `${fileBase}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -518,7 +595,7 @@ export function PurchaseInvoiceReportExport({
       toast.info('Generation du PDF en cours...');
       const [{ default: jsPDF }, canvas] = await Promise.all([
         import('jspdf'),
-        renderReportCanvas(buildReportHTML(invoice, linkedSales)),
+        renderReportCanvas(reportHTML()),
       ]);
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -551,10 +628,28 @@ export function PurchaseInvoiceReportExport({
     }
   };
 
+  const handleShareWhatsApp = async () => {
+    try {
+      toast.info('Preparation du partage WhatsApp...');
+      await shareOnWhatsApp(
+        reportHTML(),
+        '',
+        `${fileBase}.png`,
+        '',
+        { photoOnly: true },
+      );
+      toast.success('Rapport pret pour WhatsApp!');
+    } catch (error) {
+      console.error('Purchase invoice report WhatsApp share error:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors du partage WhatsApp');
+    }
+  };
+
   return (
     <ExportDropdown
       onExportPDF={handleExportPDF}
       onExportImage={handleExportImage}
+      onShareWhatsApp={handleShareWhatsApp}
       label="Export rapport"
     />
   );

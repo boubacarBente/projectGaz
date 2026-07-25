@@ -13,7 +13,7 @@ function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR');
 }
 
-function formatDeliveredQuantity(items: LinkedSalesInvoice['items']) {
+function getDeliveredQuantities(items: LinkedSalesInvoice['items']) {
   const quantitiesByCode = new Map<string, number>();
 
   for (const item of items) {
@@ -21,21 +21,27 @@ function formatDeliveredQuantity(items: LinkedSalesInvoice['items']) {
     quantitiesByCode.set(code, (quantitiesByCode.get(code) ?? 0) + item.quantity);
   }
 
-  return Array.from(quantitiesByCode.entries())
-    .map(([code, quantity]) => `${code}x${quantity}`)
-    .join(', ');
+  return Array.from(quantitiesByCode.entries()).map(([code, quantity]) => ({
+    code,
+    quantity,
+  }));
 }
 
 function SalesPaymentStatus({ status }: { status: LinkedSalesInvoice['paymentStatus'] }) {
-  const styles = status === 'Payée'
-    ? 'bg-success/10 text-success'
-    : status === 'Partiel'
-      ? 'bg-warning/10 text-warning'
-      : 'bg-error/10 text-error';
+  const normalizedStatus = status.toLowerCase();
+  const isPaid = status === 'Paye' || normalizedStatus.startsWith('pay');
+  const isPartial = normalizedStatus.includes('partiel');
+  const styles = isPaid
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : isPartial
+      ? 'border-amber-200 bg-amber-50 text-amber-800'
+      : 'border-rose-200 bg-rose-50 text-rose-700';
+  const label = isPaid ? 'Payée' : isPartial ? 'Partiel' : 'En attente';
 
   return (
-    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${styles}`}>
-      {status}
+    <span className={`inline-flex h-7 min-w-[6.25rem] items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-xs font-semibold leading-none ${styles}`}>
+      <span className="h-2 w-2 shrink-0 rounded-full bg-current opacity-80" aria-hidden="true" />
+      {label}
     </span>
   );
 }
@@ -65,21 +71,35 @@ export function PurchaseLinkedSales({ sales }: { sales: LinkedSalesInvoice[] }) 
     {
       key: 'deliveredQuantity',
       label: 'Quantité livrée',
-      render: (sale) => (
-        <span className="text-sm font-medium text-base-content/70">
-          {formatDeliveredQuantity(sale.items) || 'Aucune'}
-        </span>
-      ),
+      render: (sale) => {
+        const deliveredQuantities = getDeliveredQuantities(sale.items);
+
+        return deliveredQuantities.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {deliveredQuantities.map(({ code, quantity }) => (
+              <span
+                key={code}
+                className="inline-flex h-6 items-center whitespace-nowrap rounded-md border border-base-content/35 bg-base-100 px-2 text-xs font-medium text-base-content/80"
+              >
+                {code} x{quantity}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="text-sm text-base-content/50">Aucune</span>
+        );
+      },
     },
     {
       key: 'totalAmount',
       label: 'Total',
       className: 'whitespace-nowrap text-right font-semibold tabular-nums',
-      render: (sale) => `${formatCurrency(sale.totalAmount)} F`,
+      render: (sale) => `${formatCurrency(sale.totalAmount)} GNF`,
     },
     {
       key: 'paymentStatus',
       label: 'Statut',
+      className: 'min-w-28',
       render: (sale) => <SalesPaymentStatus status={sale.paymentStatus} />,
     },
   ];

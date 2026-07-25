@@ -76,6 +76,20 @@ export type SalesInvoice = {
   grossProfit?: number;
 };
 
+export type WalletTransactionRecord = {
+  id: number;
+  amount: number;
+  type: 'income' | 'expense';
+  description: string | null;
+  purchaseInvoiceId: number | null;
+  purchaseInvoiceReference: string | null;
+  purchaseInvoiceSupplierName: string | null;
+  purchaseInvoiceDate: string | null;
+  balanceAfter: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 function roundAmount(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
@@ -91,6 +105,111 @@ async function assertPurchaseInvoiceExists(purchaseInvoiceId: number | null | un
   if (!invoice) {
     throw new Error("La facture d'usine liée est introuvable");
   }
+}
+
+type WalletPurchaseInvoiceSnapshot = {
+  purchaseInvoiceId: number | null;
+  purchaseInvoiceReference: string | null;
+  purchaseInvoiceSupplierName: string | null;
+  purchaseInvoiceDate: string | null;
+};
+
+type WalletTransactionRawRow = {
+  id: number;
+  amount: number;
+  type: 'income' | 'expense';
+  description: string | null;
+  purchase_invoice_id: number | null;
+  purchase_invoice_reference: string | null;
+  purchase_invoice_supplier_name: string | null;
+  purchase_invoice_date: string | null;
+  balance_after: number;
+  created_at: number;
+  updated_at: number;
+};
+
+function mapWalletTransactionRow(tx: WalletTransactionRawRow): WalletTransactionRecord {
+  return {
+    id: tx.id,
+    amount: tx.amount,
+    type: tx.type,
+    description: tx.description,
+    purchaseInvoiceId: tx.purchase_invoice_id,
+    purchaseInvoiceReference: tx.purchase_invoice_reference,
+    purchaseInvoiceSupplierName: tx.purchase_invoice_supplier_name,
+    purchaseInvoiceDate: tx.purchase_invoice_date,
+    balanceAfter: tx.balance_after,
+    createdAt: new Date(tx.created_at * 1000),
+    updatedAt: new Date(tx.updated_at * 1000),
+  };
+}
+
+async function resolveWalletPurchaseInvoiceSnapshot(
+  purchaseInvoiceId: number | null | undefined,
+  client?: Parameters<typeof rawGet>[2],
+): Promise<WalletPurchaseInvoiceSnapshot> {
+  if (purchaseInvoiceId == null) {
+    return {
+      purchaseInvoiceId: null,
+      purchaseInvoiceReference: null,
+      purchaseInvoiceSupplierName: null,
+      purchaseInvoiceDate: null,
+    };
+  }
+
+  const invoice = await rawGet<{
+    id: number;
+    reference: string;
+    date: string;
+    supplier_name: string | null;
+  }>(
+    `
+      SELECT pi.id, pi.reference, pi.date, s.name as supplier_name
+      FROM purchase_invoices pi
+      LEFT JOIN suppliers s ON s.id = pi.supplier_id
+      WHERE pi.id = ?
+      LIMIT 1
+    `,
+    [purchaseInvoiceId],
+    client,
+  );
+
+  if (!invoice) {
+    throw new Error("La facture d'usine liée est introuvable");
+  }
+
+  return {
+    purchaseInvoiceId: invoice.id,
+    purchaseInvoiceReference: invoice.reference,
+    purchaseInvoiceSupplierName: invoice.supplier_name,
+    purchaseInvoiceDate: invoice.date,
+  };
+}
+
+async function getWalletTransactionRawById(
+  id: number,
+  client?: Parameters<typeof rawGet>[2],
+) {
+  return rawGet<WalletTransactionRawRow>(
+    `
+      SELECT
+        id,
+        amount,
+        type,
+        description,
+        purchase_invoice_id,
+        purchase_invoice_reference,
+        purchase_invoice_supplier_name,
+        purchase_invoice_date,
+        balance_after,
+        created_at,
+        updated_at
+      FROM wallet_transactions
+      WHERE id = ?
+    `,
+    [id],
+    client,
+  );
 }
 
 async function recalculateSupplierTotalPurchases(supplierId: number) {
@@ -1000,6 +1119,12 @@ export async function deletePurchaseInvoice(id: number) {
   await db.update(salesInvoices)
     .set({ purchaseInvoiceId: null })
     .where(eq(salesInvoices.purchaseInvoiceId, id));
+
+  await rawRun(
+    'UPDATE wallet_transactions SET purchase_invoice_id = NULL WHERE purchase_invoice_id = ?',
+    [id],
+  );
+
   // Supprimer la facture
   await db.delete(purchaseInvoices).where(eq(purchaseInvoices.id, id));
 
@@ -1966,8 +2091,8 @@ export async function listWalletTransactions({
   const filterArgs: Array<string | number> = [];
 
   if (search) {
-    conditions.push('description LIKE ?');
-    filterArgs.push(`%${search}%`);
+    conditions.push('(description LIKE ? OR purchase_invoice_reference LIKE ? OR purchase_invoice_supplier_name LIKE ?)');
+    filterArgs.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
   if (type) {
     conditions.push('type = ?');
@@ -1984,21 +2109,17 @@ export async function listWalletTransactions({
   const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const [data, totalResult] = await Promise.all([
-    rawAll<{
-      id: number;
-      amount: number;
-      type: 'income' | 'expense';
-      description: string | null;
-      balance_after: number;
-      created_at: number;
-      updated_at: number;
-    }>(`
+    rawAll<WalletTransactionRawRow>(`
       WITH ledger AS (
         SELECT
           id,
           amount,
           type,
           description,
+          purchase_invoice_id,
+          purchase_invoice_reference,
+          purchase_invoice_supplier_name,
+          purchase_invoice_date,
           created_at,
           updated_at,
           SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END) OVER (
@@ -2007,7 +2128,18 @@ export async function listWalletTransactions({
           ) AS balance_after
         FROM wallet_transactions
       )
-      SELECT id, amount, type, description, balance_after, created_at, updated_at
+      SELECT
+        id,
+        amount,
+        type,
+        description,
+        purchase_invoice_id,
+        purchase_invoice_reference,
+        purchase_invoice_supplier_name,
+        purchase_invoice_date,
+        balance_after,
+        created_at,
+        updated_at
       FROM ledger
       ${whereSql}
       ORDER BY created_at DESC, id DESC
@@ -2021,15 +2153,7 @@ export async function listWalletTransactions({
 
   const total = Number(totalResult?.count ?? 0);
   return {
-    data: data.map((tx) => ({
-      id: tx.id,
-      amount: tx.amount,
-      type: tx.type,
-      description: tx.description,
-      balanceAfter: tx.balance_after,
-      createdAt: new Date(tx.created_at * 1000),
-      updatedAt: new Date(tx.updated_at * 1000),
-    })),
+    data: data.map(mapWalletTransactionRow),
     total,
     page,
     limit,
@@ -2038,9 +2162,9 @@ export async function listWalletTransactions({
 }
 
 export async function getWalletTransaction(id: number) {
-  const tx = await findWalletTransactionById(id);
+  const tx = await getWalletTransactionRawById(id);
   if (!tx) return null;
-  return tx;
+  return mapWalletTransactionRow(tx);
 }
 
 function parseWalletDate(date?: string, timeSource = new Date()) {
@@ -2110,41 +2234,66 @@ export async function createWalletTransaction(data: {
   type: 'income' | 'expense';
   description?: string;
   date?: string;
+  purchaseInvoiceId?: number | null;
 }) {
   return withRawTransaction(async (client) => {
     const nowDate = new Date();
     const now = Math.floor(nowDate.getTime() / 1000);
     const createdAt = parseWalletDate(data.date, nowDate);
+    const purchaseInvoiceSnapshot = await resolveWalletPurchaseInvoiceSnapshot(data.purchaseInvoiceId, client);
     const result = await rawRun(`
-      INSERT INTO wallet_transactions (amount, type, description, balance_after, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [data.amount, data.type, data.description || null, 0, createdAt, now], client);
+      INSERT INTO wallet_transactions (
+        amount,
+        type,
+        description,
+        purchase_invoice_id,
+        purchase_invoice_reference,
+        purchase_invoice_supplier_name,
+        purchase_invoice_date,
+        balance_after,
+        created_at,
+        updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.amount,
+      data.type,
+      data.description || null,
+      purchaseInvoiceSnapshot.purchaseInvoiceId,
+      purchaseInvoiceSnapshot.purchaseInvoiceReference,
+      purchaseInvoiceSnapshot.purchaseInvoiceSupplierName,
+      purchaseInvoiceSnapshot.purchaseInvoiceDate,
+      0,
+      createdAt,
+      now,
+    ], client);
 
     await recalculateWalletBalances(client);
 
-    const created = await rawGet<any>(
-      'SELECT * FROM wallet_transactions WHERE id = ?',
-      [Number(result.lastInsertRowid)],
+    const created = await getWalletTransactionRawById(
+      Number(result.lastInsertRowid),
       client,
     );
 
-    return {
-      id: created.id,
-      amount: created.amount,
-      type: created.type,
-      description: created.description,
-      balanceAfter: created.balance_after,
-      createdAt: new Date((created.created_at as number) * 1000),
-      updatedAt: new Date((created.updated_at as number) * 1000),
-    };
+    if (!created) {
+      throw new Error('Transaction introuvable apres creation');
+    }
+
+    return mapWalletTransactionRow(created);
   });
 }
 
 export async function updateWalletTransaction(
   id: number,
-  data: { amount?: number; type?: 'income' | 'expense'; description?: string; date?: string }
+  data: {
+    amount?: number;
+    type?: 'income' | 'expense';
+    description?: string;
+    date?: string;
+    purchaseInvoiceId?: number | null;
+  }
 ) {
-  const existing = await findWalletTransactionById(id);
+  const existing = await getWalletTransactionRawById(id);
   if (!existing) throw new Error('Transaction introuvable');
 
   return withRawTransaction(async (client) => {
@@ -2152,32 +2301,79 @@ export async function updateWalletTransaction(
     const amount = data.amount ?? existing.amount;
     const type = data.type ?? existing.type;
     const description = data.description !== undefined ? data.description : existing.description;
-    const existingCreatedAt = existing.createdAt ?? new Date();
+    const existingCreatedAt = existing.created_at ? new Date(existing.created_at * 1000) : new Date();
     const createdAt = data.date !== undefined
       ? parseWalletDate(data.date, existingCreatedAt)
-      : Math.floor(existingCreatedAt.getTime() / 1000);
+      : existing.created_at;
+    const purchaseInvoiceSnapshot = Object.prototype.hasOwnProperty.call(data, 'purchaseInvoiceId')
+      ? await resolveWalletPurchaseInvoiceSnapshot(data.purchaseInvoiceId, client)
+      : {
+          purchaseInvoiceId: existing.purchase_invoice_id,
+          purchaseInvoiceReference: existing.purchase_invoice_reference,
+          purchaseInvoiceSupplierName: existing.purchase_invoice_supplier_name,
+          purchaseInvoiceDate: existing.purchase_invoice_date,
+        };
 
-    // Mettre à jour la transaction
     await rawRun(`
       UPDATE wallet_transactions
-      SET amount = ?, type = ?, description = ?, created_at = ?, updated_at = ?
+      SET
+        amount = ?,
+        type = ?,
+        description = ?,
+        purchase_invoice_id = ?,
+        purchase_invoice_reference = ?,
+        purchase_invoice_supplier_name = ?,
+        purchase_invoice_date = ?,
+        created_at = ?,
+        updated_at = ?
       WHERE id = ?
-    `, [amount, type, description, createdAt, now, id], client);
+    `, [
+      amount,
+      type,
+      description,
+      purchaseInvoiceSnapshot.purchaseInvoiceId,
+      purchaseInvoiceSnapshot.purchaseInvoiceReference,
+      purchaseInvoiceSnapshot.purchaseInvoiceSupplierName,
+      purchaseInvoiceSnapshot.purchaseInvoiceDate,
+      createdAt,
+      now,
+      id,
+    ], client);
 
     await recalculateWalletBalances(client);
 
-    // Retourner la transaction mise à jour
-    const updated = await rawGet<any>('SELECT * FROM wallet_transactions WHERE id = ?', [id], client);
-    return {
-      id: updated.id,
-      amount: updated.amount,
-      type: updated.type,
-      description: updated.description,
-      balanceAfter: updated.balance_after,
-      createdAt: new Date((updated.created_at as number) * 1000),
-      updatedAt: new Date((updated.updated_at as number) * 1000),
-    };
+    const updated = await getWalletTransactionRawById(id, client);
+    if (!updated) {
+      throw new Error('Transaction introuvable');
+    }
+
+    return mapWalletTransactionRow(updated);
   });
+}
+
+export async function listWalletTransactionsByPurchaseInvoiceId(purchaseInvoiceId: number) {
+  const data = await rawAll<WalletTransactionRawRow>(
+    `
+      SELECT
+        id,
+        amount,
+        type,
+        description,
+        purchase_invoice_id,
+        purchase_invoice_reference,
+        purchase_invoice_supplier_name,
+        purchase_invoice_date,
+        balance_after,
+        created_at,
+        updated_at
+      FROM wallet_transactions
+      WHERE purchase_invoice_id = ?
+      ORDER BY created_at DESC, id DESC
+    `,
+    [purchaseInvoiceId],
+  );
+
+  return data.map(mapWalletTransactionRow);
 }
 
 export async function deleteWalletTransaction(id: number) {

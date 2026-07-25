@@ -17,14 +17,29 @@ const statusLabels: Record<string, string> = {
   'En attente': 'En attente',
 };
 
-function getStatusColor(status: string) {
+function getStatusBadgeClass(status: string) {
   switch (status) {
     case 'Paye':
     case 'Payée': return 'badge-primary';
-    case 'Partiel': return 'badge-error';
-    case 'En attente': return 'badge-warning';
-    default: return 'badge-primary';
+    case 'Partiel': return 'border-warning/30 bg-warning/10 text-warning';
+    case 'En attente': return 'border-amber-200 bg-amber-50 text-amber-700';
+    default: return 'border-primary/25 bg-primary/10 text-primary';
   }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const isPaid = status === 'Paye' || statusLabels[status] === statusLabels.Paye;
+  const badgeClass = isPaid
+    ? 'border-success/25 bg-success/10 text-success'
+    : getStatusBadgeClass(status);
+
+  return (
+    <span
+      className={`inline-flex h-6 min-w-[5.75rem] items-center justify-center whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold leading-none ${badgeClass}`}
+    >
+      {statusLabels[status] ?? status}
+    </span>
+  );
 }
 
 function VentesTableInner({
@@ -55,11 +70,7 @@ function VentesTableInner({
         {formatCurrency(inv.remainingAmount)}
       </span>
     )},
-    { key: 'paymentStatus', label: 'Statut', render: (inv) => (
-      <span className={`badge ${getStatusColor(inv.paymentStatus)} badge-sm`}>
-        {statusLabels[inv.paymentStatus] ?? inv.paymentStatus}
-      </span>
-    )},
+    { key: 'paymentStatus', label: 'Statut', className: 'min-w-28', render: (inv) => <StatusBadge status={inv.paymentStatus} /> },
   ];
 
   const actions = (invoice: SalesInvoice) => (

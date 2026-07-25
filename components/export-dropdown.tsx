@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export async function generateInvoiceBlob(
   invoiceHTML: string,
@@ -118,11 +119,39 @@ interface ExportDropdownProps {
 
 export function ExportDropdown({ onExportPDF, onExportImage, onShareWhatsApp, compact = false, label }: ExportDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const updateMenuPosition = () => {
+    const button = buttonRef.current;
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const menuWidth = 176;
+    const menuHeight = onShareWhatsApp ? 134 : 90;
+    const margin = 8;
+    const left = Math.min(
+      Math.max(margin, rect.right - menuWidth),
+      window.innerWidth - menuWidth - margin,
+    );
+    const opensUp = rect.bottom + menuHeight + margin > window.innerHeight;
+    const top = opensUp
+      ? Math.max(margin, rect.top - menuHeight - 6)
+      : rect.bottom + 6;
+
+    setMenuPosition({ top, left });
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -130,16 +159,35 @@ export function ExportDropdown({ onExportPDF, onExportImage, onShareWhatsApp, co
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [isOpen]);
+
   const handleSelect = (action: () => void) => {
     setIsOpen(false);
     action();
   };
 
+  const toggleMenu = () => {
+    if (!isOpen) updateMenuPosition();
+    setIsOpen((current) => !current);
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleMenu}
         className={compact
           ? "btn btn-ghost btn-sm btn-square"
           : "btn btn-primary btn-sm gap-1"
@@ -155,8 +203,12 @@ export function ExportDropdown({ onExportPDF, onExportImage, onShareWhatsApp, co
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 z-50 mt-1 w-44 rounded-xl border border-base-200 bg-base-100 shadow-xl overflow-hidden">
+      {isOpen && menuPosition && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed z-[9999] w-44 rounded-xl border border-base-200 bg-base-100 shadow-2xl overflow-hidden"
+          style={{ top: menuPosition.top, left: menuPosition.left }}
+        >
           <button
             type="button"
             onClick={() => handleSelect(onExportPDF)}
@@ -196,7 +248,8 @@ export function ExportDropdown({ onExportPDF, onExportImage, onShareWhatsApp, co
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

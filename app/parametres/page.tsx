@@ -11,7 +11,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { UpdateStatus } from '@/components/update-status';
 
-type Settings = {
+export type Settings = {
   companyName: string;
   companyAddress: string;
   companyPhone: string;
@@ -26,7 +26,7 @@ type Settings = {
   sidebarColor: string;
 };
 
-const defaultSettings: Settings = {
+export const defaultSettings: Settings = {
   companyName: 'Mini-Centre Distribution',
   companyAddress: '',
   companyPhone: '',
@@ -44,11 +44,11 @@ const defaultSettings: Settings = {
 // Context for global settings
 const SettingsContext = createContext<{
   settings: Settings;
-  updateSettings: (updates: Partial<Settings>) => Promise<void>;
+  updateSettings: (updates: Partial<Settings>, options?: { silent?: boolean }) => Promise<Settings>;
   isLoading: boolean;
 }>({
   settings: defaultSettings,
-  updateSettings: async () => { },
+  updateSettings: async () => defaultSettings,
   isLoading: true,
 });
 
@@ -59,52 +59,94 @@ interface SettingsProviderProps {
 }
 
 export function SettingsProvider({ children }: SettingsProviderProps) {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadedForUserId, setLoadedForUserId] = useState<number | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     async function loadSettings() {
+      if (isAuthLoading) return;
+      if (!user) {
+        requestIdRef.current += 1;
+        setLoadedForUserId(null);
+        setIsLoading(false);
+        return;
+      }
+
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+      setIsLoading(true);
+
       try {
-        const res = await fetch('/api/parametres');
+        const res = await fetch('/api/parametres', {
+          cache: 'no-store',
+          credentials: 'same-origin',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        setSettings(data);
+        if (requestId !== requestIdRef.current) return;
+
+        const merged = { ...defaultSettings, ...data };
+        setSettings(merged);
+        setLoadedForUserId(user.id);
         // Appliquer les couleurs dès le chargement
         applyThemeColors(
-          data.primaryColor || defaultSettings.primaryColor,
-          data.sidebarColor || defaultSettings.sidebarColor,
-          data.theme === 'dark',
+          merged.primaryColor || defaultSettings.primaryColor,
+          merged.sidebarColor || defaultSettings.sidebarColor,
+          merged.theme === 'dark',
         );
       } catch (error) {
-        console.error('Error loading settings:', error);
+        if (requestId === requestIdRef.current) {
+          console.error('Error loading settings:', error);
+          setLoadedForUserId(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (requestId === requestIdRef.current) {
+          setIsLoading(false);
+        }
       }
     }
     loadSettings();
-  }, []);
+  }, [isAuthLoading, user?.id]);
 
   // Appliquer les couleurs à chaque changement de settings
+  const effectiveIsLoading = isAuthLoading || Boolean(user && (isLoading || loadedForUserId !== user.id));
+
   useEffect(() => {
-    if (!isLoading) {
+    if (!effectiveIsLoading) {
       applyThemeColors(
         settings.primaryColor || defaultSettings.primaryColor,
         settings.sidebarColor || defaultSettings.sidebarColor,
         settings.theme === 'dark',
       );
     }
-  }, [settings.primaryColor, settings.sidebarColor, settings.theme, isLoading]);
+  }, [settings.primaryColor, settings.sidebarColor, settings.theme, effectiveIsLoading]);
 
-  const updateSettingsHandler = async (updates: Partial<Settings>) => {
+  const updateSettingsHandler = async (updates: Partial<Settings>, options?: { silent?: boolean }) => {
     try {
       const res = await fetch('/api/parametres', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify(updates),
       });
       if (!res.ok) throw new Error('Erreur');
       const updated = await res.json();
-      setSettings(updated);
+      const merged = { ...defaultSettings, ...updated };
+      setSettings(merged);
+      setLoadedForUserId(user?.id ?? null);
+      applyThemeColors(
+        merged.primaryColor || defaultSettings.primaryColor,
+        merged.sidebarColor || defaultSettings.sidebarColor,
+        merged.theme === 'dark',
+      );
+      if (options?.silent) {
+        return merged;
+      }
       toast.success('Paramètres enregistrés!');
+      return merged;
     } catch (error) {
       toast.error('Erreur lors de la sauvegarde');
       throw error;
@@ -112,7 +154,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   };
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings: updateSettingsHandler, isLoading }}>
+    <SettingsContext.Provider value={{ settings, updateSettings: updateSettingsHandler, isLoading: effectiveIsLoading }}>
       {children}
     </SettingsContext.Provider>
   );
@@ -783,39 +825,23 @@ export default function ParametresPage() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { settings: globalSettings, updateSettings, isLoading: isGlobalSettingsLoading } = useSettings();
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
-    async function loadSettings() {
-      try {
-        const res = await fetch('/api/parametres');
-        if (res.ok) {
-          const data = await res.json();
-          const merged = { ...defaultSettings, ...data };
-          setSettings(merged);
-        }
-      } catch {
-        // fallback to defaults
-      } finally {
-        setIsLoading(false);
-      }
+    if (!isGlobalSettingsLoading) {
+      setSettings(globalSettings);
+      setIsLoading(false);
     }
-    loadSettings();
-  }, []);
+  }, [globalSettings, isGlobalSettingsLoading]);
 
   const handleSave = async (updates: Partial<Settings>) => {
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/parametres', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) throw new Error('Erreur');
-      const saved = await res.json();
-      setSettings(prev => ({ ...prev, ...saved }));
+      const saved = await updateSettings(updates, { silent: true });
+      setSettings(saved);
       toast.success('Paramètres enregistrés!');
     } catch {
       toast.error('Erreur lors de la sauvegarde');
