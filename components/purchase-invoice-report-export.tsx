@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
 import type { LinkedSalesInvoice } from '@/lib/ventes-types';
+import { formatDateShort, formatDateTime } from '@/lib/date-format';
 
 type PurchaseInvoiceReportItem = {
   productId: number;
@@ -47,8 +48,7 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(value: string) {
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR');
+  return formatDateShort(value);
 }
 
 function escapeHtml(value: unknown) {
@@ -152,7 +152,7 @@ function buildReportHTML(
   const linkedSalesPaid = linkedSales.reduce((sum, sale) => sum + sale.amountPaid, 0);
   const linkedSalesRemaining = linkedSales.reduce((sum, sale) => sum + sale.remainingAmount, 0);
   const estimatedMargin = linkedSalesTotal - invoice.totalAmount;
-  const generatedAt = new Date().toLocaleString('fr-FR');
+  const generatedAt = formatDateTime(new Date());
 
   const purchaseRowsHTML = invoice.items.map((item) => `
     <tr>
@@ -188,7 +188,7 @@ function buildReportHTML(
         <td class="num">${formatCurrency(sale.totalAmount)} GNF</td>
         <td class="num success">${formatCurrency(sale.amountPaid)} GNF</td>
         <td class="num warning">${formatCurrency(sale.remainingAmount)} GNF</td>
-        <td><span class="badge ${getSalesStatusBadgeClass(sale.paymentStatus)}">${escapeHtml(sale.paymentStatus === 'Paye' ? 'Payee' : sale.paymentStatus)}</span></td>
+        <td><span class="badge ${getSalesStatusBadgeClass(sale.paymentStatus)}">${escapeHtml(sale.paymentStatus === 'Payée' ? 'Payée' : sale.paymentStatus)}</span></td>
       </tr>
     `).join('')
     : '<tr><td colspan="8" class="empty">Aucune vente liee a cette facture usine.</td></tr>';

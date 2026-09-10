@@ -8,6 +8,7 @@ import { useSearchFilter, SearchBar, FilterSelect, Pagination } from '@/componen
 import { Modal } from '@/components/modal';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
+import { formatDateShort, formatDateTime, formatMonthYear } from '@/lib/date-format';
 
 type Transaction = {
   id: number;
@@ -49,8 +50,7 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(ts: string) {
-  const d = new Date(ts);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return formatDateShort(ts);
 }
 
 function formatExportTimestamp(date = new Date()) {
@@ -131,10 +131,8 @@ function getDetailedPeriodLabel(
       return `Journée du ${from}`;
     case 'week':
       return `Du ${from} au ${to}`;
-    case 'month': {
-      const month = new Date(`${selectedMonth || toDateInputValue(new Date()).slice(0, 7)}-01T12:00:00`);
-      return month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    }
+    case 'month':
+      return formatMonthYear(`${selectedMonth || toDateInputValue(new Date()).slice(0, 7)}-01`);
     case 'year':
       return `Année ${dateParams.from?.slice(0, 4) || new Date().getFullYear()}`;
     case 'total':
@@ -207,7 +205,7 @@ function buildWalletReportHTML({
   const displayedTransactions = sortedTransactions.slice(0, WALLET_REPORT_TRANSACTION_LIMIT);
   const incomeTransactions = transactions.filter((transaction) => transaction.type === 'income');
   const expenseTransactions = transactions.filter((transaction) => transaction.type === 'expense');
-  const generatedAt = new Date().toLocaleString('fr-FR');
+  const generatedAt = formatDateTime(new Date());
   const hiddenTransactionsCount = Math.max(0, summary.transactionsCount - displayedTransactions.length);
 
   const rows = displayedTransactions.map((transaction) => `

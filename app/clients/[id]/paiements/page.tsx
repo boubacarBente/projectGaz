@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
+import { formatDateShort, formatDateTime, formatMonthYear } from '@/lib/date-format';
 
 // ---------- types ----------
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
@@ -82,8 +83,7 @@ function escapeHTML(value: string | number | null | undefined) {
 }
 
 function formatDate(value: string) {
-  if (!value) return '-';
-  return new Date(value + 'T12:00:00').toLocaleDateString('fr-FR');
+  return formatDateShort(value);
 }
 
 function getPeriodLabel(
@@ -101,8 +101,7 @@ function getPeriodLabel(
       return `Semaine du ${formatDate(dateParams.from || selectedDay)} au ${formatDate(dateParams.to || selectedDay)}`;
     case 'month': {
       const monthValue = selectedMonth || new Date().toISOString().slice(0, 7);
-      const monthDate = new Date(`${monthValue}-01T12:00:00`);
-      const monthLabel = monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const monthLabel = formatMonthYear(`${monthValue}-01`);
       return `Mois de ${monthLabel}`;
     }
     case 'year':
@@ -173,7 +172,7 @@ function buildCustomerReportHTML({
   const remainingInvoices = sortedInvoices.filter((invoice) => invoice.remainingAmount > 0).slice(0, 10);
   const products = getProductReportRows(invoices).slice(0, 12);
   const paymentRate = totals.totalAmount > 0 ? (totals.totalPaid / totals.totalAmount) * 100 : 0;
-  const generatedAt = new Date().toLocaleString('fr-FR');
+  const generatedAt = formatDateTime(new Date());
 
   const latestRows = latestInvoices.map((invoice) => `
     <tr>
@@ -945,7 +944,7 @@ export default function CustomerPaymentsPage() {
                         </Link>
                       </td>
                       <td className="text-base-content/70 whitespace-nowrap">
-                        {new Date(inv.date + 'T12:00:00').toLocaleDateString('fr-FR')}
+                        {formatDateShort(inv.date)}
                       </td>
                       <td className="text-base-content/70">
                         <span className="inline-flex items-center gap-1.5">

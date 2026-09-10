@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
+import { formatDateShort } from '@/lib/date-format';
 
 interface Product {
   id: number;
@@ -783,11 +784,11 @@ export default function ProduitsPage() {
                 </div>
                 <div>
                   <span className="text-base-content/50">Créé le</span>
-                  <p className="font-medium">{new Date(selectedProduct.createdAt).toLocaleDateString('fr-FR')}</p>
+                  <p className="font-medium">{formatDateShort(selectedProduct.createdAt)}</p>
                 </div>
                 <div>
                   <span className="text-base-content/50">Modifié le</span>
-                  <p className="font-medium">{new Date(selectedProduct.updatedAt).toLocaleDateString('fr-FR')}</p>
+                  <p className="font-medium">{formatDateShort(selectedProduct.updatedAt)}</p>
                 </div>
               </div>
             </div>

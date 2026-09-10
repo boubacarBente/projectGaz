@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { PageHeader } from "@/components/page-header";
 import { SurfaceCard } from "@/components/surface-card";
 import type { PurchaseInvoiceOption } from "@/lib/ventes-types";
+import { formatDateShort } from "@/lib/date-format";
 
 type Product = {
   id: number;
@@ -194,7 +195,7 @@ export default function NouvelleFacturePage() {
                   <option value="">Aucune facture d&apos;usine</option>
                   {purchaseInvoices.map((invoice) => (
                     <option key={invoice.id} value={invoice.id}>
-                      {invoice.reference} - {invoice.supplierName} - {new Date(`${invoice.date}T00:00:00`).toLocaleDateString('fr-FR')}
+                      {invoice.reference} - {invoice.supplierName} - {formatDateShort(invoice.date)}
                     </option>
                   ))}
                 </select>

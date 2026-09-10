@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ExportDropdown } from '@/components/export-dropdown';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import type { SalesInvoice } from '@/lib/ventes-types';
+import { formatDateShort } from '@/lib/date-format';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
@@ -62,7 +63,7 @@ function VentesTableInner({
   const columns: Column<SalesInvoice>[] = [
     { key: 'invoiceNumber', label: 'N° Facture', primary: true, render: (inv) => inv.invoiceNumber },
     { key: 'customerName', label: 'Client', render: (inv) => inv.customerName },
-    { key: 'date', label: 'Date', render: (inv) => new Date(inv.date).toLocaleDateString('fr-MA') },
+    { key: 'date', label: 'Date', render: (inv) => formatDateShort(inv.date) },
     { key: 'totalAmount', label: 'Total', className: 'text-right font-semibold', render: (inv) => formatCurrency(inv.totalAmount) },
     { key: 'amountPaid', label: 'Encaisse', className: 'text-right text-success', render: (inv) => formatCurrency(inv.amountPaid) },
     { key: 'remainingAmount', label: 'Reste', className: `text-right`, render: (inv) => (

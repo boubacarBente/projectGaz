@@ -11,6 +11,7 @@ import { RapportComparison } from '@/components/rapports/rapport-comparison';
 import { RapportDebts } from '@/components/rapports/rapport-debts';
 import { RapportStockInsights } from '@/components/rapports/rapport-stock-insights';
 import type { Period, RapportData, RapportPaymentStatus } from '@/lib/rapports-types';
+import { formatDateShort, formatDateTime } from '@/lib/date-format';
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'today', label: "Aujourd'hui" },
@@ -118,13 +119,12 @@ function formatExportCurrency(value: number) {
 }
 
 function formatExportDate(value: string) {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('fr-FR');
+  return formatDateShort(value);
 }
 
 function buildRapportExportHTML(report: RapportData, periodLabel: string): string {
   const fmt = formatExportCurrency;
-  const generatedAt = new Date().toLocaleString('fr-FR');
+  const generatedAt = formatDateTime(new Date());
   const comparisonRows = report.comparison
     ? `
       <tr><td>Ventes</td><td>${fmt(report.comparison.current.totalSales)} GNF</td><td>${fmt(report.comparison.previous.totalSales)} GNF</td><td>${report.comparison.changes.totalSales.toFixed(1)}%</td></tr>

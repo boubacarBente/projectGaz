@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
+import { formatDateShort } from '@/lib/date-format';
 // DatePicker removed
 
 type Supplier = {
@@ -912,11 +913,11 @@ export default function FournisseursPage() {
                   </div>
                   <div>
                     <dt className="text-base-content/50 text-xs uppercase tracking-wider">Date d'ajout</dt>
-                    <dd className="font-medium mt-0.5">{selectedSupplier.supplier.createdAt ? new Date(selectedSupplier.supplier.createdAt).toLocaleDateString('fr-FR') : '—'}</dd>
+                    <dd className="font-medium mt-0.5">{selectedSupplier.supplier.createdAt ? formatDateShort(selectedSupplier.supplier.createdAt) : '—'}</dd>
                   </div>
                   <div>
                     <dt className="text-base-content/50 text-xs uppercase tracking-wider">Dernière modification</dt>
-                    <dd className="font-medium mt-0.5">{selectedSupplier.supplier.updatedAt ? new Date(selectedSupplier.supplier.updatedAt).toLocaleDateString('fr-FR') : '—'}</dd>
+                    <dd className="font-medium mt-0.5">{selectedSupplier.supplier.updatedAt ? formatDateShort(selectedSupplier.supplier.updatedAt) : '—'}</dd>
                   </div>
                 </dl>
               </div>
@@ -960,7 +961,7 @@ export default function FournisseursPage() {
                           </div>
                           <div>
                             <span className="text-base-content/50 text-xs">Date</span>
-                            <p>{new Date(inv.date).toLocaleDateString('fr-FR')}</p>
+                            <p>{formatDateShort(inv.date)}</p>
                           </div>
                           <div className="text-right">
                             <span className="text-base-content/50 text-xs">Total</span>

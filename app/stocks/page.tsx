@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
 import { Modal } from '@/components/modal';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
+import { formatDateWithTime } from '@/lib/date-format';
 
 interface StockProduct {
   id: number;
@@ -68,9 +69,7 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(dateStr: string | Date | null) {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return formatDateWithTime(dateStr);
 }
 
 export default function StocksPage() {

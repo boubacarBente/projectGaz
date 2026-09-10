@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { Modal } from '@/components/modal';
 import { PageHeader } from '@/components/page-header';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
+import { formatDateShort, formatDateWithTime } from '@/lib/date-format';
 
 // ============================================
 // Types
@@ -288,7 +289,7 @@ export default function UtilisateursPage() {
                 )},
                 { key: 'created', label: 'Créé le', render: (u) => (
                   <span className="text-xs text-base-content/40">
-                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr-FR') : '-'}
+                    {u.createdAt ? formatDateShort(u.createdAt) : '-'}
                   </span>
                 ), hideOnMobile: true },
               ]}
@@ -448,10 +449,7 @@ export default function UtilisateursPage() {
                 <p className="text-xs text-base-content/40 uppercase tracking-wider font-medium">Date de création</p>
                 <p className="text-sm mt-1">
                   {showDetailModal.createdAt
-                    ? new Date(showDetailModal.createdAt).toLocaleDateString('fr-FR', {
-                        day: 'numeric', month: 'long', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                      })
+                    ? formatDateWithTime(showDetailModal.createdAt)
                     : '-'}
                 </p>
               </div>

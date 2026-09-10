@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { useTheme } from '@/components/theme-provider';
+import { formatDateShort } from '@/lib/date-format';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -575,7 +576,7 @@ export default function DashboardPage() {
         ) : (
           <ResponsiveTable<SaleInvoice>
             columns={[
-              { key: 'date', label: 'Date', render: (s) => new Date(s.date).toLocaleDateString('fr-MA'), primary: true },
+              { key: 'date', label: 'Date', render: (s) => formatDateShort(s.date), primary: true },
               { key: 'products', label: 'Produits', render: (s) => (
                 <div className="flex gap-1 flex-wrap">
                   {s.items.map((item, i) => (
@@ -612,7 +613,7 @@ export default function DashboardPage() {
         ) : (
           <ResponsiveTable<PurchaseInvoice>
             columns={[
-              { key: 'date', label: 'Date', render: (p) => new Date(p.date).toLocaleDateString('fr-MA'), primary: true },
+              { key: 'date', label: 'Date', render: (p) => formatDateShort(p.date), primary: true },
               { key: 'products', label: 'Produits', render: (p) => (
                 <div className="flex gap-1 flex-wrap">
                   {p.items.map((item, i) => (

@@ -5,6 +5,7 @@ import { PurchaseInvoiceReportExport } from "@/components/purchase-invoice-repor
 import { PurchaseLinkedSales } from "@/components/purchase-linked-sales";
 import { PurchasePaymentStatusBadge } from "@/components/purchase-payment-status-badge";
 import { SurfaceCard } from "@/components/surface-card";
+import { formatDateShort } from "@/lib/date-format";
 import {
   getPurchaseInvoice,
   getSettings,
@@ -56,7 +57,7 @@ export default async function FactureUsineDetailPage({
       <PageHeader
         eyebrow={`Réf. ${invoice.reference}`}
         title={invoice.supplierName}
-        description={`Créée le ${new Date(invoice.date).toLocaleDateString('fr-FR')}`}
+        description={`Créée le ${formatDateShort(invoice.date)}`}
         actions={
           <div className="flex gap-2">
             <PurchaseInvoiceReportExport
@@ -86,7 +87,7 @@ export default async function FactureUsineDetailPage({
         <SurfaceCard title="Fournisseur">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between"><dt className="text-base-content/60">Nom</dt><dd>{invoice.supplierName}</dd></div>
-            <div className="flex justify-between"><dt className="text-base-content/60">Date</dt><dd>{new Date(invoice.date).toLocaleDateString('fr-FR')}</dd></div>
+            <div className="flex justify-between"><dt className="text-base-content/60">Date</dt><dd>{formatDateShort(invoice.date)}</dd></div>
             <div className="flex justify-between"><dt className="text-base-content/60">Référence</dt><dd>{invoice.reference}</dd></div>
             <div className="flex justify-between"><dt className="text-base-content/60">Payée</dt><dd>{invoice.isPaid ? 'Oui' : 'Non'}</dd></div>
           </dl>

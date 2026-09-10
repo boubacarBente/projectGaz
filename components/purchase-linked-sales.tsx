@@ -4,13 +4,14 @@ import Link from 'next/link';
 
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import type { LinkedSalesInvoice } from '@/lib/ventes-types';
+import { formatDateShort } from '@/lib/date-format';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-FR').format(value);
 }
 
 function formatDate(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR');
+  return formatDateShort(value);
 }
 
 function getDeliveredQuantities(items: LinkedSalesInvoice['items']) {
@@ -29,7 +30,7 @@ function getDeliveredQuantities(items: LinkedSalesInvoice['items']) {
 
 function SalesPaymentStatus({ status }: { status: LinkedSalesInvoice['paymentStatus'] }) {
   const normalizedStatus = status.toLowerCase();
-  const isPaid = status === 'Paye' || normalizedStatus.startsWith('pay');
+  const isPaid = status === 'Payée' || normalizedStatus.startsWith('pay');
   const isPartial = normalizedStatus.includes('partiel');
   const styles = isPaid
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'

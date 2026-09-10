@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { formatDateShort } from '@/lib/date-format';
 
 export type InvoiceExportData = {
   id: number;
@@ -104,7 +105,7 @@ export async function exportInvoice(
         </div>
         <div style="text-align: right;">
           <p style="font-size: 12px; color: #64748b; margin: 0;">Date</p>
-          <p style="font-size: 14px; color: #1e293b; margin: 5px 0 0 0;">${new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
+          <p style="font-size: 14px; color: #1e293b; margin: 5px 0 0 0;">${formatDateShort(invoice.date)}</p>
           <p style="font-size: 12px; color: #64748b; margin: 15px 0 0 0;">Mode paiement</p>
           <p style="font-size: 14px; color: #1e293b; margin: 5px 0 0 0;">${invoice.paymentMethod}</p>
         </div>
