@@ -9,6 +9,7 @@ import { VentesChartSection } from '@/components/ventes/ventes-chart-section';
 import { VentesTable } from '@/components/ventes/ventes-table';
 import { shareOnWhatsApp } from '@/components/export-dropdown';
 import { formatDateShort } from '@/lib/date-format';
+import { useSettings } from '@/app/parametres/page';
 import {
   AddInvoiceModal,
   EditInvoiceModal,
@@ -32,6 +33,8 @@ function formatCurrency(value: number) {
 }
 
 export default function FacturesPage() {
+  const { settings } = useSettings();
+  const companyName = settings.companyName || 'Gestion Gaz';
   const [invoices, setInvoices] = useState<SalesInvoice[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -384,7 +387,7 @@ export default function FacturesPage() {
           </div>` : ''}
           <div style="margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;">
             <p style="font-size:12px;color:#64748b;margin:0;">Merci pour votre confiance</p>
-            <p style="font-size:14px;font-weight:bold;margin:10px 0 0 0;">ProjectGaz</p>
+            <p style="font-size:14px;font-weight:bold;margin:10px 0 0 0;">${companyName}</p>
           </div>
         </div>
       </body>

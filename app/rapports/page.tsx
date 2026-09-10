@@ -12,6 +12,7 @@ import { RapportDebts } from '@/components/rapports/rapport-debts';
 import { RapportStockInsights } from '@/components/rapports/rapport-stock-insights';
 import type { Period, RapportData, RapportPaymentStatus } from '@/lib/rapports-types';
 import { formatDateShort, formatDateTime } from '@/lib/date-format';
+import { useSettings } from '@/app/parametres/page';
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'today', label: "Aujourd'hui" },
@@ -122,7 +123,7 @@ function formatExportDate(value: string) {
   return formatDateShort(value);
 }
 
-function buildRapportExportHTML(report: RapportData, periodLabel: string): string {
+function buildRapportExportHTML(report: RapportData, periodLabel: string, companyName: string): string {
   const fmt = formatExportCurrency;
   const generatedAt = formatDateTime(new Date());
   const comparisonRows = report.comparison
@@ -305,7 +306,7 @@ function buildRapportExportHTML(report: RapportData, periodLabel: string): strin
         </table>
 
         <div class="footer">
-          <p>ProjectGaz - Rapport de gestion</p>
+          <p>${escapeHTML(companyName)} - Rapport de gestion</p>
         </div>
       </div>
     </body>
@@ -314,6 +315,8 @@ function buildRapportExportHTML(report: RapportData, periodLabel: string): strin
 }
 
 export default function RapportsPage() {
+  const { settings } = useSettings();
+  const companyName = settings.companyName || 'Gestion Gaz';
   const [data, setData] = useState<RapportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedData, setHasLoadedData] = useState(false);
@@ -451,7 +454,7 @@ export default function RapportsPage() {
       if (!iframeDoc) throw new Error('Cannot access iframe document');
 
       iframeDoc.open();
-      iframeDoc.write(buildRapportExportHTML(data, periodLabel));
+      iframeDoc.write(buildRapportExportHTML(data, periodLabel, companyName));
       iframeDoc.close();
 
       const canvas = await html2canvas(iframeDoc.body, {

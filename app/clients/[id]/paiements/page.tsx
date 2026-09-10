@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
 import { formatDateShort, formatDateTime, formatMonthYear } from '@/lib/date-format';
+import { useSettings } from '@/app/parametres/page';
 
 // ---------- types ----------
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
@@ -161,11 +162,13 @@ function buildCustomerReportHTML({
   invoices,
   totals,
   periodLabel,
+  companyName,
 }: {
   customer: Customer;
   invoices: Invoice[];
   totals: AggregateTotals;
   periodLabel: string;
+  companyName: string;
 }) {
   const sortedInvoices = [...invoices].sort((a, b) => b.date.localeCompare(a.date));
   const latestInvoices = sortedInvoices.slice(0, 10);
@@ -282,7 +285,7 @@ function buildCustomerReportHTML({
         </table>
 
         <div class="footer">
-          <p>ProjectGaz - Rapport client</p>
+          <p>${escapeHTML(companyName)} - Rapport client</p>
         </div>
       </div>
     </body>
@@ -356,6 +359,8 @@ function PaymentIcon({ method }: { method: string }) {
 
 // ---------- Main Component ----------
 export default function CustomerPaymentsPage() {
+  const { settings } = useSettings();
+  const companyName = settings.companyName || 'Gestion Gaz';
   const params = useParams();
   const customerId = params.id as string;
 
@@ -467,6 +472,7 @@ export default function CustomerPaymentsPage() {
       invoices: invoices ?? [],
       totals: cardTotals,
       periodLabel,
+      companyName,
     });
   };
 

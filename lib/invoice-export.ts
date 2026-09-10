@@ -77,7 +77,8 @@ export async function downloadAsImage(
 
 export async function exportInvoice(
   invoice: InvoiceExportData,
-  format: ExportFormat
+  format: ExportFormat,
+  companyName?: string,
 ): Promise<void> {
   // Create a temporary container for rendering
   const container = document.createElement('div');
@@ -158,7 +159,7 @@ export async function exportInvoice(
       
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
         <p style="font-size: 12px; color: #64748b; margin: 0;">Merci pour votre confiance</p>
-        <p style="font-size: 14px; font-weight: bold; color: #1e293b; margin: 10px 0 0 0;">ProjectGaz</p>
+        <p style="font-size: 14px; font-weight: bold; color: #1e293b; margin: 10px 0 0 0;">${companyName || 'ProjectGaz'}</p>
       </div>
     </div>
   `;
