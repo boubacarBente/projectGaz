@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { getSalesInvoice } from "@/lib/operations";
 import { PrintButton } from "./print-button";
+import { formatDateLong } from "@/lib/date-format";
 
 type FactureDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -56,9 +57,7 @@ export default async function FactureDetailPage({
   }
 
   const status = statusConfig[invoice.paymentStatus] || statusConfig['En attente'];
-  const dateFormatted = new Date(invoice.date).toLocaleDateString('fr-FR', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  });
+  const dateFormatted = formatDateLong(invoice.date);
   const profit = invoice.grossProfit ?? 0;
   const cost = invoice.costOfGoodsSold ?? 0;
   const margin = invoice.totalAmount > 0 ? (profit / invoice.totalAmount) * 100 : 0;

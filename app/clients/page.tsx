@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from '@/components/modal';
 import { ResponsiveTable } from '@/components/responsive-table';
+import { formatDateLong } from '@/lib/date-format';
 
 type Customer = {
   id: number;
@@ -728,7 +729,7 @@ export default function ClientsPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] uppercase tracking-wider text-base-content/40">Client depuis</p>
-                  <p className="font-medium">{selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
+                  <p className="font-medium">{selectedCustomer.createdAt ? formatDateLong(selectedCustomer.createdAt) : '—'}</p>
                 </div>
               </div>
             </motion.div>

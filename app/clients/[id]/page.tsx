@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { motion } from 'framer-motion';
+import { formatDateShort } from '@/lib/date-format';
 
 type Customer = {
   id: number;
@@ -355,7 +356,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 <p className="text-xs text-base-content/60">Client depuis</p>
                 <p className="text-sm font-medium">
                   {customer.createdAt 
-                    ? new Date(customer.createdAt).toLocaleDateString('fr-MA')
+                    ? formatDateShort(customer.createdAt)
                     : '-'}
                 </p>
               </div>
@@ -363,7 +364,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 <p className="text-xs text-base-content/60">Dernière mise à jour</p>
                 <p className="text-sm font-medium">
                   {customer.updatedAt 
-                    ? new Date(customer.updatedAt).toLocaleDateString('fr-MA')
+                    ? formatDateShort(customer.updatedAt)
                     : '-'}
                 </p>
               </div>

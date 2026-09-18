@@ -2,14 +2,14 @@
 
 import { memo } from 'react';
 import type { RapportData } from '@/lib/rapports-types';
+import { formatDateShort } from '@/lib/date-format';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
 }
 
 function formatDate(value: string) {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('fr-FR');
+  return formatDateShort(value);
 }
 
 function EmptyState({ message }: { message: string }) {

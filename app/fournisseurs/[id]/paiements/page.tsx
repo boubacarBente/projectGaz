@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatDateShort } from '@/lib/date-format';
 
 // ---------- types ----------
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
@@ -328,7 +329,7 @@ export default function SupplierPaymentsPage() {
                         </Link>
                       </td>
                       <td className="text-base-content/70 whitespace-nowrap">
-                        {new Date(inv.date + 'T12:00:00').toLocaleDateString('fr-FR')}
+                        {formatDateShort(inv.date)}
                       </td>
                       <td className="text-base-content/70">
                         <span className="inline-flex items-center gap-1.5">

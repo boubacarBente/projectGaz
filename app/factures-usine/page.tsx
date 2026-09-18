@@ -12,6 +12,7 @@ import { PurchasePaymentStatusBadge } from '@/components/purchase-payment-status
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { useSettings } from '@/app/parametres/page';
 // DatePicker removed
+import { formatDateShort } from '@/lib/date-format';
 
 // Dynamic import for PDF/image generation
 let html2canvas: any;
@@ -474,7 +475,7 @@ export default function DepensesPage() {
         <div style="display:flex;justify-content:space-between;margin-bottom:30px;">
           <div><p style="font-size:12px;color:#64748b;margin:0;">Fournisseur</p><p style="font-size:16px;font-weight:bold;margin:5px 0 0 0;">${invoice.supplierName}</p></div>
           <div style="text-align:right;">
-            <p style="font-size:12px;color:#64748b;margin:0;">Date</p><p style="font-size:14px;margin:5px 0 0 0;">${new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
+            <p style="font-size:12px;color:#64748b;margin:0;">Date</p><p style="font-size:14px;margin:5px 0 0 0;">${formatDateShort(invoice.date)}</p>
           </div>
         </div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:30px;">
@@ -624,7 +625,7 @@ export default function DepensesPage() {
               columns={[
                 { key: 'reference', label: 'Référence', render: (inv) => <span className="font-medium">{inv.reference}</span>, primary: true },
                 { key: 'supplier', label: 'Fournisseur', render: (inv) => inv.supplierName },
-                { key: 'date', label: 'Date', render: (inv) => new Date(inv.date).toLocaleDateString('fr-MA'), hideOnMobile: true },
+                { key: 'date', label: 'Date', render: (inv) => formatDateShort(inv.date), hideOnMobile: true },
                 { key: 'products', label: 'Produits', render: (inv) => (
                   <div className="text-sm">
                     {inv.items.map((item, idx) => (
@@ -1185,7 +1186,7 @@ export default function DepensesPage() {
               </div>
               <div>
                 <p className="text-xs text-base-content/60">Date</p>
-                <p className="font-medium">{new Date(selectedInvoice.date).toLocaleDateString('fr-FR')}</p>
+                <p className="font-medium">{formatDateShort(selectedInvoice.date)}</p>
               </div>
               <div>
                 <p className="text-xs text-base-content/60">Fournisseur</p>

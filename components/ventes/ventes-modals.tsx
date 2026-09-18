@@ -4,6 +4,7 @@ import { memo } from 'react';
 import Link from 'next/link';
 import { Modal } from '@/components/modal';
 import type { SalesInvoice, Product, Customer, PurchaseInvoiceOption, InvoiceLine, InvoiceFormData } from '@/lib/ventes-types';
+import { formatDateShort } from '@/lib/date-format';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('fr-MA').format(value);
@@ -224,7 +225,7 @@ function PurchaseInvoiceField({
         <option value="">Aucune facture d&apos;usine</option>
         {purchaseInvoices.map((invoice) => (
           <option key={invoice.id} value={invoice.id}>
-            {invoice.reference} - {invoice.supplierName} - {new Date(`${invoice.date}T00:00:00`).toLocaleDateString('fr-FR')}
+            {invoice.reference} - {invoice.supplierName} - {formatDateShort(invoice.date)}
           </option>
         ))}
       </select>
@@ -449,7 +450,7 @@ export function DetailInvoiceModal({
             </div>
             <div>
               <span className="text-base-content/60">Date:</span>
-              <p className="font-medium">{new Date(invoice.date).toLocaleDateString('fr-MA')}</p>
+              <p className="font-medium">{formatDateShort(invoice.date)}</p>
             </div>
             <div>
               <span className="text-base-content/60">Mode paiement:</span>

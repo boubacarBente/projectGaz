@@ -8,6 +8,8 @@ import { VentesStatsCards } from '@/components/ventes/ventes-stats-cards';
 import { VentesChartSection } from '@/components/ventes/ventes-chart-section';
 import { VentesTable } from '@/components/ventes/ventes-table';
 import { shareOnWhatsApp } from '@/components/export-dropdown';
+import { formatDateShort } from '@/lib/date-format';
+import { useSettings } from '@/app/parametres/page';
 import {
   AddInvoiceModal,
   EditInvoiceModal,
@@ -31,6 +33,8 @@ function formatCurrency(value: number) {
 }
 
 export default function FacturesPage() {
+  const { settings } = useSettings();
+  const companyName = settings.companyName || 'Gestion Gaz';
   const [invoices, setInvoices] = useState<SalesInvoice[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -347,7 +351,7 @@ export default function FacturesPage() {
           <div style="display:flex;justify-content:space-between;margin-bottom:30px;">
             <div><p style="font-size:12px;color:#64748b;margin:0;">Client</p><p style="font-size:16px;font-weight:bold;margin:5px 0 0 0;">${invoice.customerName}</p></div>
             <div style="text-align:right;">
-              <p style="font-size:12px;color:#64748b;margin:0;">Date</p><p style="font-size:14px;margin:5px 0 0 0;">${new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
+              <p style="font-size:12px;color:#64748b;margin:0;">Date</p><p style="font-size:14px;margin:5px 0 0 0;">${formatDateShort(invoice.date)}</p>
               <p style="font-size:12px;color:#64748b;margin:15px 0 0 0;">Mode paiement</p><p style="font-size:14px;margin:5px 0 0 0;">${invoice.paymentMethod}</p>
             </div>
           </div>
@@ -383,7 +387,7 @@ export default function FacturesPage() {
           </div>` : ''}
           <div style="margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;">
             <p style="font-size:12px;color:#64748b;margin:0;">Merci pour votre confiance</p>
-            <p style="font-size:14px;font-weight:bold;margin:10px 0 0 0;">ProjectGaz</p>
+            <p style="font-size:14px;font-weight:bold;margin:10px 0 0 0;">${companyName}</p>
           </div>
         </div>
       </body>

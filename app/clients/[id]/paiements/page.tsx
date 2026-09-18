@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
+import { formatDateShort, formatDateTime, formatMonthYear } from '@/lib/date-format';
+import { useSettings } from '@/app/parametres/page';
 
 // ---------- types ----------
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
@@ -82,8 +84,7 @@ function escapeHTML(value: string | number | null | undefined) {
 }
 
 function formatDate(value: string) {
-  if (!value) return '-';
-  return new Date(value + 'T12:00:00').toLocaleDateString('fr-FR');
+  return formatDateShort(value);
 }
 
 function getPeriodLabel(
@@ -101,8 +102,7 @@ function getPeriodLabel(
       return `Semaine du ${formatDate(dateParams.from || selectedDay)} au ${formatDate(dateParams.to || selectedDay)}`;
     case 'month': {
       const monthValue = selectedMonth || new Date().toISOString().slice(0, 7);
-      const monthDate = new Date(`${monthValue}-01T12:00:00`);
-      const monthLabel = monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const monthLabel = formatMonthYear(`${monthValue}-01`);
       return `Mois de ${monthLabel}`;
     }
     case 'year':
@@ -162,18 +162,20 @@ function buildCustomerReportHTML({
   invoices,
   totals,
   periodLabel,
+  companyName,
 }: {
   customer: Customer;
   invoices: Invoice[];
   totals: AggregateTotals;
   periodLabel: string;
+  companyName: string;
 }) {
   const sortedInvoices = [...invoices].sort((a, b) => b.date.localeCompare(a.date));
   const latestInvoices = sortedInvoices.slice(0, 10);
   const remainingInvoices = sortedInvoices.filter((invoice) => invoice.remainingAmount > 0).slice(0, 10);
   const products = getProductReportRows(invoices).slice(0, 12);
   const paymentRate = totals.totalAmount > 0 ? (totals.totalPaid / totals.totalAmount) * 100 : 0;
-  const generatedAt = new Date().toLocaleString('fr-FR');
+  const generatedAt = formatDateTime(new Date());
 
   const latestRows = latestInvoices.map((invoice) => `
     <tr>
@@ -283,7 +285,7 @@ function buildCustomerReportHTML({
         </table>
 
         <div class="footer">
-          <p>ProjectGaz - Rapport client</p>
+          <p>${escapeHTML(companyName)} - Rapport client</p>
         </div>
       </div>
     </body>
@@ -357,6 +359,8 @@ function PaymentIcon({ method }: { method: string }) {
 
 // ---------- Main Component ----------
 export default function CustomerPaymentsPage() {
+  const { settings } = useSettings();
+  const companyName = settings.companyName || 'Gestion Gaz';
   const params = useParams();
   const customerId = params.id as string;
 
@@ -468,6 +472,7 @@ export default function CustomerPaymentsPage() {
       invoices: invoices ?? [],
       totals: cardTotals,
       periodLabel,
+      companyName,
     });
   };
 
@@ -945,7 +950,7 @@ export default function CustomerPaymentsPage() {
                         </Link>
                       </td>
                       <td className="text-base-content/70 whitespace-nowrap">
-                        {new Date(inv.date + 'T12:00:00').toLocaleDateString('fr-FR')}
+                        {formatDateShort(inv.date)}
                       </td>
                       <td className="text-base-content/70">
                         <span className="inline-flex items-center gap-1.5">
