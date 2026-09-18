@@ -628,8 +628,8 @@ export default function CustomerPaymentsPage() {
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">{customer.name}</h1>
                 <p className="text-sm text-base-content/50">
-                  {customer.phone || '\u2014'}
-                  {customer.city && <span> \u00B7 {customer.city}</span>}
+                  {customer.phone || '__'}
+                  {customer.city && <span> A {customer.city}</span>}
                 </p>
               </div>
             </div>

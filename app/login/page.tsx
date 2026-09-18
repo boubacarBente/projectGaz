@@ -51,7 +51,7 @@ function GeometricBg() {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden">
       {/* Radial gradient overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.03)_0%,transparent_70%)]" />
 
       {/* Perspective grid lines */}
       <svg className="absolute inset-0 w-full h-full opacity-[0.04]" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
@@ -71,7 +71,7 @@ function GeometricBg() {
       </svg>
 
       {/* Horizontal accent line */}
-      <div className="absolute top-1/3 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+      <div className="absolute top-1/3 left-0 right-0 h-1px bg-linear-to-r from-transparent via-white/5 to-transparent" />
     </div>
   );
 }
@@ -450,7 +450,7 @@ export default function LoginPage() {
                             type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            className="w-full bg-transparent border border-white/12 rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/[0.02] relative z-[1]"
+                            className="w-full bg-transparent border border-white/12 rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 font-light placeholder-white/20 outline-none transition-all duration-300 focus:border-white/30 focus:ring-1 focus:ring-white/10 focus:bg-white/2 relative z-1"
                             placeholder="Mot de passe"
                           />
                         </div>
@@ -486,7 +486,7 @@ export default function LoginPage() {
             )}
 
             {/* Bottom bar */}
-            <div className="mt-8 pt-4 border-t border-white/[0.04] flex items-center justify-between text-[10px] text-white/[0.15] font-mono tracking-wider">
+            <div className="mt-8 pt-4 border-t border-white/4 flex items-center justify-between text-[10px] text-white/15 font-mono tracking-wider">
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
                 {needsSetup ? 'setup mode' : 'session active'}
