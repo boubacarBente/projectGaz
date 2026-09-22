@@ -1,14 +1,24 @@
-const { app, BrowserWindow, shell, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, dialog, ipcMain, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { fork } = require('child_process');
 const http = require('http');
+const crypto = require('crypto');
 let autoUpdater = null;
 try {
   ({ autoUpdater } = require('electron-updater'));
 } catch (error) {
   console.warn('[updater] disabled:', error.message);
 }
+
+// ── Jeton d'acces a l'application ────────────────────────────────────
+// Regénéré à chaque lancement, transmis au serveur Next par variable
+// d'environnement, et injecté dans chaque requête émise par la fenêtre.
+//
+// Le serveur refuse (404) toute requête qui ne le porte pas : l'application
+// devient inatteignable depuis un navigateur, y compris sur localhost, alors
+// que la fenêtre Electron fonctionne normalement.
+const appToken = crypto.randomBytes(32).toString('hex');
 
 // ── Auto-updater config ──────────────────────────────────────────────
 if (autoUpdater) {
@@ -89,7 +99,9 @@ async function startNextServer() {
 
   if (isDev) {
     serverPort = 12000;
-    return `http://localhost:${serverPort}`;
+    // 127.0.0.1 et non « localhost » : le serveur de dev est lié à IPv4
+    // uniquement, or « localhost » peut résoudre vers ::1 d'abord.
+    return `http://127.0.0.1:${serverPort}`;
   }
 
   serverPort = await findFreePort(3000);
@@ -105,11 +117,18 @@ async function startNextServer() {
       NODE_ENV: 'production',
       PORT: String(serverPort),
       ELECTRON_APP_PATH: app.getPath('userData'),
+      // Next standalone écoute sur 0.0.0.0 par défaut : on le limite à la
+      // boucle locale pour que l'instance ne soit pas joignable depuis le
+      // réseau (le jeton ci-dessous ferme le navigateur local, ceci ferme
+      // le réseau).
+      HOSTNAME: '127.0.0.1',
+      // Jeton exigé par proxy.ts sur chaque requête.
+      APP_TOKEN: appToken,
     },
     stdio: 'inherit',
   });
 
-  const url = `http://localhost:${serverPort}`;
+  const url = `http://127.0.0.1:${serverPort}`;
   await waitForServer(url);
   return url;
 }
@@ -185,6 +204,18 @@ async function createWindow(url) {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  // Injecte le jeton dans TOUTES les requêtes de la fenêtre (navigation
+  // initiale, chunks JS/CSS, appels fetch et payloads RSC). Sans cet en-tête,
+  // proxy.ts répond 404 — c'est ce qui rend l'application inaccessible depuis
+  // un navigateur. À enregistrer impérativement AVANT loadURL.
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: [`http://127.0.0.1:${serverPort}/*`, `http://localhost:${serverPort}/*`] },
+    (details, callback) => {
+      details.requestHeaders['x-app-token'] = appToken;
+      callback({ requestHeaders: details.requestHeaders });
+    },
+  );
 
   mainWindow.loadURL(url);
 
