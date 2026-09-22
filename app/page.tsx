@@ -6,6 +6,13 @@ import { PageHeader } from '@/components/page-header';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { useTheme } from '@/components/theme-provider';
 import { formatDateShort } from '@/lib/date-format';
+import { useViewStateRehydration, writeViewState } from '@/lib/view-state';
+
+type DashboardViewState = {
+  period: Period;
+  selectedDay: string;
+  selectedMonth: string;
+};
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -158,6 +165,25 @@ export default function DashboardPage() {
     const now = new Date();
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 7);
   });
+
+  // Retour arrière : la période est remise en place avant peinture, sinon le
+  // tableau de bord revenu serait filtré sur « Total ».
+  //
+  // Pas de gate sur le fetch ici, contrairement aux pages de liste : le
+  // snapshot est chargé en entier une seule fois (dépendances vides) et le
+  // filtrage se fait côté client via `periodFilter`. Restaurer la période
+  // suffit donc à restaurer l'affichage.
+  const rehydrated = useViewStateRehydration<DashboardViewState>('dashboard', (saved) => {
+    if (saved.period != null) setPeriod(saved.period);
+    if (saved.selectedDay != null) setSelectedDay(saved.selectedDay);
+    if (saved.selectedMonth != null) setSelectedMonth(saved.selectedMonth);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<DashboardViewState>('dashboard', { period, selectedDay, selectedMonth });
+  }, [rehydrated, period, selectedDay, selectedMonth]);
+
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 

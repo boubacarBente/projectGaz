@@ -9,6 +9,14 @@ import { PageHeader } from '@/components/page-header';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
 import { formatDateShort, formatDateTime, formatMonthYear } from '@/lib/date-format';
 import { useSettings } from '@/app/parametres/page';
+import { useViewStateRehydration, writeViewState } from '@/lib/view-state';
+
+type ClientPaiementsViewState = {
+  period: Period;
+  selectedDay: string;
+  selectedMonth: string;
+  searchQuery: string;
+};
 
 // ---------- types ----------
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
@@ -382,11 +390,33 @@ export default function CustomerPaymentsPage() {
   const [sortField, setSortField] = useState<'date' | 'totalAmount'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
+  // Retour arrière : filtres de période et recherche remis en place avant
+  // peinture, sinon la page revenue serait filtrée sur « Total ».
+  const rehydrated = useViewStateRehydration<ClientPaiementsViewState>('clients-paiements', (saved) => {
+    if (saved.period != null) setPeriod(saved.period);
+    if (saved.selectedDay != null) setSelectedDay(saved.selectedDay);
+    if (saved.selectedMonth != null) setSelectedMonth(saved.selectedMonth);
+    if (saved.searchQuery != null) setSearchQuery(saved.searchQuery);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<ClientPaiementsViewState>('clients-paiements', {
+      period,
+      selectedDay,
+      selectedMonth,
+      searchQuery,
+    });
+  }, [rehydrated, period, selectedDay, selectedMonth, searchQuery]);
+
   // Build from/to from period and pass to API
   const dateParams = useMemo(() => getDateParams(period, selectedDay, selectedMonth), [period, selectedDay, selectedMonth]);
   const isRefreshing = loading && hasLoadedData;
 
   useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on chargerait la
+    // période par défaut puis on relancerait pour la période restaurée.
+    if (!rehydrated) return;
     const controller = new AbortController();
     (async () => {
       setLoading(true);
@@ -410,7 +440,7 @@ export default function CustomerPaymentsPage() {
       }
     })();
     return () => controller.abort();
-  }, [customerId, dateParams]);
+  }, [rehydrated, customerId, dateParams]);
 
   const { customer, invoices, aggregates } = data || {};
 

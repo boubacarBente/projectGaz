@@ -6,6 +6,14 @@ import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { formatDateShort } from '@/lib/date-format';
+import { useViewStateRehydration, writeViewState } from '@/lib/view-state';
+
+type FournisseurPaiementsViewState = {
+  period: Period;
+  selectedDay: string;
+  selectedMonth: string;
+  searchQuery: string;
+};
 
 // ---------- types ----------
 type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
@@ -92,10 +100,32 @@ export default function SupplierPaymentsPage() {
   const [sortField, setSortField] = useState<'date' | 'totalAmount'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
+  // Retour arrière : filtres de période et recherche remis en place avant
+  // peinture, sinon la page revenue serait filtrée sur « Total ».
+  const rehydrated = useViewStateRehydration<FournisseurPaiementsViewState>('fournisseurs-paiements', (saved) => {
+    if (saved.period != null) setPeriod(saved.period);
+    if (saved.selectedDay != null) setSelectedDay(saved.selectedDay);
+    if (saved.selectedMonth != null) setSelectedMonth(saved.selectedMonth);
+    if (saved.searchQuery != null) setSearchQuery(saved.searchQuery);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<FournisseurPaiementsViewState>('fournisseurs-paiements', {
+      period,
+      selectedDay,
+      selectedMonth,
+      searchQuery,
+    });
+  }, [rehydrated, period, selectedDay, selectedMonth, searchQuery]);
+
   const dateParams = useMemo(() => getDateParams(period, selectedDay, selectedMonth), [period, selectedDay, selectedMonth]);
   const isRefreshing = loading && hasLoadedData;
 
   useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on chargerait la
+    // période par défaut puis on relancerait pour la période restaurée.
+    if (!rehydrated) return;
     const controller = new AbortController();
     (async () => {
       setLoading(true);
@@ -119,7 +149,7 @@ export default function SupplierPaymentsPage() {
       }
     })();
     return () => controller.abort();
-  }, [supplierId, dateParams]);
+  }, [rehydrated, supplierId, dateParams]);
 
   const { supplier, invoices, aggregates } = data || {};
 
