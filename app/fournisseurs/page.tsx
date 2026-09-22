@@ -6,6 +6,12 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
+import { useViewStateRehydration, writeViewState, clampPage } from '@/lib/view-state';
+
+type FournisseursViewState = {
+  search: string;
+  currentPage: number;
+};
 import { Modal } from '@/components/modal';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { formatDateShort } from '@/lib/date-format';
@@ -283,9 +289,19 @@ export default function FournisseursPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
-  const { search, setSearch, currentPage, setCurrentPage } = useSearchFilter(suppliers, ['name', 'phone', 'address']);
+  const { search, setSearch, currentPage, setCurrentPage, applyRestored } = useSearchFilter(suppliers, ['name', 'phone', 'address']);
   const ITEMS_PER_PAGE = 10;
   const isRefreshingSuppliers = isLoading && hasLoadedSuppliers;
+
+  // Retour arrière : recherche et pagination remises en place avant peinture.
+  const rehydrated = useViewStateRehydration<FournisseursViewState>('fournisseurs', (saved) => {
+    applyRestored(saved);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<FournisseursViewState>('fournisseurs', { search, currentPage });
+  }, [rehydrated, search, currentPage]);
 
   // Stats state
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -329,10 +345,13 @@ export default function FournisseursPage() {
   }, [statsPeriod, statsSupplierId, statsFrom, statsTo, statsMonth]);
 
   useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on lancerait un
+    // fetch sur la page 1 puis un second sur la page restaurée.
+    if (!rehydrated) return;
     const controller = new AbortController();
     fetchSuppliers(controller.signal);
     return () => controller.abort();
-  }, [currentPage, search]);
+  }, [rehydrated, currentPage, search]);
 
   useEffect(() => {
     fetchStats();
@@ -352,6 +371,9 @@ export default function FournisseursPage() {
       setSuppliers(Array.isArray(data.data) ? data.data : []);
       setTotal(data.total);
       setTotalPages(data.totalPages);
+      // La page restaurée peut avoir disparu si la liste a rétréci entre-temps.
+      const corrected = clampPage(currentPage, data.totalPages);
+      if (corrected !== null) setCurrentPage(corrected);
       setHasLoadedSuppliers(true);
     } catch {
       if (signal?.aborted) return;

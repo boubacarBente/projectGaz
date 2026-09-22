@@ -9,6 +9,7 @@ import { VentesChartSection } from '@/components/ventes/ventes-chart-section';
 import { VentesTable } from '@/components/ventes/ventes-table';
 import { shareOnWhatsApp } from '@/components/export-dropdown';
 import { formatDateShort } from '@/lib/date-format';
+import { useViewStateRehydration, writeViewState, clampPage } from '@/lib/view-state';
 import { useSettings } from '@/app/parametres/page';
 import {
   AddInvoiceModal,
@@ -17,6 +18,15 @@ import {
   DeleteInvoiceModal,
 } from '@/components/ventes/ventes-modals';
 import type { Period, SalesInvoice, Product, Customer, PurchaseInvoiceOption, VentesStats, InvoiceLine, InvoiceFormData } from '@/lib/ventes-types';
+
+type VentesViewState = {
+  search: string;
+  filter: string;
+  currentPage: number;
+  period: Period;
+  selectedDay: string;
+  selectedMonth: string;
+};
 
 const initialFormData: InvoiceFormData = {
   customerName: '',
@@ -63,11 +73,24 @@ export default function FacturesPage() {
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 7);
   });
 
-  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage } = useSearchFilter(
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, applyRestored } = useSearchFilter(
     invoices,
     ['invoiceNumber', 'customerName', 'date'],
   );
   const ITEMS_PER_PAGE = 10;
+
+  // Retour arrière : recherche, filtre, pagination et période remis en place avant peinture.
+  const rehydrated = useViewStateRehydration<VentesViewState>('ventes', (saved) => {
+    applyRestored(saved);
+    if (saved.period != null) setPeriod(saved.period);
+    if (saved.selectedDay != null) setSelectedDay(saved.selectedDay);
+    if (saved.selectedMonth != null) setSelectedMonth(saved.selectedMonth);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<VentesViewState>('ventes', { search, filter, currentPage, period, selectedDay, selectedMonth });
+  }, [rehydrated, search, filter, currentPage, period, selectedDay, selectedMonth]);
 
   const stats = useMemo(() => ventesStats ?? {
     total: { total: 0, paid: 0, remaining: 0, count: 0, paidCount: 0 },
@@ -112,12 +135,15 @@ export default function FacturesPage() {
 
   // Re-fetch la table paginée quand la période, la recherche, le filtre ou la page changent
   useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on lancerait un
+    // fetch sur la page 1 puis un second sur la page restaurée.
+    if (!rehydrated) return;
     const ac = new AbortController();
     const { from, to } = getPeriodParams();
     fetchInvoices(from, to, ac.signal);
     return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, selectedDay, selectedMonth, currentPage, search, filter]);
+  }, [rehydrated, period, selectedDay, selectedMonth, currentPage, search, filter]);
 
   const fetchVentesStats = async (from?: string, to?: string, signal?: AbortSignal) => {
     try {
@@ -173,6 +199,9 @@ export default function FacturesPage() {
       setInvoices(invoicesData.data);
       setTotal(invoicesData.total);
       setTotalPages(invoicesData.totalPages);
+      // La page restaurée peut avoir disparu si la liste a rétréci entre-temps.
+      const corrected = clampPage(currentPage, invoicesData.totalPages);
+      if (corrected !== null) setCurrentPage(corrected);
       setHasLoadedInvoices(true);
     } catch {
       if (signal?.aborted) return;

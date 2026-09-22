@@ -65,9 +65,6 @@ export default async function FactureUsineDetailPage({
               linkedSales={linkedSales}
               companyName={settings?.companyName}
             />
-            <Link href="/factures-usine" className="btn btn-outline">
-              Retour
-            </Link>
             <PurchasePaymentStatusBadge isPaid={invoice.isPaid} />
           </div>
         }

@@ -9,6 +9,7 @@ import { Modal } from '@/components/modal';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
 import { formatDateShort, formatDateTime, formatMonthYear } from '@/lib/date-format';
+import { useViewStateRehydration, writeViewState, clampPage } from '@/lib/view-state';
 
 type Transaction = {
   id: number;
@@ -32,6 +33,15 @@ type Period = 'today' | 'day' | 'week' | 'month' | 'year' | 'total';
 type WalletReportData = {
   transactions: Transaction[];
   summary: Summary;
+};
+
+type PortefeuilleViewState = {
+  search: string;
+  filter: string;
+  currentPage: number;
+  period: Period;
+  selectedDay: string;
+  selectedMonth: string;
 };
 
 const PERIODS: { key: Period; label: string }[] = [
@@ -382,12 +392,26 @@ export default function PortefeuillePage() {
   const [formDate, setFormDate] = useState(() => toDateInputValue(new Date()));
   const [formDescription, setFormDescription] = useState('');
 
-  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage } = useSearchFilter(
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, applyRestored } = useSearchFilter(
     transactions,
     ['description'],
   );
 
   const ITEMS_PER_PAGE = 15;
+
+  // Retour arrière : recherche, filtre, pagination et période remis en place avant peinture.
+  const rehydrated = useViewStateRehydration<PortefeuilleViewState>('portefeuille', (saved) => {
+    applyRestored(saved);
+    if (saved.period != null) setPeriod(saved.period);
+    if (saved.selectedDay != null) setSelectedDay(saved.selectedDay);
+    if (saved.selectedMonth != null) setSelectedMonth(saved.selectedMonth);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<PortefeuilleViewState>('portefeuille', { search, filter, currentPage, period, selectedDay, selectedMonth });
+  }, [rehydrated, search, filter, currentPage, period, selectedDay, selectedMonth]);
+
   const dateParams = useMemo(
     () => getDateParams(period, selectedDay, selectedMonth),
     [period, selectedDay, selectedMonth],
@@ -422,10 +446,13 @@ export default function PortefeuillePage() {
   ], []);
 
   useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on lancerait un
+    // fetch sur la page 1 puis un second sur la page restaurée.
+    if (!rehydrated) return;
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort();
-  }, [currentPage, search, filter, dateParams]);
+  }, [rehydrated, currentPage, search, filter, dateParams]);
 
   const fetchData = async (signal?: AbortSignal) => {
     const requestId = requestIdRef.current + 1;
@@ -467,6 +494,9 @@ export default function PortefeuillePage() {
       setTransactions(txData.data);
       setTotal(txData.total);
       setTotalPages(txData.totalPages);
+      // La page restaurée peut avoir disparu si la liste a rétréci entre-temps.
+      const corrected = clampPage(currentPage, txData.totalPages);
+      if (corrected !== null) setCurrentPage(corrected);
       setSummary(summaryData);
       hasLoadedRef.current = true;
     } catch (error) {

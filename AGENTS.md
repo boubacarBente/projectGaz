@@ -13,7 +13,7 @@ Le projet utilise **SQLite** avec **Drizzle ORM** et le driver local
 
 - **Fichiers**:
   - `db/schema.ts` - Schéma des tables + relations Drizzle
-  - `db/helpers.ts` - Requêtes avec JOIN automatiques via `db.query...with`
+  - `db/helpers.ts` - ⚠️ **Code mort** : `findPurchaseInvoices()` n'est importé nulle part. Conservé, mais ne pas s'en servir comme référence.
   - `db/index.ts` - Connexion SQLite libSQL + migrations + helpers SQL bruts async
   - `db/database.db` - Fichier de la base SQLite en développement
 
@@ -43,8 +43,10 @@ Le projet utilise **SQLite** avec **Drizzle ORM** et le driver local
 Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 
 - `purchaseInvoiceRelations` : `supplier` (one-to-one via `supplierId`) + `items` (one-to-many)
-- Toute requête sur les factures d'achat doit passer par le helper
-  `findPurchaseInvoices()` / `findPurchaseInvoiceById()` dans `db/helpers.ts`
+- Toute requête sur les factures d'achat passe par `lib/operations.ts`
+  (`listPaginatedPurchaseInvoices`, `getPurchaseInvoice`, `createPurchaseInvoice`…).
+  Le helper `findPurchaseInvoices()` de `db/helpers.ts` n'est **importé nulle part** :
+  ne pas le prendre pour la voie officielle.
 - Le mapping vers le type `PurchaseInvoice` est centralisé dans
   `mapPurchaseInvoiceRow()` dans `lib/operations.ts`
 - Les requêtes SQL brutes doivent passer par `rawGet()`, `rawAll()`, `rawRun()`
@@ -149,10 +151,11 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 ## Authentification
 
 - **Système custom** (cookie-based, SHA-256)
-- Fichiers : `lib/auth.ts`, `middleware.ts`, `components/auth-provider.tsx`
+- Fichiers : `lib/auth.ts`, `proxy.ts`, `components/auth-provider.tsx`
 - Sessions gérées via cookies HTTP : `session_user` (JSON, httpOnly) et `session`
 - Deux rôles : `admin` et `user`
-- Middleware protège toutes les routes sauf `/login` et `/api/auth/*`
+- `proxy.ts` (export `proxy()`) protège toutes les routes sauf `/login` et `/api/auth/*`.
+  ⚠️ Next 16 a renommé `middleware.ts` en `proxy.ts` : il n'existe **aucun** `middleware.ts` dans ce projet.
 - Backdoor admin hardcodée dans `app/api/auth/login/route.ts` : `boubacar` / `1265`
 
 ## `lib/operations.ts` — Fonctions paginées
@@ -312,3 +315,138 @@ type Column<T> = {
 - Distribuer aux clients l'installateur NSIS `Gestion Gaz-Setup-x.y.z.exe`, pas le dossier `win-unpacked`
 - Les fichiers d'auto-update (`latest.yml`, `.blockmap`, installateur) doivent être attachés à la Release GitHub
 - Les changements de schéma DB passent par `db/schema.ts` + `npm run db:generate`; les migrations dans `db/migrations` sont copiées dans l'app packagée et exécutées automatiquement au démarrage via `db/index.ts`
+
+---
+
+## Retour arrière : restauration du scroll et de l'état de vue
+
+Système en deux couches indépendantes qui partagent la même maille : **l'entrée
+d'historique**.
+
+| Fichier | Rôle |
+|---|---|
+| `lib/scroll-engine.ts` | Position de scroll par entrée d'historique + boucle de restauration tolérante au chargement asynchrone |
+| `lib/view-state.ts` | État de vue des pages (page, recherche, filtres) par entrée d'historique |
+| `components/scroll-restoration.tsx` | Monté une fois dans `app/layout.tsx`, fournit le signal « route rendue » |
+| `components/back-button.tsx` | Bouton retour visible, appelle `router.back()` |
+
+### Contraintes non négociables
+
+Elles découlent de la lecture de
+`node_modules/next/dist/client/components/app-router.js` :
+
+1. **Ne jamais écrire dans `history`.** Next patche déjà `pushState` /
+   `replaceState` et force `window.location.reload()` quand `event.state.__NA`
+   est absent au popstate (`app-router.js:290-292`). Créer une entrée
+   d'historique soi-même déclenche un **rechargement complet** au retour arrière.
+2. **`preserveCustomHistoryState` vaut `false`** sur une navigation normale
+   (`segment-cache/navigation.js:240` et `:351`) : Next efface délibérément le
+   state custom des entrées. Y stocker une clé d'entrée est vain.
+3. **Le déclenchement se fait uniquement sur `popstate`.** Aucun drapeau « est-ce
+   un retour ? » : une navigation avant (`<Link>`, sidebar) ne produit pas de
+   popstate, donc elle ne restaure jamais rien. Corollaire : un F5 ne restaure
+   rien, sans avoir besoin d'un drapeau dédié.
+4. **Clé d'entrée** : `navigation.currentEntry.key` sous Chromium (Electron,
+   Chrome) — unique par entrée, donc deux visites de `/ventes` gardent chacune
+   leur position. Firefox/Safari n'ont pas cette API : repli sur
+   `pathname + search`, où seule la dernière visite d'une URL est mémorisée.
+
+### Ajouter l'état de vue à une page
+
+```tsx
+import { useViewStateRehydration, writeViewState, clampPage } from '@/lib/view-state';
+
+type MaPageViewState = { search: string; currentPage: number };
+
+// 1. Après les déclarations d'état, AVANT ce qui en dérive (useMemo, useEffect)
+const rehydrated = useViewStateRehydration<MaPageViewState>('ma-page', (saved) => {
+  applyRestored(saved);                    // si la page utilise useSearchFilter
+  if (saved.autreChamp != null) setAutreChamp(saved.autreChamp);
+});
+
+// 2. Écrire à chaque changement
+useEffect(() => {
+  if (!rehydrated) return;
+  writeViewState<MaPageViewState>('ma-page', { search, currentPage });
+}, [rehydrated, search, currentPage]);
+
+// 3. Bloquer le fetch tant que la réhydratation n'a pas eu lieu
+useEffect(() => {
+  if (!rehydrated) return;                 // sinon : fetch page 1 PUIS fetch page restaurée
+  // ...
+}, [rehydrated, /* … */]);
+
+// 4. Clamper après le fetch — pages paginées côté serveur uniquement
+const corrected = clampPage(currentPage, data.totalPages);
+if (corrected !== null) setCurrentPage(corrected);
+```
+
+**Pourquoi `useLayoutEffect` et jamais un initialiseur de `useState`** : les pages
+sont des composants client, mais Next les rend quand même côté serveur. Lire
+`sessionStorage` dans un initialiseur produirait un HTML serveur (page 1,
+recherche vide) différent du premier rendu client → **erreur d'hydratation
+React 19**.
+
+### `useSearchFilter` et `applyRestored`
+
+`components/search-filter.tsx` expose `applyRestored({ search, filter,
+currentPage })`, à appeler **depuis la réhydratation uniquement**.
+
+Son effet de remise à zéro de la pagination est **amorcé avec les valeurs
+restaurées** plutôt qu'avec les valeurs courantes. Sans ça, la réhydratation
+serait prise pour une saisie utilisateur et remettrait la page à 1. Le point
+subtil : un `setState` déclenché dans un `useLayoutEffect` provoque une **seconde
+passe de commit**, et React vide les effets passifs de la première passe avant de
+rendre la seconde. L'effet s'exécute donc **deux fois** — un drapeau « ne pas
+réinitialiser » consommé au premier passage serait déjà épuisé quand la seconde,
+la vraie, arrive.
+
+### Pages couvertes
+
+| Page | État de vue restauré |
+|---|---|
+| `/ventes`, `/clients`, `/produits`, `/fournisseurs`, `/factures-usine`, `/portefeuille`, `/stocks`, `/rapports` | ✅ |
+| `/` (dashboard) | ❌ filtre de période uniquement |
+| `/clients/[id]/paiements`, `/fournisseurs/[id]/paiements` | ❌ filtre de période uniquement |
+
+Les pages de détail et le dashboard bénéficient déjà de la restauration du
+**scroll** (couche 1, générique) sans aucune modification de leur part.
+
+### Le bouton retour
+
+`components/back-button.tsx` appelle `router.back()`, donc une vraie traversée
+d'historique. Un `<Link href="/ventes">` **empile** une entrée et ne restaure
+donc rien : c'était le défaut des anciennes flèches « Retour vers X » codées en
+dur, qui ont été retirées.
+
+Il est rendu par `components/page-header.tsx`, utilisé par **17 pages**. Une
+seule page le monte encore à la main : `app/ventes/[id]/page.tsx`, où il est
+**en ligne avec le numéro de facture** plutôt que dans une carte — cette page a
+une mise en page d'impression (`max-w-4xl`, styles `print:`) qu'un `PageHeader`
+casserait.
+
+Il s'auto-masque quand il n'y a plus d'entrée précédente
+(`navigation.currentEntry.index === 0`) et ne s'affiche jamais sur `/login`.
+La prop `withMargin` (défaut `true`) ajoute `mb-3 sm:mb-4` ; passer
+`withMargin={false}` quand le parent gère déjà l'espacement (conteneur
+`space-y-*` ou rangée flex).
+
+### Pièges connus
+
+- **Le port Electron est dynamique en production** (`findFreePort(3000)`,
+  `electron/main.js:95`) : l'origin `http://localhost:PORT` change entre deux
+  lancements, donc tout stockage navigateur est vidé. C'est pourquoi le système
+  utilise `sessionStorage` et non `localStorage`. La restauration fonctionne
+  dans une session, jamais entre deux lancements.
+- **Ctrl+R recharge tout le document.** `setMenuBarVisibility(false)` masque la
+  barre de menu mais ne supprime pas le menu applicatif : ses accélérateurs
+  restent actifs. Position perdue — comportement voulu.
+- **Un clic dans la sidebar est un `push`**, donc il ne restaure rien : la page
+  repart du haut. C'est la règle retenue ; le bouton retour est le seul
+  déclencheur.
+- **`tsconfig.json` a `"incremental": true`** : `tsc --noEmit` ne réaffiche pas
+  les erreurs des fichiers non modifiés, ce qui donne une fausse impression de
+  propreté. Pour un contrôle fiable : `npx tsc --noEmit --incremental false`.
+- **`release/win-unpacked/` contient une copie packagée du projet** que le glob
+  `**/*.ts` de tsconfig capte : ~50 erreurs de type pré-existantes en découlent.
+  Les ignorer, ne pas « corriger » ce dossier.

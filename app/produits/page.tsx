@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/page-header';
 import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filter';
+import { useViewStateRehydration, writeViewState, clampPage } from '@/lib/view-state';
 import { Modal } from '@/components/modal';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { formatDateShort } from '@/lib/date-format';
@@ -41,6 +42,11 @@ const initialFormData: ProductFormData = {
   isActive: true,
 };
 
+type ProduitsViewState = {
+  search: string;
+  currentPage: number;
+};
+
 export default function ProduitsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [produitsStats, setProduitsStats] = useState<{ total: number; activeCount: number; averageSalePrice: number } | null>(null);
@@ -48,9 +54,19 @@ export default function ProduitsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
-  const { search, setSearch, currentPage, setCurrentPage } = useSearchFilter(products, ['code', 'name', 'capacity']);
+  const { search, setSearch, currentPage, setCurrentPage, applyRestored } = useSearchFilter(products, ['code', 'name', 'capacity']);
   const ITEMS_PER_PAGE = 10;
   const isRefreshingProducts = isLoading && hasLoadedProducts;
+
+  // Retour arrière : recherche et pagination remises en place avant peinture.
+  const rehydrated = useViewStateRehydration<ProduitsViewState>('produits', (saved) => {
+    applyRestored(saved);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<ProduitsViewState>('produits', { search, currentPage });
+  }, [rehydrated, search, currentPage]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -61,10 +77,13 @@ export default function ProduitsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on lancerait un
+    // fetch sur la page 1 puis un second sur la page restaurée.
+    if (!rehydrated) return;
     const controller = new AbortController();
     fetchProducts(controller.signal);
     return () => controller.abort();
-  }, [currentPage, search]);
+  }, [rehydrated, currentPage, search]);
   useEffect(() => { fetchProduitsStats(); }, []);
 
   const fetchProduitsStats = async () => {
@@ -86,6 +105,9 @@ export default function ProduitsPage() {
       setProducts(data.data);
       setTotal(data.total);
       setTotalPages(data.totalPages);
+      // La page restaurée peut avoir disparu si la liste a rétréci entre-temps.
+      const corrected = clampPage(currentPage, data.totalPages);
+      if (corrected !== null) setCurrentPage(corrected);
       setHasLoadedProducts(true);
     } catch {
       if (signal?.aborted) return;

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PageHeader } from '@/components/page-header';
 import { formatDateShort } from '@/lib/date-format';
 
 // ---------- types ----------
@@ -178,33 +179,13 @@ export default function SupplierPaymentsPage() {
   return (
     <div className="space-y-6">
       {/* ---------- Header ---------- */}
-      <section className="rounded-3xl border border-base-200/80 bg-base-100/80 p-6 md:p-8 shadow-lg shadow-black/5 backdrop-blur">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-              Historique des factures
-            </p>
-            <div className="flex items-center gap-3 mt-2">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
-                {supplier.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">{supplier.name}</h1>
-                <p className="text-sm text-base-content/50">
-                  {supplier.phone || '\u2014'}
-                  {supplier.address && <span> \u00B7 {supplier.address}</span>}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Link href={`/fournisseurs`} className="btn btn-outline btn-sm gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-              Retour
-            </Link>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Historique des factures"
+        title={supplier.name}
+        description={
+          [supplier.phone, supplier.address].filter(Boolean).join(' \u00B7 ') || 'Fournisseur'
+        }
+      />
 
       {/* ---------- Period Selector ---------- */}
       <div className="flex flex-wrap items-center gap-2">

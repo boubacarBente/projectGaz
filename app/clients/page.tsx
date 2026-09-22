@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PageHeader } from '@/components/page-header';
 import { Modal } from '@/components/modal';
 import { ResponsiveTable } from '@/components/responsive-table';
 import { formatDateLong } from '@/lib/date-format';
+import { useViewStateRehydration, writeViewState, clampPage } from '@/lib/view-state';
 
 type Customer = {
   id: number;
@@ -94,6 +96,12 @@ function StatusBadge({ active }: { active: boolean }) {
   );
 }
 
+type ClientsViewState = {
+  currentPage: number;
+  search: string;
+  selectedType: string;
+};
+
 export default function ClientsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
@@ -118,11 +126,28 @@ export default function ClientsPage() {
   const ITEMS_PER_PAGE = 10;
   const isRefreshingCustomers = isLoading && hasLoadedCustomers;
 
+  // Retour arrière : on remet page, recherche et filtre en place avant peinture.
+  // Sans ça, la liste revenue serait plus courte que la position mémorisée et le
+  // scroll serait clampé — la position seule ne suffit pas.
+  const rehydrated = useViewStateRehydration<ClientsViewState>('clients', (saved) => {
+    if (saved.currentPage != null) setCurrentPage(saved.currentPage);
+    if (saved.search != null) setSearch(saved.search);
+    if (saved.selectedType != null) setSelectedType(saved.selectedType);
+  });
+
   useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<ClientsViewState>('clients', { currentPage, search, selectedType });
+  }, [rehydrated, currentPage, search, selectedType]);
+
+  useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on lancerait un
+    // fetch sur la page 1 puis un second sur la page restaurée.
+    if (!rehydrated) return;
     const controller = new AbortController();
     fetchCustomers(controller.signal);
     return () => controller.abort();
-  }, [search, selectedType, currentPage]);
+  }, [rehydrated, search, selectedType, currentPage]);
   useEffect(() => { fetchCustomersStats(); }, []);
   useEffect(() => { fetchCustomerTypes(); }, []);
 
@@ -148,6 +173,9 @@ export default function ClientsPage() {
       setCustomers(data.data);
       setTotal(data.total);
       setTotalPages(data.totalPages);
+      // La page restaurée peut avoir disparu si la liste a rétréci entre-temps.
+      const corrected = clampPage(currentPage, data.totalPages);
+      if (corrected !== null) setCurrentPage(corrected);
       setHasLoadedCustomers(true);
     } catch {
       if (signal?.aborted) return;
@@ -285,34 +313,30 @@ export default function ClientsPage() {
       animate="show"
       className="space-y-5"
     >
-      <motion.section variants={item} className="rounded-lg border border-base-200 bg-base-100 p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">Clients</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-base-content sm:text-3xl">
-              Gestion des clients
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-base-content/55">
-              Suivi des contacts, segments et volumes d'achat de la clientèle.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <button onClick={() => setShowAddTypeModal(true)} className="btn btn-outline btn-sm gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.582 9.582a2.25 2.25 0 003.182 0l4.318-4.318a2.25 2.25 0 000-3.182L11.159 3.659A2.25 2.25 0 009.568 3z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.008v.008H6.75V6.75z" />
-              </svg>
-              Types
-            </button>
-            <button onClick={() => { resetForm(); setShowAddModal(true); }} className="btn btn-primary btn-sm gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              Nouveau client
-            </button>
-          </div>
-        </div>
-      </motion.section>
+      <motion.div variants={item}>
+        <PageHeader
+          eyebrow="Clients"
+          title="Gestion des clients"
+          description="Suivi des contacts, segments et volumes d'achat de la clientèle."
+          actions={
+            <>
+              <button onClick={() => setShowAddTypeModal(true)} className="btn btn-outline btn-sm gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.582 9.582a2.25 2.25 0 003.182 0l4.318-4.318a2.25 2.25 0 000-3.182L11.159 3.659A2.25 2.25 0 009.568 3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.008v.008H6.75V6.75z" />
+                </svg>
+                Types
+              </button>
+              <button onClick={() => { resetForm(); setShowAddModal(true); }} className="btn btn-primary btn-sm gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Nouveau client
+              </button>
+            </>
+          }
+        />
+      </motion.div>
 
       <motion.div variants={item} className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Clients" value={fCF(total)} hint="Total dans la sélection" />

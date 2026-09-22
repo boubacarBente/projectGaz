@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, ReactNode, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, ReactNode, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type FilterOption = {
@@ -22,7 +22,63 @@ export function useSearchFilter<T>(items: T[], searchFields: string[], filterFn?
   const [filter, setFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => setCurrentPage(1), [search, filter]);
+  /** Valeurs posées par une réhydratation de retour arrière, en attente d'amorçage. */
+  const restored = useRef<{ search: string; filter: string } | null>(null);
+  /** Dernières valeurs connues, pour distinguer une saisie utilisateur d'une réhydratation. */
+  const previous = useRef<{ search: string; filter: string } | null>(null);
+
+  /**
+   * Remet la pagination à 1 quand l'utilisateur change la recherche ou le filtre.
+   *
+   * Le piège : une réhydratation de retour arrière modifie `search`/`filter` par
+   * programme, ce qui ressemble exactement à une saisie — et remettrait la page
+   * à 1, annulant la restauration.
+   *
+   * Ce que fait React et qui rend le cas non trivial : un setState déclenché
+   * dans un `useLayoutEffect` provoque une seconde passe de commit, et React
+   * vide les effets passifs de la **première** passe avant de rendre la seconde.
+   * Cet effet s'exécute donc deux fois lors d'une réhydratation — la première
+   * avec les anciennes valeurs (`search` encore vide). Un drapeau « ne pas
+   * réinitialiser » consommé au premier passage serait donc déjà épuisé quand la
+   * seconde passe, la vraie, arrive.
+   *
+   * D'où l'amorçage : au tout premier passage on mémorise les valeurs
+   * restaurées (posées pendant la phase de layout, donc déjà disponibles), pas
+   * les valeurs courantes. Les deux passes comparent alors des valeurs égales et
+   * ne touchent pas à la pagination. Une vraie saisie ultérieure, elle, diffère
+   * et réinitialise normalement.
+   */
+  useEffect(() => {
+    if (previous.current === null) {
+      previous.current = restored.current ?? { search, filter };
+      return;
+    }
+    if (previous.current.search === search && previous.current.filter === filter) return;
+    previous.current = { search, filter };
+    setCurrentPage(1);
+  }, [search, filter]);
+
+  /**
+   * Applique un état de vue restauré en une seule fois.
+   *
+   * À appeler depuis un `useLayoutEffect` (voir `useViewStateRehydration`) : la
+   * phase de layout s'exécute intégralement avant tout effet passif, ce qui
+   * garantit que `restored` est renseigné quand l'effet ci-dessus s'amorce.
+   */
+  const applyRestored = useCallback(
+    (saved: { search?: string; filter?: string; currentPage?: number }) => {
+      const nextSearch = saved.search ?? '';
+      const nextFilter = saved.filter ?? '';
+
+      restored.current = { search: nextSearch, filter: nextFilter };
+      previous.current = null;
+
+      setSearch(nextSearch);
+      setFilter(nextFilter);
+      if (saved.currentPage != null) setCurrentPage(saved.currentPage);
+    },
+    [],
+  );
 
   const filtered = useMemo(() => {
     let result = items;
@@ -49,6 +105,7 @@ export function useSearchFilter<T>(items: T[], searchFields: string[], filterFn?
     currentPage,
     setCurrentPage,
     filtered,
+    applyRestored,
   };
 }
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSalesInvoice } from "@/lib/operations";
 import { PrintButton } from "./print-button";
 import { formatDateLong } from "@/lib/date-format";
+import { BackButton } from "@/components/back-button";
 
 type FactureDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -44,7 +45,7 @@ export default async function FactureDetailPage({
             </svg>
           </div>
           <h2 className="text-2xl font-bold">Facture introuvable</h2>
-          <p className="text-base-content/60 text-sm">Aucune facture trouvée avec l&rsquo;ID {id}.</p>
+          <p className="text-base-content/60 text-sm">Aucune facture trouvée avec l'ID {id}.</p>
           <Link href="/ventes" className="btn btn-primary">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -67,14 +68,7 @@ export default async function FactureDetailPage({
       {/* En-tête */}
       <div className="flex items-center justify-between mb-6 print:mb-4">
         <div className="flex items-center gap-3">
-          <Link
-            href="/ventes"
-            className="btn btn-ghost btn-sm btn-square"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </Link>
+          <BackButton withMargin={false} />
           <div className="flex items-center gap-2.5">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-base-content/40">{invoice.invoiceNumber}</span>
             <span className={`badge ${status.cls} text-xs`}>{status.label}</span>

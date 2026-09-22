@@ -92,12 +92,28 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
 - Le bon de livraison inclut une colonne "Vides récup." pour le suivi manuel terrain.
 - Cette colonne est uniquement présente sur la fiche imprimable pour le moment : les bouteilles vides récupérées ne sont pas encore enregistrées dans la base de données ni dans les factures de vente.
 
+### 🧭 Navigation et retour arrière
+- **Bouton retour** en haut à gauche de chaque page (rendu par `PageHeader`), qui
+  effectue une vraie traversée d'historique (`router.back()`). Indispensable dans
+  l'application desktop, qui n'a aucune barre d'outils : sans lui, aucun moyen de
+  revenir depuis une facture.
+- **Restauration exacte au retour** : la position de scroll **et** l'état de la
+  page (numéro de page, recherche, filtres, période) sont mémorisés par entrée
+  d'historique, puis remis en place — la liste revenue est exactement celle qu'on
+  lisait, à la même hauteur.
+- Couvre `/ventes`, `/clients`, `/produits`, `/fournisseurs`, `/factures-usine`,
+  `/portefeuille`, `/stocks` et `/rapports`. Les pages de détail et le dashboard
+  restaurent au minimum la position de scroll.
+- **Limites** : la restauration se déclenche sur un retour/avance navigateur, pas
+  sur un clic dans la sidebar (qui repart volontairement du haut) ; elle vit le
+  temps d'une session — fermer puis rouvrir l'application la réinitialise.
+
 ### 🔐 Authentification & Utilisateurs
 - Système d'authentification par cookie (hachage SHA-256)
 - Deux rôles : **admin** et **user**
 - Page de connexion sécurisée
 - Gestion des utilisateurs (création, modification, suppression)
-- Routes protégées par middleware
+- Routes protégées par `proxy.ts`
 
 ### ⚙️ Paramètres
 - Informations de l'entreprise (nom, téléphone, email, adresse)
@@ -256,6 +272,7 @@ projectGaz/
 ├── components/                   # Composants React réutilisables
 │   ├── app-shell.tsx             #   Sidebar + menu mobile + user menu
 │   ├── auth-provider.tsx         #   Contexte d'authentification
+│   ├── back-button.tsx           #   Bouton retour (router.back()), en-tête de page
 │   ├── date-picker.tsx           #   Sélecteur de date
 │   ├── export-dropdown.tsx       #   Dropdown export PDF/Image/WhatsApp
 │   ├── metric-card.tsx           #   Carte de métrique dashboard
@@ -263,6 +280,7 @@ projectGaz/
 │   ├── module-page.tsx           #   Template de page module
 │   ├── page-header.tsx           #   En-tête de page
 │   ├── responsive-table.tsx      #   Tableau adaptatif (desktop/mobile)
+│   ├── scroll-restoration.tsx    #   Moteur de restauration du scroll (monté 1 fois)
 │   ├── search-filter.tsx         #   Recherche + filtre + pagination
 │   ├── surface-card.tsx          #   Carte générique
 │   ├── theme-provider.tsx        #   Contexte thème clair/sombre + couleurs
@@ -274,7 +292,7 @@ projectGaz/
 │   └── release.yml                #   CI/CD build multi-plateforme
 ├── db/                           # Base de données
 │   ├── schema.ts                 # Définition des tables Drizzle
-│   ├── helpers.ts                #   Requêtes avec relations (JOIN auto)
+│   ├── helpers.ts                #   ⚠️ Code mort (importé nulle part)
 │   ├── index.ts                  #   Connexion SQLite libSQL + migrations
 │   └── database.db               #   Fichier de la base SQLite en dev
 ├── lib/                          # Utilitaires et fonctions métier
@@ -283,12 +301,14 @@ projectGaz/
 │   ├── invoice-export.ts         # Export PDF/Image
 │   ├── operations.ts             # Fonctions métier (CRUD + rapports)
 │   ├── products.ts               # Fonctions produits
-│   └── seed-data.ts              # Données de démonstration
+│   ├── scroll-engine.ts          # Moteur de restauration du scroll + bouton retour
+│   ├── seed-data.ts              # Données de démonstration
+│   └── view-state.ts             # État de vue des listes (page, recherche, filtres)
 ├── Bon_de_livraison_journalier_Gestion_Gaz.docx # Fiche terrain Word
 ├── Bon_de_livraison_journalier_Gestion_Gaz.pdf  # Fiche terrain PDF
 ├── data/                         # Anciennes données JSON (archivé)
 ├── TUTO.md                       # Guide complet pour l'app desktop
-└── middleware.ts                 # Protection des routes (auth)
+└── proxy.ts                      # Protection des routes (auth)
 ```
 
 ## Base de Données
@@ -310,7 +330,11 @@ projectGaz/
 
 ### Relations Drizzle
 
-Les relations entre tables sont définies dans `db/schema.ts` et permettent des **JOIN automatiques** via le helper `db/helpers.ts` :
+Les relations entre tables sont définies dans `db/schema.ts` et permettent des **JOIN automatiques** :
+
+> ⚠️ Le helper `findPurchaseInvoices()` de `db/helpers.ts` n'est **importé nulle part** —
+> c'est du code mort. Les requêtes passent par `lib/operations.ts`
+> (`listPaginatedPurchaseInvoices`, `getPurchaseInvoice`…).
 
 - `purchase_invoices → suppliers` : one-to-one via `supplierId`
 - `purchase_invoices → purchase_invoice_items` : one-to-many
@@ -319,7 +343,7 @@ Les relations entre tables sont définies dans `db/schema.ts` et permettent des 
 - `purchase_invoice_items → products` : one-to-one
 - `sales_invoice_items → products` : one-to-one
 
-**Principe :** Les helpers utilisent `db.query...with` pour charger automatiquement les relations sans avoir à écrire de `SELECT` avec toutes les colonnes en dur. Si le schéma change, un seul endroit est à modifier : `mapPurchaseInvoiceRow()` dans `lib/operations.ts`.
+**Principe :** Les requêtes utilisent `db.query...with` pour charger automatiquement les relations sans avoir à écrire de `SELECT` avec toutes les colonnes en dur. Si le schéma change, un seul endroit est à modifier : `mapPurchaseInvoiceRow()` dans `lib/operations.ts`.
 
 ### Produits par Défaut
 
@@ -478,15 +502,18 @@ Le système utilise une **authentification custom** sans dépendance externe :
 - **Hachage** : SHA-256 via `crypto.subtle.digest()`
 - **Session** : Cookies HTTP (`session_user` + `session`)
 - **Rôles** : `admin` et `user`
-- **Protection** : Middleware Next.js protégeant toutes les routes sauf `/login` et les assets statiques
+- **Protection** : `proxy.ts` protège toutes les routes sauf `/login` et les assets statiques
 - **Setup** : Route `/api/auth/setup` pour créer le premier administrateur au premier démarrage
 
-### Middleware
+### Proxy (protection des routes)
 
-Le fichier `middleware.ts` intercepte toutes les requêtes et :
+Le fichier `proxy.ts` intercepte toutes les requêtes et :
 - Laisse passer les routes publiques (`/login`, `/api/auth/*`)
 - Vérifie la présence du cookie `session_user`
 - Redirige vers `/login` si non authentifié (pages) ou retourne 401 (API)
+
+> ⚠️ Next 16 a renommé `middleware.ts` en `proxy.ts` (export `proxy()`).
+> Il n'existe **aucun** `middleware.ts` dans ce projet.
 
 ## Design
 
@@ -534,4 +561,4 @@ Composant dropdown réutilisable regroupant les options d'export :
 
 ---
 
-*Dernière mise à jour : 13/07/2026*
+*Dernière mise à jour : 22/09/2026*

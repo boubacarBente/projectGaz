@@ -8,6 +8,13 @@ import { useSearchFilter, SearchBar, Pagination } from '@/components/search-filt
 import { Modal } from '@/components/modal';
 import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { formatDateWithTime } from '@/lib/date-format';
+import { useViewStateRehydration, writeViewState } from '@/lib/view-state';
+
+type StocksViewState = {
+  search: string;
+  currentPage: number;
+  movementsPage: number;
+};
 
 interface StockProduct {
   id: number;
@@ -77,7 +84,7 @@ export default function StocksPage() {
   const [summary, setSummary] = useState<StockSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedStocks, setHasLoadedStocks] = useState(false);
-  const { search, setSearch, currentPage, setCurrentPage } = useSearchFilter(products, ['code', 'name', 'capacity']);
+  const { search, setSearch, currentPage, setCurrentPage, applyRestored } = useSearchFilter(products, ['code', 'name', 'capacity']);
   const ITEMS_PER_PAGE = 10;
   const isRefreshingStocks = isLoading && hasLoadedStocks;
 
@@ -94,6 +101,17 @@ export default function StocksPage() {
   const [movementsPage, setMovementsPage] = useState(1);
   const [movementsTotal, setMovementsTotal] = useState(0);
   const [movementsLoading, setMovementsLoading] = useState(false);
+
+  // Retour arrière : recherche, pagination des stocks et page des mouvements remises en place avant peinture.
+  const rehydrated = useViewStateRehydration<StocksViewState>('stocks', (saved) => {
+    applyRestored(saved);
+    if (saved.movementsPage != null) setMovementsPage(saved.movementsPage);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<StocksViewState>('stocks', { search, currentPage, movementsPage });
+  }, [rehydrated, search, currentPage, movementsPage]);
 
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
@@ -122,10 +140,13 @@ export default function StocksPage() {
   }, [search]);
 
   useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on lancerait un
+    // fetch sur la page 1 puis un second sur la page restaurée.
+    if (!rehydrated) return;
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort();
-  }, [fetchData]);
+  }, [rehydrated, fetchData]);
 
   const fetchMovements = async (productId: number, page = 1) => {
     setMovementsLoading(true);

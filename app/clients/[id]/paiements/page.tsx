@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { PageHeader } from '@/components/page-header';
 import { ExportDropdown, shareOnWhatsApp } from '@/components/export-dropdown';
 import { formatDateShort, formatDateTime, formatMonthYear } from '@/lib/date-format';
 import { useSettings } from '@/app/parametres/page';
@@ -620,26 +621,14 @@ export default function CustomerPaymentsPage() {
   return (
     <div className="space-y-6">
       {/* ---------- Header ---------- */}
-      <section className="rounded-3xl border border-base-200/80 bg-base-100/80 p-6 md:p-8 shadow-lg shadow-black/5 backdrop-blur">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-              Historique des paiements
-            </p>
-            <div className="flex items-center gap-3 mt-2">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
-                {customer.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">{customer.name}</h1>
-                <p className="text-sm text-base-content/50">
-                  {customer.phone || '__'}
-                  {customer.city && <span> A {customer.city}</span>}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <PageHeader
+        eyebrow="Historique des paiements"
+        title={customer.name}
+        description={
+          [customer.phone, customer.city].filter(Boolean).join(' \u00B7 ') || 'Client'
+        }
+        actions={
+          <>
             <button
               type="button"
               onClick={() => setShowReport((value) => !value)}
@@ -653,16 +642,12 @@ export default function CustomerPaymentsPage() {
               onShareWhatsApp={handleShareWhatsApp}
               label="Rapport"
             />
-            <Link href={`/clients/${customerId}`} className="btn btn-outline btn-sm gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-              Profil client
-            </Link>
             <Link href="/clients" className="btn btn-outline btn-sm">
               Tous les clients
             </Link>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       {/* ---------- Period Selector ---------- */}
       <div className="flex flex-wrap items-center gap-2">

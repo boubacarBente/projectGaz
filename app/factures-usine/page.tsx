@@ -13,6 +13,14 @@ import { ResponsiveTable, type Column } from '@/components/responsive-table';
 import { useSettings } from '@/app/parametres/page';
 // DatePicker removed
 import { formatDateShort } from '@/lib/date-format';
+import { useViewStateRehydration, writeViewState, clampPage } from '@/lib/view-state';
+
+type FacturesUsineViewState = {
+  search: string;
+  filter: string;
+  currentPage: number;
+  supplierFilter: string;
+};
 
 // Dynamic import for PDF/image generation
 let html2canvas: any;
@@ -102,7 +110,7 @@ export default function DepensesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [supplierFilter, setSupplierFilter] = useState('');
 
-  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage } = useSearchFilter(
+  const { search, setSearch, filter, setFilter, currentPage, setCurrentPage, applyRestored } = useSearchFilter(
     invoices,
     ['reference', 'date'],
   );
@@ -115,11 +123,25 @@ export default function DepensesPage() {
     return suppliers.find(s => s.name.toLowerCase() === supplierFilter.toLowerCase())?.id;
   }, [supplierFilter, suppliers]);
 
+  // Retour arrière : recherche, filtre, pagination et fournisseur remis en place avant peinture.
+  const rehydrated = useViewStateRehydration<FacturesUsineViewState>('factures-usine', (saved) => {
+    applyRestored(saved);
+    if (saved.supplierFilter != null) setSupplierFilter(saved.supplierFilter);
+  });
+
   useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<FacturesUsineViewState>('factures-usine', { search, filter, currentPage, supplierFilter });
+  }, [rehydrated, search, filter, currentPage, supplierFilter]);
+
+  useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on lancerait un
+    // fetch sur la page 1 puis un second sur la page restaurée.
+    if (!rehydrated) return;
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort();
-  }, [currentPage, search, filter, selectedSupplierId]);
+  }, [rehydrated, currentPage, search, filter, selectedSupplierId]);
   useEffect(() => {
     fetchLookups();
   }, []);
@@ -175,6 +197,9 @@ export default function DepensesPage() {
       setInvoices(Array.isArray(invoicesData.data) ? invoicesData.data : []);
       setTotal(invoicesData.total);
       setTotalPages(invoicesData.totalPages);
+      // La page restaurée peut avoir disparu si la liste a rétréci entre-temps.
+      const corrected = clampPage(currentPage, invoicesData.totalPages);
+      if (corrected !== null) setCurrentPage(corrected);
       setHasLoadedInvoices(true);
     } catch {
       if (signal?.aborted) return;

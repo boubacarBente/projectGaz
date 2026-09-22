@@ -4,6 +4,7 @@ import { ToastContainer } from "react-toastify";
 import { SettingsProvider } from "./parametres/page";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth-provider";
+import { ScrollRestoration } from "@/components/scroll-restoration";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({
         <AuthProvider>
           <SettingsProvider>
             <ThemeProvider>
+              <ScrollRestoration />
               <AppShell>{children}</AppShell>
               <ToastContainer
                 position="top-right"

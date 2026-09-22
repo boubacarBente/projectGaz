@@ -13,6 +13,19 @@ import { RapportStockInsights } from '@/components/rapports/rapport-stock-insigh
 import type { Period, RapportData, RapportPaymentStatus } from '@/lib/rapports-types';
 import { formatDateShort, formatDateTime } from '@/lib/date-format';
 import { useSettings } from '@/app/parametres/page';
+import { useViewStateRehydration, writeViewState } from '@/lib/view-state';
+
+type RapportsViewState = {
+  period: Period;
+  selectedProductId: string;
+  selectedCustomerId: string;
+  selectedSupplierId: string;
+  paymentStatus: RapportPaymentStatus;
+  selectedDay: string;
+  selectedMonth: string;
+  customFrom: string;
+  customTo: string;
+};
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'today', label: "Aujourd'hui" },
@@ -349,6 +362,46 @@ export default function RapportsPage() {
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
   });
 
+  // Retour arrière : les 9 filtres sont remis en place avant peinture, sinon le
+  // rapport revenu serait celui de la période par défaut, pas celui qu'on lisait.
+  const rehydrated = useViewStateRehydration<RapportsViewState>('rapports', (saved) => {
+    if (saved.period != null) setPeriod(saved.period);
+    if (saved.selectedProductId != null) setSelectedProductId(saved.selectedProductId);
+    if (saved.selectedCustomerId != null) setSelectedCustomerId(saved.selectedCustomerId);
+    if (saved.selectedSupplierId != null) setSelectedSupplierId(saved.selectedSupplierId);
+    if (saved.paymentStatus != null) setPaymentStatus(saved.paymentStatus);
+    if (saved.selectedDay != null) setSelectedDay(saved.selectedDay);
+    if (saved.selectedMonth != null) setSelectedMonth(saved.selectedMonth);
+    if (saved.customFrom != null) setCustomFrom(saved.customFrom);
+    if (saved.customTo != null) setCustomTo(saved.customTo);
+  });
+
+  useEffect(() => {
+    if (!rehydrated) return;
+    writeViewState<RapportsViewState>('rapports', {
+      period,
+      selectedProductId,
+      selectedCustomerId,
+      selectedSupplierId,
+      paymentStatus,
+      selectedDay,
+      selectedMonth,
+      customFrom,
+      customTo,
+    });
+  }, [
+    rehydrated,
+    period,
+    selectedProductId,
+    selectedCustomerId,
+    selectedSupplierId,
+    paymentStatus,
+    selectedDay,
+    selectedMonth,
+    customFrom,
+    customTo,
+  ]);
+
   const params = useMemo(
     () => getDateParams(period, selectedDay, selectedMonth, customFrom, customTo),
     [period, selectedDay, selectedMonth, customFrom, customTo],
@@ -401,6 +454,9 @@ export default function RapportsPage() {
   }, []);
 
   useEffect(() => {
+    // Bloqué tant que la réhydratation n'a pas eu lieu : sinon on lancerait un
+    // rapport sur la période par défaut puis un second sur la période restaurée.
+    if (!rehydrated) return;
     const ac = new AbortController();
     async function fetchData() {
       setIsLoading(true);
@@ -430,7 +486,7 @@ export default function RapportsPage() {
     }
     fetchData();
     return () => ac.abort();
-  }, [params, previousParams, selectedProductId, selectedCustomerId, selectedSupplierId, paymentStatus]);
+  }, [rehydrated, params, previousParams, selectedProductId, selectedCustomerId, selectedSupplierId, paymentStatus]);
 
   const periodLabel = PERIODS.find((p) => p.key === period)?.label || 'Total';
 
