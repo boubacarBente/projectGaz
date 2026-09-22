@@ -101,8 +101,9 @@ Application web complète pour la gestion d'une entreprise de vente et distribut
   page (numéro de page, recherche, filtres, période) sont mémorisés par entrée
   d'historique, puis remis en place — la liste revenue est exactement celle qu'on
   lisait, à la même hauteur.
-- Couvre `/ventes`, `/clients`, `/produits`, `/fournisseurs`, `/factures-usine`,
-  `/portefeuille`, `/stocks` et `/rapports`. Les pages de détail et le dashboard
+- Couvre **11 pages** : dashboard, ventes, clients, produits, fournisseurs,
+  factures-usine, portefeuille, stocks, rapports, et les deux historiques de
+  paiements (client et fournisseur). Les pages de détail sans état de liste
   restaurent au minimum la position de scroll.
 - **Limites** : la restauration se déclenche sur un retour/avance navigateur, pas
   sur un clic dans la sidebar (qui repart volontairement du haut) ; elle vit le
@@ -514,6 +515,22 @@ Le fichier `proxy.ts` intercepte toutes les requêtes et :
 
 > ⚠️ Next 16 a renommé `middleware.ts` en `proxy.ts` (export `proxy()`).
 > Il n'existe **aucun** `middleware.ts` dans ce projet.
+
+### Accès à l'application desktop (jeton + boucle locale)
+
+L'application desktop embarque un **vrai serveur HTTP** : la fenêtre n'est qu'un
+affichage pointé dessus. Sans protection, ce serveur serait joignable depuis
+n'importe quel navigateur de la machine — et, selon le pare-feu, depuis le réseau.
+Deux verrous l'en empêchent :
+
+| Verrou | Effet |
+|---|---|
+| **Jeton d'accès** | un secret aléatoire est généré à chaque lancement, transmis au serveur et injecté dans toutes les requêtes de la fenêtre. Sans cet en-tête, le serveur répond **404** — un navigateur n'apprend même pas que l'application existe. |
+| **Boucle locale** | le serveur n'écoute que sur `127.0.0.1`, donc il n'est pas joignable depuis le réseau. |
+
+**Conséquence pratique :** pour consulter l'application dans un navigateur
+(débogage), il faut passer par `npm run dev` — en mode développement le jeton est
+absent et le contrôle est désactivé.
 
 ## Design
 

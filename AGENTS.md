@@ -156,7 +156,78 @@ Les relations Drizzle dans `db/schema.ts` permettent les JOIN automatiques :
 - Deux rôles : `admin` et `user`
 - `proxy.ts` (export `proxy()`) protège toutes les routes sauf `/login` et `/api/auth/*`.
   ⚠️ Next 16 a renommé `middleware.ts` en `proxy.ts` : il n'existe **aucun** `middleware.ts` dans ce projet.
-- Backdoor admin hardcodée dans `app/api/auth/login/route.ts` : `boubacar` / `1265`
+
+---
+
+## Accès à l'application : jeton d'accès et boucle locale
+
+Objectif : l'application desktop ne doit être joignable **ni depuis un navigateur,
+même sur `localhost`, ni depuis le réseau** — tout en restant utilisable normalement.
+
+### Les deux verrous
+
+| Verrou | Où | Effet |
+|---|---|---|
+| **Jeton d'accès** | `electron/main.js` + `proxy.ts` | 404 sur toute requête dépourvue de l'en-tête `x-app-token` |
+| **Bind boucle locale** | `HOSTNAME: '127.0.0.1'` dans le `fork` | l'instance n'est pas joignable depuis le réseau |
+
+`electron/main.js` génère un jeton aléatoire à chaque lancement
+(`crypto.randomBytes(32).toString('hex')`), le transmet au serveur Next par la
+variable d'environnement `APP_TOKEN`, puis l'injecte dans **chaque** requête de la
+fenêtre via `session.defaultSession.webRequest.onBeforeSendHeaders` — à
+enregistrer **impérativement avant `loadURL`**.
+
+`proxy.ts` compare `request.headers.get('x-app-token')` à `process.env.APP_TOKEN`
+et répond **404** (et non 401/403 : un navigateur n'apprend même pas que
+l'application existe). Le contrôle est **ignoré quand `APP_TOKEN` est absent**,
+donc `next dev` reste consultable au navigateur — c'est le mode de débogage.
+
+⚠️ En Next 16 le proxy s'exécute dans le **runtime Node.js** (et non Edge), donc
+`process.env.APP_TOKEN` est lu à l'exécution et non figé au build. En Edge le
+contrôle aurait été **silencieusement inactif** (cf.
+`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`).
+
+### Pourquoi les fichiers de `public/` sont exemptés
+
+`next/image` ne lit pas le fichier directement : il demande au routeur Next de le
+servir **en interne**.
+
+- `next-server.js:767,777` appelle `fetchInternalImage(href, …)` avec l'URL
+  **source** (`/logo.jpeg`) — et `handleInternalReq` (ligne 749) interdit
+  explicitement que ce soit `/_next/image` lui-même (invariant E496).
+- `image-optimizer.js:1017` construit cette requête interne via
+  `createRequestResponseMocks({ url, method, socket })` — **sans `headers`**
+  (le constructeur fait `this.headers = headers`, donc `undefined`).
+
+Cette requête ne peut donc structurellement pas porter le jeton. La filtrer casse
+**toutes** les images `next/image` : c'est le bug « logo du sidebar cassé » de la
+0.1.27. D'où l'exemption par extension (`PUBLIC_ASSET_PATTERN`), placée **avant**
+le contrôle du jeton.
+
+Ces fichiers sont publics par nature — ni page, ni API, ni donnée. Tout le reste
+(HTML, payloads RSC, `/api/*`, chunks `_next/static`, et `/_next/image` lui-même)
+reste soumis au jeton.
+
+### Vérifier la protection
+
+```powershell
+npm run build; npm run copy:standalone
+
+# Serveur de test avec un jeton connu, sur un port libre (ne pas gêner l'app en cours)
+$env:APP_TOKEN='jeton-de-test'; $env:HOSTNAME='127.0.0.1'; $env:PORT='3210'
+node .next\standalone\server.js
+```
+
+```powershell
+curl.exe -s -o NUL -w "%{http_code}`n" http://127.0.0.1:3210/                                    # 404
+curl.exe -s -o NUL -w "%{http_code}`n" -H "x-app-token: jeton-de-test" http://127.0.0.1:3210/     # 307 -> /login
+curl.exe -s -o NUL -w "%{http_code}`n" http://127.0.0.1:3210/_next/image?url=%2Flogo.jpeg        # 404
+```
+
+Le `307` sur `/` est le comportement normal : le jeton passe, puis le contrôle de
+session redirige vers `/login` faute de cookie.
+
+---
 
 ## `lib/operations.ts` — Fonctions paginées
 
@@ -403,14 +474,25 @@ la vraie, arrive.
 
 ### Pages couvertes
 
-| Page | État de vue restauré |
+| Page | État restauré |
 |---|---|
-| `/ventes`, `/clients`, `/produits`, `/fournisseurs`, `/factures-usine`, `/portefeuille`, `/stocks`, `/rapports` | ✅ |
-| `/` (dashboard) | ❌ filtre de période uniquement |
-| `/clients/[id]/paiements`, `/fournisseurs/[id]/paiements` | ❌ filtre de période uniquement |
+| `/ventes`, `/clients`, `/produits`, `/fournisseurs`, `/factures-usine`, `/portefeuille`, `/stocks` | recherche, filtres, pagination |
+| `/rapports` | période, produit, client, fournisseur, statut de paiement |
+| `/` (dashboard) | période |
+| `/clients/[id]/paiements`, `/fournisseurs/[id]/paiements` | période, recherche |
 
-Les pages de détail et le dashboard bénéficient déjà de la restauration du
-**scroll** (couche 1, générique) sans aucune modification de leur part.
+Les pages de détail sans état de liste (factures, fiches) bénéficient déjà de la
+restauration du **scroll** (couche 1, générique) sans aucune modification.
+
+**Deux patrons à ne pas confondre :**
+
+- **Pages de liste** — le fetch est piloté par les filtres, donc il est **gaté**
+  sur `rehydrated`. Sans gate : une requête sur la valeur par défaut, puis une
+  seconde sur la valeur restaurée.
+- **Dashboard** — son fetch a des **dépendances vides** (il charge tout le
+  snapshot une fois) et le filtrage se fait côté client via `periodFilter`.
+  Restaurer la période suffit, un gate n'apporterait rien. Ne pas
+  « uniformiser » par erreur.
 
 ### Le bouton retour
 
