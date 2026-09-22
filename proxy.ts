@@ -24,13 +24,39 @@ const publicPrefixes = ['/_next', '/favicon', '/api/auth', '/logo'];
 const APP_TOKEN = process.env.APP_TOKEN;
 const APP_TOKEN_HEADER = 'x-app-token';
 
+/**
+ * Fichiers servis depuis `public/` (logo, icônes…), exemptés du jeton.
+ *
+ * La raison n'est pas évidente : `next/image` ne lit pas le fichier directement,
+ * il demande au routeur Next de le servir en interne. `next-server.js:777`
+ * appelle `fetchInternalImage(href, …)` avec l'URL **source**, et
+ * `handleInternalReq` (ligne 749) interdit explicitement que ce soit
+ * `/_next/image` lui-même — invariant E496. L'optimiseur rejoue donc
+ * `/logo.jpeg` dans le pipeline via `createRequestResponseMocks`, appelé
+ * **sans `headers`** (image-optimizer.js:1017) : cette requête interne ne peut
+ * pas porter le jeton. La filtrer casse toutes les images `next/image`.
+ *
+ * Ces fichiers sont publics par nature — ni page, ni API, ni donnée. Tout le
+ * reste (HTML, payloads RSC, `/api/*`, chunks `_next/static` et `/_next/image`
+ * lui-même) reste soumis au jeton.
+ */
+const PUBLIC_ASSET_PATTERN = /\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$/i;
+
 let tokenRejectionLogged = false;
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Vérification du jeton AVANT tout le reste : aucune route n'y échappe,
-  // pas même la page de connexion ni les ressources statiques.
+  // Fichiers de `public/` : servis sans jeton, AVANT tout contrôle.
+  // Voir PUBLIC_ASSET_PATTERN pour le pourquoi (réinjection interne de
+  // l'optimiseur d'images, qui ne peut pas porter l'en-tête).
+  if (PUBLIC_ASSET_PATTERN.test(pathname)) {
+    return NextResponse.next();
+  }
+
+  // Vérification du jeton : aucune route n'y échappe, pas même la page de
+  // connexion ni les chunks `_next/static`. Seuls les fichiers de `public/`
+  // sont passés plus haut.
   if (APP_TOKEN && request.headers.get(APP_TOKEN_HEADER) !== APP_TOKEN) {
     if (!tokenRejectionLogged) {
       tokenRejectionLogged = true;
