@@ -2,8 +2,8 @@ const { app, BrowserWindow, shell, dialog, ipcMain, session } = require('electro
 const path = require('path');
 const fs = require('fs');
 const { fork } = require('child_process');
-const http = require('http');
 const crypto = require('crypto');
+const { findFreePort, waitForServer, stopChild } = require('./server-lifecycle');
 let autoUpdater = null;
 try {
   ({ autoUpdater } = require('electron-updater'));
@@ -83,15 +83,13 @@ async function runUpdateCheck(source = 'manual') {
 let serverProcess = null;
 let serverPort = 3000;
 
-function findFreePort(startPort) {
-  return new Promise((resolve) => {
-    const server = require('net').createServer();
-    server.listen(startPort, () => {
-      const port = server.address().port;
-      server.close(() => resolve(port));
-    });
-    server.on('error', () => resolve(findFreePort(startPort + 1)));
-  });
+/** Premier port essayé. Il peut déjà être tenu par un `next dev` voisin. */
+const BASE_PORT = 3000;
+/** Nombre de ports essayés avant d'abandonner proprement. */
+const MAX_PORT_ATTEMPTS = 5;
+
+function logServer(level, message) {
+  logUpdater(level, `[serveur] ${message}`);
 }
 
 async function startNextServer() {
@@ -104,60 +102,108 @@ async function startNextServer() {
     return `http://127.0.0.1:${serverPort}`;
   }
 
-  serverPort = await findFreePort(3000);
+  // app.getAppPath() donne la racine de l'app (packagée : resources/app/).
+  const serverScript = path.join(app.getAppPath(), 'server.js');
 
-  // app.getAppPath() donne la racine de l'app (dev: racine projet, packagée: resources/app/)
-  const serverScript = app.isPackaged
-    ? path.join(app.getAppPath(), 'server.js')
-    : path.join(app.getAppPath(), '.next', 'standalone', 'server.js');
+  let startPort = BASE_PORT;
+  let lastFailure = 'aucune tentative';
 
-  serverProcess = fork(serverScript, [], {
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      PORT: String(serverPort),
-      ELECTRON_APP_PATH: app.getPath('userData'),
-      // Next standalone écoute sur 0.0.0.0 par défaut : on le limite à la
-      // boucle locale pour que l'instance ne soit pas joignable depuis le
-      // réseau (le jeton ci-dessous ferme le navigateur local, ceci ferme
-      // le réseau).
-      HOSTNAME: '127.0.0.1',
-      // Jeton exigé par proxy.ts sur chaque requête.
-      APP_TOKEN: appToken,
-    },
-    stdio: 'inherit',
-  });
+  for (let attempt = 1; attempt <= MAX_PORT_ATTEMPTS; attempt += 1) {
+    const port = await findFreePort(startPort);
+    const url = `http://127.0.0.1:${port}`;
 
-  const url = `http://127.0.0.1:${serverPort}`;
-  await waitForServer(url);
-  return url;
+    logServer('info', `Démarrage du serveur local sur ${url} (tentative ${attempt}/${MAX_PORT_ATTEMPTS})`);
+
+    const child = fork(serverScript, [], {
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        PORT: String(port),
+        ELECTRON_APP_PATH: app.getPath('userData'),
+        // Next standalone écoute sur 0.0.0.0 par défaut : on le limite à la
+        // boucle locale pour que l'instance ne soit pas joignable depuis le
+        // réseau (le jeton ci-dessous ferme le navigateur local, ceci ferme
+        // le réseau).
+        HOSTNAME: '127.0.0.1',
+        // Jeton exigé par proxy.ts sur chaque requête.
+        APP_TOKEN: appToken,
+      },
+      stdio: 'inherit',
+    });
+
+    // Si le serveur meurt (port déjà pris entre la sonde et le fork, erreur de
+    // migration…), inutile d'attendre 60 s : on interrompt la sonde.
+    const controller = new AbortController();
+    let childExited = false;
+    const onExit = () => {
+      childExited = true;
+      controller.abort();
+    };
+    child.once('exit', onExit);
+
+    const outcome = await waitForServer(url, { token: appToken, signal: controller.signal });
+    child.removeListener('exit', onExit);
+
+    if (outcome.ready) {
+      serverProcess = child;
+      serverPort = port;
+      superviseServer(child);
+      logServer('info', `Serveur local prêt sur ${url} (${outcome.attempts} sonde(s))`);
+      return url;
+    }
+
+    if (outcome.foreign) {
+      // Un autre programme (typiquement `next dev` d'un autre projet) tient le
+      // port : le charger afficherait une autre application, branchée sur une
+      // autre base de données. On prend le port suivant.
+      lastFailure = `un autre programme répond sur ${url} (${outcome.reason})`;
+    } else if (childExited) {
+      lastFailure = `le serveur local s'est arrêté aussitôt sur ${url} (port déjà pris ?)`;
+    } else {
+      lastFailure = `aucune réponse de ${url} (${outcome.reason})`;
+    }
+
+    logServer('error', `${lastFailure} — essai du port suivant`);
+    stopChild(child);
+    startPort = port + 1;
+  }
+
+  throw new Error(
+    `Impossible de démarrer le serveur local : ${lastFailure}. ` +
+      `Fermez les programmes qui occupent les ports ${BASE_PORT} à ${startPort - 1}, ` +
+      'puis relancez Gestion Gaz.',
+  );
 }
 
-function waitForServer(url, retries = 60, delay = 1000) {
-  return new Promise((resolve, reject) => {
-    let count = 0;
-    const check = () => {
-      http
-        .get(url, (res) => {
-          if (res.statusCode < 500) resolve();
-          else retry();
-        })
-        .on('error', retry);
-    };
-    const retry = () => {
-      count++;
-      if (count >= retries) reject(new Error(`Server not ready after ${retries} retries`));
-      else setTimeout(check, delay);
-    };
-    check();
+/**
+ * Surveille le serveur une fois la fenêtre chargée : s'il meurt en cours de
+ * session, la fenêtre devient inutilisable et l'utilisateur doit le savoir
+ * tout de suite plutôt que de découvrir des écrans figés.
+ */
+function superviseServer(child) {
+  child.once('exit', (code, signal) => {
+    if (serverProcess !== child) {
+      return; // arrêt volontaire : `stopNextServer()` a déjà détaché l'enfant
+    }
+
+    serverProcess = null;
+
+    const detail =
+      "Le serveur local s'est arrêté de façon inattendue " +
+      `(code ${code ?? 'inconnu'}${signal ? `, signal ${signal}` : ''}).`;
+    logServer('error', detail);
+
+    dialog.showErrorBox('Serveur local arrêté', `${detail}\n\nFermez puis relancez Gestion Gaz.`);
+    app.quit();
   });
 }
 
 function stopNextServer() {
-  if (serverProcess) {
-    serverProcess.kill();
-    serverProcess = null;
-  }
+  if (!serverProcess) return;
+
+  const child = serverProcess;
+  serverProcess = null;
+  stopChild(child);
 }
 
 // ── Window creation ──────────────────────────────────────────────────
@@ -225,45 +271,65 @@ async function createWindow(url) {
 }
 
 // ── App lifecycle ────────────────────────────────────────────────────
-app.whenReady().then(async () => {
-  // Définir le chemin DB persistant AVANT de démarrer le serveur
-  process.env.ELECTRON_APP_PATH = app.getPath('userData');
+//
+// Instance unique : deux instances se disputeraient le même port et le même
+// fichier `%APPDATA%/gestion-gaz/database.db` (verrous WAL, migrations
+// concurrentes). La seconde tentative ramène simplement la fenêtre existante
+// au premier plan.
+const gotTheLock = app.requestSingleInstanceLock();
 
-  try {
-    const url = await startNextServer();
-    await createWindow(url);
-
-    if (autoUpdater) {
-      setupAutoUpdater();
-    }
-
-    if (app.isPackaged && autoUpdater) {
-      setTimeout(() => {
-        runUpdateCheck('startup');
-      }, 3000);
-    }
-  } catch (err) {
-    console.error('Failed to start:', err);
-    dialog.showErrorBox('Erreur de demarrage', err.message);
-    app.quit();
-  }
-});
-
-app.on('window-all-closed', () => {
-  stopNextServer();
+if (!gotTheLock) {
   app.quit();
-});
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  });
 
-app.on('before-quit', () => {
-  stopNextServer();
-});
+  app.whenReady().then(async () => {
+    // Définir le chemin DB persistant AVANT de démarrer le serveur
+    process.env.ELECTRON_APP_PATH = app.getPath('userData');
 
-app.on('activate', async () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    const url = await startNextServer();
-    await createWindow(url);
-  }
-});
+    try {
+      const url = await startNextServer();
+      await createWindow(url);
+
+      if (autoUpdater) {
+        setupAutoUpdater();
+      }
+
+      if (app.isPackaged && autoUpdater) {
+        setTimeout(() => {
+          runUpdateCheck('startup');
+        }, 3000);
+      }
+    } catch (err) {
+      const message = getErrorMessage(err);
+      logServer('error', `Démarrage impossible : ${message}`);
+      console.error('Failed to start:', err);
+      stopNextServer();
+      dialog.showErrorBox('Erreur de demarrage', message);
+      app.quit();
+    }
+  });
+
+  app.on('window-all-closed', () => {
+    stopNextServer();
+    app.quit();
+  });
+
+  app.on('before-quit', () => {
+    stopNextServer();
+  });
+
+  app.on('activate', async () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      const url = await startNextServer();
+      await createWindow(url);
+    }
+  });
+}
 
 // ── Auto-updater events ──────────────────────────────────────────────
 function setupAutoUpdater() {

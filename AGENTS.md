@@ -369,14 +369,40 @@ type Column<T> = {
 
 ### Fichiers
 - `electron/main.js` — Processus principal : lance Next.js, crée la fenêtre BrowserWindow, gère l'auto-update via `electron-updater`
+- `electron/server-lifecycle.js` — Sélection du port local, identification du serveur Next, arrêt de son arbre de processus (sans dépendance à Electron, donc testable)
 - `electron/preload.js` — Bridge IPC sécurisé (contextIsolation)
 - `.github/workflows/release.yml` — Build multi-plateforme (Windows/macOS/Linux) sur chaque tag `v*`, upload en Release GitHub
 
 ### Commandes
 - `npm run dev:desktop` — Mode dev (Next.js + Electron)
+- `npm run verify:port` — Vérifie la sélection de port et l'identification du serveur (7 contrôles)
 - `npm run build:desktop:win` — Build Windows (.exe NSIS)
 - `npm run build:desktop:mac` — Build macOS (.dmg)
 - `npm run build:desktop:linux` — Build Linux (.AppImage)
+
+### Choix du port local : ne jamais charger un serveur étranger
+
+L'exe cherche un port libre à partir de 3000. Trois règles, issues d'un incident
+réel (application affichant **un autre projet Next** lancé en `npm run dev` sur
+le même poste) :
+
+1. **Sonder `127.0.0.1`, pas `0.0.0.0`.** Sous Windows `0.0.0.0:PORT` et
+   `127.0.0.1:PORT` coexistent : une sonde sur toutes les interfaces déclarait
+   3000 libre alors qu'un `next dev` (`-H 127.0.0.1`) le tenait, et le serveur
+   de l'app mourait aussitôt sur `EADDRINUSE`.
+2. **Vérifier l'identité du serveur avant de charger la fenêtre.** `proxy.ts`
+   répond **404** sans `x-app-token` et sert normalement (307 → `/login`) avec
+   le jeton ; un `next dev` voisin (sans `APP_TOKEN`) répond 307/200 dans les
+   deux cas et est donc refusé. L'ancienne sonde acceptait toute réponse < 500.
+3. **Ne jamais attendre indéfiniment.** Les sondes sont bornées (2 s), la mort
+   du processus serveur interrompt l'attente, et 5 ports consécutifs sont
+   essayés avant une boîte d'erreur explicite.
+
+Le reste du contrat reste inchangé : instance unique
+(`app.requestSingleInstanceLock()`, le port et `%APPDATA%/gestion-gaz/database.db`
+ne se partagent pas), arrêt de l'arbre de processus à la fermeture
+(`taskkill /pid <pid> /T /F` sous Windows), et jeton d'accès injecté avant
+`loadURL`.
 
 ### Auto-update
 - `electron-updater` vérifie les Releases GitHub au lancement
@@ -516,7 +542,7 @@ La prop `withMargin` (défaut `true`) ajoute `mb-3 sm:mb-4` ; passer
 ### Pièges connus
 
 - **Le port Electron est dynamique en production** (`findFreePort(3000)`,
-  `electron/main.js:95`) : l'origin `http://localhost:PORT` change entre deux
+  `electron/server-lifecycle.js`) : l'origin `http://localhost:PORT` change entre deux
   lancements, donc tout stockage navigateur est vidé. C'est pourquoi le système
   utilise `sessionStorage` et non `localStorage`. La restauration fonctionne
   dans une session, jamais entre deux lancements.
